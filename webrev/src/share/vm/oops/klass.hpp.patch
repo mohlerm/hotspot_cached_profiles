@@ -1,5 +1,5 @@
---- old/src/share/vm/oops/klass.hpp	2016-08-15 16:43:32.248545495 +0200
-+++ new/src/share/vm/oops/klass.hpp	2016-08-15 16:43:32.152545495 +0200
+--- old/src/share/vm/oops/klass.hpp	2016-08-15 16:52:12.380545495 +0200
++++ new/src/share/vm/oops/klass.hpp	2016-08-15 16:52:12.288545495 +0200
 @@ -304,10 +304,11 @@
      _lh_header_size_mask        = right_n_bits(BitsPerByte),  // shifted mask
      _lh_array_tag_bits          = 2,

@@ -1,5 +1,5 @@
---- old/src/share/vm/ci/ciEnv.cpp	2016-08-15 16:43:28.932545495 +0200
-+++ new/src/share/vm/ci/ciEnv.cpp	2016-08-15 16:43:28.844545495 +0200
+--- old/src/share/vm/ci/ciEnv.cpp	2016-08-15 16:52:09.112545495 +0200
++++ new/src/share/vm/ci/ciEnv.cpp	2016-08-15 16:52:09.020545495 +0200
 @@ -31,6 +31,7 @@
  #include "ci/ciMethod.hpp"
  #include "ci/ciNullObject.hpp"

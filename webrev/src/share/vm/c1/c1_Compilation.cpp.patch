@@ -1,5 +1,5 @@
---- old/src/share/vm/c1/c1_Compilation.cpp	2016-08-15 16:43:28.304545495 +0200
-+++ new/src/share/vm/c1/c1_Compilation.cpp	2016-08-15 16:43:28.212545495 +0200
+--- old/src/share/vm/c1/c1_Compilation.cpp	2016-08-15 16:52:08.464545495 +0200
++++ new/src/share/vm/c1/c1_Compilation.cpp	2016-08-15 16:52:08.368545495 +0200
 @@ -583,6 +583,22 @@
        md->set_would_profile(_would_profile);
      }

@@ -1,5 +1,5 @@
---- old/src/share/vm/c1/c1_Compilation.cpp	2016-08-15 16:43:28.304545495 +0200
-+++ new/src/share/vm/c1/c1_Compilation.cpp	2016-08-15 16:43:28.212545495 +0200
+--- old/src/share/vm/c1/c1_Compilation.cpp	2016-08-15 16:52:08.464545495 +0200
++++ new/src/share/vm/c1/c1_Compilation.cpp	2016-08-15 16:52:08.368545495 +0200
 @@ -583,6 +583,22 @@
        md->set_would_profile(_would_profile);
      }
@@ -23,8 +23,8 @@
  }
  
  Compilation::~Compilation() {
---- old/src/share/vm/ci/ciClassList.hpp	2016-08-15 16:43:28.628545495 +0200
-+++ new/src/share/vm/ci/ciClassList.hpp	2016-08-15 16:43:28.540545495 +0200
+--- old/src/share/vm/ci/ciClassList.hpp	2016-08-15 16:52:08.796545495 +0200
++++ new/src/share/vm/ci/ciClassList.hpp	2016-08-15 16:52:08.696545495 +0200
 @@ -109,6 +109,8 @@
  friend class ciObjArray;               \
  friend class ciMetadata;               \
@@ -34,8 +34,8 @@
  friend class ciTypeArray;              \
  friend class ciType;                   \
  friend class ciReturnAddress;          \
---- old/src/share/vm/ci/ciEnv.cpp	2016-08-15 16:43:28.932545495 +0200
-+++ new/src/share/vm/ci/ciEnv.cpp	2016-08-15 16:43:28.844545495 +0200
+--- old/src/share/vm/ci/ciEnv.cpp	2016-08-15 16:52:09.112545495 +0200
++++ new/src/share/vm/ci/ciEnv.cpp	2016-08-15 16:52:09.020545495 +0200
 @@ -31,6 +31,7 @@
  #include "ci/ciMethod.hpp"
  #include "ci/ciNullObject.hpp"
@@ -124,8 +124,8 @@
 +    }
 +  }
  }
---- old/src/share/vm/ci/ciEnv.hpp	2016-08-15 16:43:29.248545495 +0200
-+++ new/src/share/vm/ci/ciEnv.hpp	2016-08-15 16:43:29.156545495 +0200
+--- old/src/share/vm/ci/ciEnv.hpp	2016-08-15 16:52:09.440545495 +0200
++++ new/src/share/vm/ci/ciEnv.hpp	2016-08-15 16:52:09.356545495 +0200
 @@ -459,11 +459,16 @@
    void metadata_do(void f(Metadata*)) { _factory->metadata_do(f); }
  
@@ -143,8 +143,8 @@
  };
  
  #endif // SHARE_VM_CI_CIENV_HPP
---- old/src/share/vm/ci/ciMethod.cpp	2016-08-15 16:43:29.596545495 +0200
-+++ new/src/share/vm/ci/ciMethod.cpp	2016-08-15 16:43:29.500545495 +0200
+--- old/src/share/vm/ci/ciMethod.cpp	2016-08-15 16:52:09.760545495 +0200
++++ new/src/share/vm/ci/ciMethod.cpp	2016-08-15 16:52:09.676545495 +0200
 @@ -32,6 +32,7 @@
  #include "ci/ciStreams.hpp"
  #include "ci/ciSymbol.hpp"
@@ -163,8 +163,8 @@
  }
  
  
---- old/src/share/vm/ci/ciMethod.hpp	2016-08-15 16:43:29.956545495 +0200
-+++ new/src/share/vm/ci/ciMethod.hpp	2016-08-15 16:43:29.856545495 +0200
+--- old/src/share/vm/ci/ciMethod.hpp	2016-08-15 16:52:10.080545495 +0200
++++ new/src/share/vm/ci/ciMethod.hpp	2016-08-15 16:52:09.996545495 +0200
 @@ -53,6 +53,7 @@
    friend class ciBytecodeStream;
    friend class ciMethodHandle;
@@ -173,8 +173,8 @@
    friend class InlineTree;
  
   private:
---- old/src/share/vm/ci/ciMethodData.cpp	2016-08-15 16:43:30.292545495 +0200
-+++ new/src/share/vm/ci/ciMethodData.cpp	2016-08-15 16:43:30.200545495 +0200
+--- old/src/share/vm/ci/ciMethodData.cpp	2016-08-15 16:52:10.400545495 +0200
++++ new/src/share/vm/ci/ciMethodData.cpp	2016-08-15 16:52:10.316545495 +0200
 @@ -26,6 +26,7 @@
  #include "ci/ciMetadata.hpp"
  #include "ci/ciMethodData.hpp"
@@ -193,8 +193,8 @@
  }
  
  void ciReceiverTypeData::translate_receiver_data_from(const ProfileData* data) {
---- old/src/share/vm/ci/ciMethodData.hpp	2016-08-15 16:43:30.608545495 +0200
-+++ new/src/share/vm/ci/ciMethodData.hpp	2016-08-15 16:43:30.516545495 +0200
+--- old/src/share/vm/ci/ciMethodData.hpp	2016-08-15 16:52:10.764545495 +0200
++++ new/src/share/vm/ci/ciMethodData.hpp	2016-08-15 16:52:10.668545495 +0200
 @@ -370,6 +370,7 @@
  class ciMethodData : public ciMetadata {
    CI_PACKAGE_ACCESS
@@ -203,8 +203,8 @@
  
  private:
    // Size in bytes
---- old/src/share/vm/compiler/compileBroker.cpp	2016-08-15 16:43:30.940545495 +0200
-+++ new/src/share/vm/compiler/compileBroker.cpp	2016-08-15 16:43:30.840545495 +0200
+--- old/src/share/vm/compiler/compileBroker.cpp	2016-08-15 16:52:11.092545495 +0200
++++ new/src/share/vm/compiler/compileBroker.cpp	2016-08-15 16:52:11.000545495 +0200
 @@ -25,6 +25,7 @@
  #include "precompiled.hpp"
  #include "classfile/symbolTable.hpp"
@@ -340,8 +340,8 @@
  // ------------------------------------------------------------------
  // CompileBroker::preload_classes
  void CompileBroker::preload_classes(const methodHandle& method, TRAPS) {
---- old/src/share/vm/compiler/compileBroker.hpp	2016-08-15 16:43:31.268545495 +0200
-+++ new/src/share/vm/compiler/compileBroker.hpp	2016-08-15 16:43:31.176545495 +0200
+--- old/src/share/vm/compiler/compileBroker.hpp	2016-08-15 16:52:11.424545495 +0200
++++ new/src/share/vm/compiler/compileBroker.hpp	2016-08-15 16:52:11.332545495 +0200
 @@ -140,6 +140,7 @@
  class CompileBroker: AllStatic {
   friend class Threads;
@@ -350,8 +350,8 @@
  
   public:
    enum {
---- old/src/share/vm/interpreter/invocationCounter.hpp	2016-08-15 16:43:31.592545495 +0200
-+++ new/src/share/vm/interpreter/invocationCounter.hpp	2016-08-15 16:43:31.500545495 +0200
+--- old/src/share/vm/interpreter/invocationCounter.hpp	2016-08-15 16:52:11.736545495 +0200
++++ new/src/share/vm/interpreter/invocationCounter.hpp	2016-08-15 16:52:11.644545495 +0200
 @@ -41,6 +41,7 @@
  class InvocationCounter VALUE_OBJ_CLASS_SPEC {
    friend class VMStructs;
@@ -360,8 +360,8 @@
   private:                             // bit no: |31  3|  2  | 1 0 |
    unsigned int _counter;              // format: [count|carry|state]
  
---- old/src/share/vm/oops/instanceKlass.hpp	2016-08-15 16:43:31.920545495 +0200
-+++ new/src/share/vm/oops/instanceKlass.hpp	2016-08-15 16:43:31.824545495 +0200
+--- old/src/share/vm/oops/instanceKlass.hpp	2016-08-15 16:52:12.052545495 +0200
++++ new/src/share/vm/oops/instanceKlass.hpp	2016-08-15 16:52:11.960545495 +0200
 @@ -113,6 +113,7 @@
    friend class JVMCIVMStructs;
    friend class ClassFileParser;
@@ -370,8 +370,8 @@
  
   protected:
    InstanceKlass(const ClassFileParser& parser, unsigned kind);
---- old/src/share/vm/oops/klass.hpp	2016-08-15 16:43:32.248545495 +0200
-+++ new/src/share/vm/oops/klass.hpp	2016-08-15 16:43:32.152545495 +0200
+--- old/src/share/vm/oops/klass.hpp	2016-08-15 16:52:12.380545495 +0200
++++ new/src/share/vm/oops/klass.hpp	2016-08-15 16:52:12.288545495 +0200
 @@ -304,10 +304,11 @@
      _lh_header_size_mask        = right_n_bits(BitsPerByte),  // shifted mask
      _lh_array_tag_bits          = 2,
@@ -385,8 +385,8 @@
    static int layout_helper_size_in_bytes(jint lh) {
      assert(lh > (jint)_lh_neutral_value, "must be instance");
      return (int) lh & ~_lh_instance_slow_path_bit;
---- old/src/share/vm/oops/methodCounters.cpp	2016-08-15 16:43:32.572545495 +0200
-+++ new/src/share/vm/oops/methodCounters.cpp	2016-08-15 16:43:32.480545495 +0200
+--- old/src/share/vm/oops/methodCounters.cpp	2016-08-15 16:52:12.692545495 +0200
++++ new/src/share/vm/oops/methodCounters.cpp	2016-08-15 16:52:12.608545495 +0200
 @@ -24,6 +24,7 @@
  #include "precompiled.hpp"
  #include "oops/methodCounters.hpp"
@@ -419,8 +419,8 @@
  #endif
  }
 -
---- old/src/share/vm/oops/methodCounters.hpp	2016-08-15 16:43:32.892545495 +0200
-+++ new/src/share/vm/oops/methodCounters.hpp	2016-08-15 16:43:32.796545495 +0200
+--- old/src/share/vm/oops/methodCounters.hpp	2016-08-15 16:52:13.012545495 +0200
++++ new/src/share/vm/oops/methodCounters.hpp	2016-08-15 16:52:12.916545495 +0200
 @@ -80,6 +80,8 @@
  
      // Set per-method thresholds.
@@ -439,8 +439,8 @@
    int highest_comp_level() const;
    void set_highest_comp_level(int level);
    int highest_osr_comp_level() const;
---- old/src/share/vm/oops/methodData.cpp	2016-08-15 16:43:33.220545495 +0200
-+++ new/src/share/vm/oops/methodData.cpp	2016-08-15 16:43:33.116545495 +0200
+--- old/src/share/vm/oops/methodData.cpp	2016-08-15 16:52:13.316545495 +0200
++++ new/src/share/vm/oops/methodData.cpp	2016-08-15 16:52:13.224545495 +0200
 @@ -37,6 +37,7 @@
  #include "runtime/handles.inline.hpp"
  #include "runtime/orderAccess.inline.hpp"
@@ -464,8 +464,8 @@
    CompilerOracle::has_option_value(_method, "CompileThresholdScaling", scale);
    _invoke_mask = right_n_bits(Arguments::scaled_freq_log(Tier0InvokeNotifyFreqLog, scale)) << InvocationCounter::count_shift;
    _backedge_mask = right_n_bits(Arguments::scaled_freq_log(Tier0BackedgeNotifyFreqLog, scale)) << InvocationCounter::count_shift;
---- old/src/share/vm/opto/bytecodeInfo.cpp	2016-08-15 16:43:33.540545495 +0200
-+++ new/src/share/vm/opto/bytecodeInfo.cpp	2016-08-15 16:43:33.448545495 +0200
+--- old/src/share/vm/opto/bytecodeInfo.cpp	2016-08-15 16:52:13.640545495 +0200
++++ new/src/share/vm/opto/bytecodeInfo.cpp	2016-08-15 16:52:13.552545495 +0200
 @@ -24,6 +24,8 @@
  
  #include "precompiled.hpp"
@@ -531,8 +531,8 @@
    if (ciReplay::should_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
      set_msg("force inline by ciReplay");
      return false;
---- old/src/share/vm/opto/compile.cpp	2016-08-15 16:43:33.880545495 +0200
-+++ new/src/share/vm/opto/compile.cpp	2016-08-15 16:43:33.776545495 +0200
+--- old/src/share/vm/opto/compile.cpp	2016-08-15 16:52:13.980545495 +0200
++++ new/src/share/vm/opto/compile.cpp	2016-08-15 16:52:13.888545495 +0200
 @@ -26,6 +26,8 @@
  #include "asm/macroAssembler.hpp"
  #include "asm/macroAssembler.inline.hpp"
@@ -542,30 +542,21 @@
  #include "classfile/systemDictionary.hpp"
  #include "code/exceptionHandlerTable.hpp"
  #include "code/nmethod.hpp"
-@@ -876,6 +878,22 @@
+@@ -876,6 +878,13 @@
    if (directive->DumpInlineOption && (ilt() != NULL)) {
      env()->dump_inline_data(_compile_id);
    }
 +  // Dump profile to allow profile caching
 +  if(env()->comp_level()>CompLevel_limited_profile && env()->comp_level() >= DumpProfilesMinTier) {
 +    if ((DumpProfiles || method()->has_option("DumpProfile")) && (!method()->has_option("IgnoreDumpProfile"))) {
-+		const char* klassmethod = _method->holder()->name()->as_utf8();
-+		int length = strlen(klassmethod);
-+		char* subbuff = NEW_RESOURCE_ARRAY(char,length+1);
-+		memcpy( subbuff, klassmethod, length );
-+		subbuff[length] = '\0';
-+		if(strncmp(subbuff,"jdk/nashorn/internal/scripts/Script$Recompilation", 49)==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$MH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$BMH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$DMH")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/ScriptObject")==0 || strcmp(subbuff,"jdk/internal/org/objectweb/asm/ClassWriter")==0 || strncmp(subbuff,"java/util/stream/ReferencePipeline", 34)==0 || strcmp(subbuff,"jdk/internal/loader/BuiltinClassLoader")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/types/Type")==0 || strcmp(subbuff,"java/util/concurrent/ConcurrentHashMap")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CompilerConstants")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/MethodEmitter")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/TypeEvaluator")==0 || strcmp(subbuff, "jdk/dynalink/TypeConverterFactory")==0 || strcmp(subbuff, "java/lang/invoke/BoundMethodHandle")==0 || strcmp(subbuff, "java/lang/invoke/MethodHandleImpl")==0 || strcmp(subbuff, "jdk/nashorn/internal/codegen/types/ArrayType")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/ClassEmitter")==0 || strcmp(subbuff,"jdk/dynalink/LinkerServicesImpl")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/linker/NashornLinker")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/AccessorProperty")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CodeGenerator")==0 || strcmp(subbuff,"java/security/Permissions")==0 || strcmp(subbuff," jdk/nashorn/internal/runtime/linker/NashornGuards")==0) {
-+			//tty->print("###Avoided: %s\n",method()->holder()->name()->as_utf8());
-+		} else {
-+			//tty->print("###Dump: %s\n",method()->holder()->name()->as_utf8());
-+			_env->dump_cache_profiles(0, method()->name()->as_utf8());
-+		}
++		//tty->print("###Dump: %s\n",method()->holder()->name()->as_utf8());
++		_env->dump_cache_profiles(0, method()->name()->as_utf8());
 +    }
 +  }
  
    // Now that we know the size of all the monitors we can add a fixed slot
    // for the original deopt pc.
-@@ -4207,6 +4225,8 @@
+@@ -4207,6 +4216,8 @@
  void Compile::dump_inline_data(outputStream* out) {
    InlineTree* inl_tree = ilt();
    if (inl_tree != NULL) {
@@ -574,8 +565,8 @@
      out->print(" inline %d", inl_tree->count());
      inl_tree->dump_replay_data(out);
    }
---- old/src/share/vm/opto/library_call.cpp	2016-08-15 16:43:34.272545495 +0200
-+++ new/src/share/vm/opto/library_call.cpp	2016-08-15 16:43:34.164545495 +0200
+--- old/src/share/vm/opto/library_call.cpp	2016-08-15 16:52:14.376545495 +0200
++++ new/src/share/vm/opto/library_call.cpp	2016-08-15 16:52:14.280545495 +0200
 @@ -3768,7 +3768,7 @@
    }
    // Now test the correct condition.
@@ -585,8 +576,8 @@
                     <<    Klass::_lh_array_tag_shift)
                  : Klass::_lh_neutral_value);
    Node* cmp = _gvn.transform(new CmpINode(layout_val, intcon(nval)));
---- old/src/share/vm/prims/jvmtiExport.hpp	2016-08-15 16:43:34.668545495 +0200
-+++ new/src/share/vm/prims/jvmtiExport.hpp	2016-08-15 16:43:34.568545495 +0200
+--- old/src/share/vm/prims/jvmtiExport.hpp	2016-08-15 16:52:14.760545495 +0200
++++ new/src/share/vm/prims/jvmtiExport.hpp	2016-08-15 16:52:14.680545495 +0200
 @@ -66,6 +66,7 @@
  class JvmtiExport : public AllStatic {
    friend class VMStructs;
@@ -595,8 +586,8 @@
  
   private:
  
---- old/src/share/vm/runtime/advancedThresholdPolicy.cpp	2016-08-15 16:43:34.988545495 +0200
-+++ new/src/share/vm/runtime/advancedThresholdPolicy.cpp	2016-08-15 16:43:34.896545495 +0200
+--- old/src/share/vm/runtime/advancedThresholdPolicy.cpp	2016-08-15 16:52:15.080545495 +0200
++++ new/src/share/vm/runtime/advancedThresholdPolicy.cpp	2016-08-15 16:52:14.992545495 +0200
 @@ -408,6 +408,11 @@
        if (is_method_profiled(method)) {
          // Special case: we got here because this method was fully profiled in the interpreter.
@@ -609,8 +600,8 @@
        } else {
          MethodData* mdo = method->method_data();
          if (mdo != NULL) {
---- old/src/share/vm/runtime/deoptimization.cpp	2016-08-15 16:43:35.324545495 +0200
-+++ new/src/share/vm/runtime/deoptimization.cpp	2016-08-15 16:43:35.228545495 +0200
+--- old/src/share/vm/runtime/deoptimization.cpp	2016-08-15 16:52:15.412545495 +0200
++++ new/src/share/vm/runtime/deoptimization.cpp	2016-08-15 16:52:15.308545495 +0200
 @@ -774,6 +774,10 @@
    return bt;
  JRT_END
@@ -647,8 +638,8 @@
  
  void Deoptimization::deoptimize_single_frame(JavaThread* thread, frame fr, Deoptimization::DeoptReason reason) {
    assert(fr.can_be_deoptimized(), "checking frame type");
---- old/src/share/vm/runtime/deoptimization.hpp	2016-08-15 16:43:35.676545495 +0200
-+++ new/src/share/vm/runtime/deoptimization.hpp	2016-08-15 16:43:35.572545495 +0200
+--- old/src/share/vm/runtime/deoptimization.hpp	2016-08-15 16:52:15.752545495 +0200
++++ new/src/share/vm/runtime/deoptimization.hpp	2016-08-15 16:52:15.656545495 +0200
 @@ -135,7 +135,14 @@
    static void deoptimize(JavaThread* thread, frame fr, RegisterMap *reg_map);
    static void deoptimize(JavaThread* thread, frame fr, RegisterMap *reg_map, DeoptReason reason);
@@ -664,8 +655,8 @@
    // Does the actual work for deoptimizing a single frame
    static void deoptimize_single_frame(JavaThread* thread, frame fr, DeoptReason reason);
  
---- old/src/share/vm/runtime/globals.hpp	2016-08-15 16:43:36.032545495 +0200
-+++ new/src/share/vm/runtime/globals.hpp	2016-08-15 16:43:35.920545495 +0200
+--- old/src/share/vm/runtime/globals.hpp	2016-08-15 16:52:16.080545495 +0200
++++ new/src/share/vm/runtime/globals.hpp	2016-08-15 16:52:15.984545495 +0200
 @@ -1071,8 +1071,8 @@
            "Print native memory tracking summary data if it is on")          \
                                                                              \
@@ -724,8 +715,8 @@
            "File containing inlining replay information"                     \
            "[default: ./inline_pid%p.log] (%p replaced with pid)")           \
                                                                              \
---- old/src/share/vm/runtime/java.cpp	2016-08-15 16:43:36.384545495 +0200
-+++ new/src/share/vm/runtime/java.cpp	2016-08-15 16:43:36.292545495 +0200
+--- old/src/share/vm/runtime/java.cpp	2016-08-15 16:52:16.440545495 +0200
++++ new/src/share/vm/runtime/java.cpp	2016-08-15 16:52:16.356545495 +0200
 @@ -312,6 +312,10 @@
      CodeCache::print();
    }
@@ -748,8 +739,8 @@
    if (PrintMethodFlushingStatistics) {
      NMethodSweeper::print();
    }
---- old/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 16:43:36.712545495 +0200
-+++ new/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 16:43:36.616545495 +0200
+--- old/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 16:52:16.776545495 +0200
++++ new/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 16:52:16.684545495 +0200
 @@ -25,11 +25,36 @@
  #ifndef SHARE_VM_RUNTIME_SIMPLETHRESHOLDPOLICY_INLINE_HPP
  #define SHARE_VM_RUNTIME_SIMPLETHRESHOLDPOLICY_INLINE_HPP
@@ -821,8 +812,8 @@
    if (CompilerOracle::has_option_value(method, "CompileThresholdScaling", threshold_scaling)) {
      scale *= threshold_scaling;
    }
---- old/src/share/vm/runtime/thread.cpp	2016-08-15 16:43:37.060545495 +0200
-+++ new/src/share/vm/runtime/thread.cpp	2016-08-15 16:43:36.964545495 +0200
+--- old/src/share/vm/runtime/thread.cpp	2016-08-15 16:52:17.180545495 +0200
++++ new/src/share/vm/runtime/thread.cpp	2016-08-15 16:52:17.036545495 +0200
 @@ -27,6 +27,7 @@
  #include "classfile/javaClasses.hpp"
  #include "classfile/systemDictionary.hpp"
@@ -843,7 +834,7 @@
  
    // Pre-initialize some JSR292 core classes to avoid deadlock during class loading.
 --- /dev/null	2016-08-11 14:11:23.983906000 +0200
-+++ new/src/share/vm/ci/ciCacheProfiles.cpp	2016-08-15 16:43:37.340545495 +0200
++++ new/src/share/vm/ci/ciCacheProfiles.cpp	2016-08-15 16:52:17.572545495 +0200
 @@ -0,0 +1,459 @@
 +/* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
 + * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -1305,7 +1296,7 @@
 +	}
 +}
 --- /dev/null	2016-08-11 14:11:23.983906000 +0200
-+++ new/src/share/vm/ci/ciCacheProfiles.hpp	2016-08-15 16:43:37.652545495 +0200
++++ new/src/share/vm/ci/ciCacheProfiles.hpp	2016-08-15 16:52:17.908545495 +0200
 @@ -0,0 +1,155 @@
 +/*
 +ciCacheProfiles.cpp * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
@@ -1463,7 +1454,7 @@
 +
 +#endif // SHARE_VM_CI_CICACHEPROFILES_HPP
 --- /dev/null	2016-08-11 14:11:23.983906000 +0200
-+++ new/src/share/vm/ci/ciCacheReplay.cpp	2016-08-15 16:43:37.952545495 +0200
++++ new/src/share/vm/ci/ciCacheReplay.cpp	2016-08-15 16:52:18.192545495 +0200
 @@ -0,0 +1,1198 @@
 +/* Copyright (c) 2013, 2016, Oracle and/or its affiliates. All rights reserved.
 + * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -2664,7 +2655,7 @@
 +
 +//#endif // PRODUCT
 --- /dev/null	2016-08-11 14:11:23.983906000 +0200
-+++ new/src/share/vm/ci/ciCacheReplay.hpp	2016-08-15 16:43:38.248545495 +0200
++++ new/src/share/vm/ci/ciCacheReplay.hpp	2016-08-15 16:52:18.488545495 +0200
 @@ -0,0 +1,127 @@
 +/*
 + * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.

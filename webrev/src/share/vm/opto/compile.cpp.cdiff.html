@@ -100,7 +100,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
   #include "compiler/compileBroker.hpp"
   #include "compiler/compileLog.hpp"
 <hr /><span class="oldmarker">*** 874,883 ****</span>
-<span class="newmarker">--- 876,901 ----</span>
+<span class="newmarker">--- 876,892 ----</span>
       env()-&gt;dump_replay_data(_compile_id);
     }
     if (directive-&gt;DumpInlineOption &amp;&amp; (ilt() != NULL)) {
@@ -109,17 +109,8 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 <span class="new">+   // Dump profile to allow profile caching</span>
 <span class="new">+   if(env()-&gt;comp_level()&gt;CompLevel_limited_profile &amp;&amp; env()-&gt;comp_level() &gt;= DumpProfilesMinTier) {</span>
 <span class="new">+     if ((DumpProfiles || method()-&gt;has_option("DumpProfile")) &amp;&amp; (!method()-&gt;has_option("IgnoreDumpProfile"))) {</span>
-<span class="new">+                 const char* klassmethod = _method-&gt;holder()-&gt;name()-&gt;as_utf8();</span>
-<span class="new">+                 int length = strlen(klassmethod);</span>
-<span class="new">+                 char* subbuff = NEW_RESOURCE_ARRAY(char,length+1);</span>
-<span class="new">+                 memcpy( subbuff, klassmethod, length );</span>
-<span class="new">+                 subbuff[length] = '\0';</span>
-<span class="new">+                 if(strncmp(subbuff,"jdk/nashorn/internal/scripts/Script$Recompilation", 49)==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$MH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$BMH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$DMH")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/ScriptObject")==0 || strcmp(subbuff,"jdk/internal/org/objectweb/asm/ClassWriter")==0 || strncmp(subbuff,"java/util/stream/ReferencePipeline", 34)==0 || strcmp(subbuff,"jdk/internal/loader/BuiltinClassLoader")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/types/Type")==0 || strcmp(subbuff,"java/util/concurrent/ConcurrentHashMap")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CompilerConstants")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/MethodEmitter")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/TypeEvaluator")==0 || strcmp(subbuff, "jdk/dynalink/TypeConverterFactory")==0 || strcmp(subbuff, "java/lang/invoke/BoundMethodHandle")==0 || strcmp(subbuff, "java/lang/invoke/MethodHandleImpl")==0 || strcmp(subbuff, "jdk/nashorn/internal/codegen/types/ArrayType")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/ClassEmitter")==0 || strcmp(subbuff,"jdk/dynalink/LinkerServicesImpl")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/linker/NashornLinker")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/AccessorProperty")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CodeGenerator")==0 || strcmp(subbuff,"java/security/Permissions")==0 || strcmp(subbuff," jdk/nashorn/internal/runtime/linker/NashornGuards")==0) {</span>
-<span class="new">+                         //tty-&gt;print("###Avoided: %s\n",method()-&gt;holder()-&gt;name()-&gt;as_utf8());</span>
-<span class="new">+                 } else {</span>
-<span class="new">+                         //tty-&gt;print("###Dump: %s\n",method()-&gt;holder()-&gt;name()-&gt;as_utf8());</span>
-<span class="new">+                         _env-&gt;dump_cache_profiles(0, method()-&gt;name()-&gt;as_utf8());</span>
-<span class="new">+                 }</span>
+<span class="new">+                 //tty-&gt;print("###Dump: %s\n",method()-&gt;holder()-&gt;name()-&gt;as_utf8());</span>
+<span class="new">+                 _env-&gt;dump_cache_profiles(0, method()-&gt;name()-&gt;as_utf8());</span>
 <span class="new">+     }</span>
 <span class="new">+   }</span>
   
@@ -128,7 +119,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
   
     _orig_pc_slot =  fixed_slots();
 <hr /><span class="oldmarker">*** 4205,4214 ****</span>
-<span class="newmarker">--- 4223,4234 ----</span>
+<span class="newmarker">--- 4214,4225 ----</span>
   // Dump inlining replay data to the stream.
   // Don't change thread state and acquire any locks.
   void Compile::dump_inline_data(outputStream* out) {

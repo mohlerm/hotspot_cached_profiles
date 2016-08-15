@@ -1,5 +1,5 @@
---- old/src/share/vm/runtime/globals.hpp	2016-08-15 16:43:36.032545495 +0200
-+++ new/src/share/vm/runtime/globals.hpp	2016-08-15 16:43:35.920545495 +0200
+--- old/src/share/vm/runtime/globals.hpp	2016-08-15 16:52:16.080545495 +0200
++++ new/src/share/vm/runtime/globals.hpp	2016-08-15 16:52:15.984545495 +0200
 @@ -1071,8 +1071,8 @@
            "Print native memory tracking summary data if it is on")          \
                                                                              \

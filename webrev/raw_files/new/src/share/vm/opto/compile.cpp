@@ -881,17 +881,8 @@ Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr
   // Dump profile to allow profile caching
   if(env()->comp_level()>CompLevel_limited_profile && env()->comp_level() >= DumpProfilesMinTier) {
     if ((DumpProfiles || method()->has_option("DumpProfile")) && (!method()->has_option("IgnoreDumpProfile"))) {
-		const char* klassmethod = _method->holder()->name()->as_utf8();
-		int length = strlen(klassmethod);
-		char* subbuff = NEW_RESOURCE_ARRAY(char,length+1);
-		memcpy( subbuff, klassmethod, length );
-		subbuff[length] = '\0';
-		if(strncmp(subbuff,"jdk/nashorn/internal/scripts/Script$Recompilation", 49)==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$MH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$BMH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$DMH")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/ScriptObject")==0 || strcmp(subbuff,"jdk/internal/org/objectweb/asm/ClassWriter")==0 || strncmp(subbuff,"java/util/stream/ReferencePipeline", 34)==0 || strcmp(subbuff,"jdk/internal/loader/BuiltinClassLoader")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/types/Type")==0 || strcmp(subbuff,"java/util/concurrent/ConcurrentHashMap")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CompilerConstants")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/MethodEmitter")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/TypeEvaluator")==0 || strcmp(subbuff, "jdk/dynalink/TypeConverterFactory")==0 || strcmp(subbuff, "java/lang/invoke/BoundMethodHandle")==0 || strcmp(subbuff, "java/lang/invoke/MethodHandleImpl")==0 || strcmp(subbuff, "jdk/nashorn/internal/codegen/types/ArrayType")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/ClassEmitter")==0 || strcmp(subbuff,"jdk/dynalink/LinkerServicesImpl")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/linker/NashornLinker")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/AccessorProperty")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CodeGenerator")==0 || strcmp(subbuff,"java/security/Permissions")==0 || strcmp(subbuff," jdk/nashorn/internal/runtime/linker/NashornGuards")==0) {
-			//tty->print("###Avoided: %s\n",method()->holder()->name()->as_utf8());
-		} else {
-			//tty->print("###Dump: %s\n",method()->holder()->name()->as_utf8());
-			_env->dump_cache_profiles(0, method()->name()->as_utf8());
-		}
+		//tty->print("###Dump: %s\n",method()->holder()->name()->as_utf8());
+		_env->dump_cache_profiles(0, method()->name()->as_utf8());
     }
   }
 

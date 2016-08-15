@@ -1,5 +1,5 @@
---- old/src/share/vm/opto/bytecodeInfo.cpp	2016-08-15 16:43:33.540545495 +0200
-+++ new/src/share/vm/opto/bytecodeInfo.cpp	2016-08-15 16:43:33.448545495 +0200
+--- old/src/share/vm/opto/bytecodeInfo.cpp	2016-08-15 16:52:13.640545495 +0200
++++ new/src/share/vm/opto/bytecodeInfo.cpp	2016-08-15 16:52:13.552545495 +0200
 @@ -24,6 +24,8 @@
  
  #include "precompiled.hpp"

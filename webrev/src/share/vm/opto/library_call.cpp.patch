@@ -1,5 +1,5 @@
---- old/src/share/vm/opto/library_call.cpp	2016-08-15 16:43:34.272545495 +0200
-+++ new/src/share/vm/opto/library_call.cpp	2016-08-15 16:43:34.164545495 +0200
+--- old/src/share/vm/opto/library_call.cpp	2016-08-15 16:52:14.376545495 +0200
++++ new/src/share/vm/opto/library_call.cpp	2016-08-15 16:52:14.280545495 +0200
 @@ -3768,7 +3768,7 @@
    }
    // Now test the correct condition.

@@ -159,15 +159,6 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 
 
 
-
-
-
-
-
-
-
-
-
  879 
  880   // Now that we know the size of all the monitors we can add a fixed slot
  881   // for the original deopt pc.
@@ -304,83 +295,74 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 <span class="new"> 881   // Dump profile to allow profile caching</span>
 <span class="new"> 882   if(env()-&gt;comp_level()&gt;CompLevel_limited_profile &amp;&amp; env()-&gt;comp_level() &gt;= DumpProfilesMinTier) {</span>
 <span class="new"> 883     if ((DumpProfiles || method()-&gt;has_option("DumpProfile")) &amp;&amp; (!method()-&gt;has_option("IgnoreDumpProfile"))) {</span>
-<span class="new"> 884                 const char* klassmethod = _method-&gt;holder()-&gt;name()-&gt;as_utf8();</span>
-<span class="new"> 885                 int length = strlen(klassmethod);</span>
-<span class="new"> 886                 char* subbuff = NEW_RESOURCE_ARRAY(char,length+1);</span>
-<span class="new"> 887                 memcpy( subbuff, klassmethod, length );</span>
-<span class="new"> 888                 subbuff[length] = '\0';</span>
-<span class="new"> 889                 if(strncmp(subbuff,"jdk/nashorn/internal/scripts/Script$Recompilation", 49)==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$MH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$BMH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$DMH")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/ScriptObject")==0 || strcmp(subbuff,"jdk/internal/org/objectweb/asm/ClassWriter")==0 || strncmp(subbuff,"java/util/stream/ReferencePipeline", 34)==0 || strcmp(subbuff,"jdk/internal/loader/BuiltinClassLoader")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/types/Type")==0 || strcmp(subbuff,"java/util/concurrent/ConcurrentHashMap")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CompilerConstants")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/MethodEmitter")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/TypeEvaluator")==0 || strcmp(subbuff, "jdk/dynalink/TypeConverterFactory")==0 || strcmp(subbuff, "java/lang/invoke/BoundMethodHandle")==0 || strcmp(subbuff, "java/lang/invoke/MethodHandleImpl")==0 || strcmp(subbuff, "jdk/nashorn/internal/codegen/types/ArrayType")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/ClassEmitter")==0 || strcmp(subbuff,"jdk/dynalink/LinkerServicesImpl")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/linker/NashornLinker")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/AccessorProperty")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CodeGenerator")==0 || strcmp(subbuff,"java/security/Permissions")==0 || strcmp(subbuff," jdk/nashorn/internal/runtime/linker/NashornGuards")==0) {</span>
-<span class="new"> 890                         //tty-&gt;print("###Avoided: %s\n",method()-&gt;holder()-&gt;name()-&gt;as_utf8());</span>
-<span class="new"> 891                 } else {</span>
-<span class="new"> 892                         //tty-&gt;print("###Dump: %s\n",method()-&gt;holder()-&gt;name()-&gt;as_utf8());</span>
-<span class="new"> 893                         _env-&gt;dump_cache_profiles(0, method()-&gt;name()-&gt;as_utf8());</span>
-<span class="new"> 894                 }</span>
-<span class="new"> 895     }</span>
-<span class="new"> 896   }</span>
- 897 
- 898   // Now that we know the size of all the monitors we can add a fixed slot
- 899   // for the original deopt pc.
- 900 
- 901   _orig_pc_slot =  fixed_slots();
- 902   int next_slot = _orig_pc_slot + (sizeof(address) / VMRegImpl::stack_slot_size);
- 903   set_fixed_slots(next_slot);
- 904 
- 905   // Compute when to use implicit null checks. Used by matching trap based
- 906   // nodes and NullCheck optimization.
- 907   set_allowed_deopt_reasons();
- 908 
- 909   // Now generate code
- 910   Code_Gen();
- 911   if (failing())  return;
- 912 
- 913   // Check if we want to skip execution of all compiled code.
- 914   {
- 915 #ifndef PRODUCT
- 916     if (OptoNoExecute) {
+<span class="new"> 884                 //tty-&gt;print("###Dump: %s\n",method()-&gt;holder()-&gt;name()-&gt;as_utf8());</span>
+<span class="new"> 885                 _env-&gt;dump_cache_profiles(0, method()-&gt;name()-&gt;as_utf8());</span>
+<span class="new"> 886     }</span>
+<span class="new"> 887   }</span>
+ 888 
+ 889   // Now that we know the size of all the monitors we can add a fixed slot
+ 890   // for the original deopt pc.
+ 891 
+ 892   _orig_pc_slot =  fixed_slots();
+ 893   int next_slot = _orig_pc_slot + (sizeof(address) / VMRegImpl::stack_slot_size);
+ 894   set_fixed_slots(next_slot);
+ 895 
+ 896   // Compute when to use implicit null checks. Used by matching trap based
+ 897   // nodes and NullCheck optimization.
+ 898   set_allowed_deopt_reasons();
+ 899 
+ 900   // Now generate code
+ 901   Code_Gen();
+ 902   if (failing())  return;
+ 903 
+ 904   // Check if we want to skip execution of all compiled code.
+ 905   {
+ 906 #ifndef PRODUCT
+ 907     if (OptoNoExecute) {
 
 </pre><hr></hr><pre>
-4208     // Distinguish OSR compilations from others in case CICountOSR is
-4209     // on.
-4210     jlong id = ((jlong)unique()) + (((jlong)compile_id()) &lt;&lt; 33) + (CICountOSR &amp;&amp; is_osr_compilation() ? ((jlong)1) &lt;&lt; 32 : 0);
-4211     cg-&gt;set_unique_id(id);
-4212     log()-&gt;elem("inline_id id='" JLONG_FORMAT "'", id);
-4213   }
-4214 }
-4215 
-4216 void Compile::log_inline_failure(const char* msg) {
-4217   if (C-&gt;log() != NULL) {
-4218     C-&gt;log()-&gt;inline_fail(msg);
-4219   }
-4220 }
-4221 
-4222 
-4223 // Dump inlining replay data to the stream.
-4224 // Don't change thread state and acquire any locks.
-4225 void Compile::dump_inline_data(outputStream* out) {
-4226   InlineTree* inl_tree = ilt();
-4227   if (inl_tree != NULL) {
-<span class="new">4228     //tty-&gt;print("&gt;DUMP_INLINE_DATA FOR:");method()-&gt;print_name(tty);tty-&gt;print("\n");</span>
-<span class="new">4229     //tty-&gt;print("&gt;INL_TREE-&gt;COUNT() = %d&lt;\n",inl_tree-&gt;count());</span>
-4230     out-&gt;print(" inline %d", inl_tree-&gt;count());
-4231     inl_tree-&gt;dump_replay_data(out);
-4232   }
-4233 }
-4234 
-4235 int Compile::cmp_expensive_nodes(Node* n1, Node* n2) {
-4236   if (n1-&gt;Opcode() &lt; n2-&gt;Opcode())      return -1;
-4237   else if (n1-&gt;Opcode() &gt; n2-&gt;Opcode()) return 1;
+4199     // Distinguish OSR compilations from others in case CICountOSR is
+4200     // on.
+4201     jlong id = ((jlong)unique()) + (((jlong)compile_id()) &lt;&lt; 33) + (CICountOSR &amp;&amp; is_osr_compilation() ? ((jlong)1) &lt;&lt; 32 : 0);
+4202     cg-&gt;set_unique_id(id);
+4203     log()-&gt;elem("inline_id id='" JLONG_FORMAT "'", id);
+4204   }
+4205 }
+4206 
+4207 void Compile::log_inline_failure(const char* msg) {
+4208   if (C-&gt;log() != NULL) {
+4209     C-&gt;log()-&gt;inline_fail(msg);
+4210   }
+4211 }
+4212 
+4213 
+4214 // Dump inlining replay data to the stream.
+4215 // Don't change thread state and acquire any locks.
+4216 void Compile::dump_inline_data(outputStream* out) {
+4217   InlineTree* inl_tree = ilt();
+4218   if (inl_tree != NULL) {
+<span class="new">4219     //tty-&gt;print("&gt;DUMP_INLINE_DATA FOR:");method()-&gt;print_name(tty);tty-&gt;print("\n");</span>
+<span class="new">4220     //tty-&gt;print("&gt;INL_TREE-&gt;COUNT() = %d&lt;\n",inl_tree-&gt;count());</span>
+4221     out-&gt;print(" inline %d", inl_tree-&gt;count());
+4222     inl_tree-&gt;dump_replay_data(out);
+4223   }
+4224 }
+4225 
+4226 int Compile::cmp_expensive_nodes(Node* n1, Node* n2) {
+4227   if (n1-&gt;Opcode() &lt; n2-&gt;Opcode())      return -1;
+4228   else if (n1-&gt;Opcode() &gt; n2-&gt;Opcode()) return 1;
+4229 
+4230   assert(n1-&gt;req() == n2-&gt;req(), "can't compare %s nodes: n1-&gt;req() = %d, n2-&gt;req() = %d", NodeClassNames[n1-&gt;Opcode()], n1-&gt;req(), n2-&gt;req());
+4231   for (uint i = 1; i &lt; n1-&gt;req(); i++) {
+4232     if (n1-&gt;in(i) &lt; n2-&gt;in(i))      return -1;
+4233     else if (n1-&gt;in(i) &gt; n2-&gt;in(i)) return 1;
+4234   }
+4235 
+4236   return 0;
+4237 }
 4238 
-4239   assert(n1-&gt;req() == n2-&gt;req(), "can't compare %s nodes: n1-&gt;req() = %d, n2-&gt;req() = %d", NodeClassNames[n1-&gt;Opcode()], n1-&gt;req(), n2-&gt;req());
-4240   for (uint i = 1; i &lt; n1-&gt;req(); i++) {
-4241     if (n1-&gt;in(i) &lt; n2-&gt;in(i))      return -1;
-4242     else if (n1-&gt;in(i) &gt; n2-&gt;in(i)) return 1;
-4243   }
-4244 
-4245   return 0;
-4246 }
-4247 
-4248 int Compile::cmp_expensive_nodes(Node** n1p, Node** n2p) {
-4249   Node* n1 = *n1p;
+4239 int Compile::cmp_expensive_nodes(Node** n1p, Node** n2p) {
+4240   Node* n1 = *n1p;
 
 </pre><hr></hr>
 </pre></td>

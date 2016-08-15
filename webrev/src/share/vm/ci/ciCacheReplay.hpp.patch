@@ -1,5 +1,5 @@
 --- /dev/null	2016-08-11 14:11:23.983906000 +0200
-+++ new/src/share/vm/ci/ciCacheReplay.hpp	2016-08-15 16:43:38.248545495 +0200
++++ new/src/share/vm/ci/ciCacheReplay.hpp	2016-08-15 16:52:18.488545495 +0200
 @@ -0,0 +1,127 @@
 +/*
 + * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.

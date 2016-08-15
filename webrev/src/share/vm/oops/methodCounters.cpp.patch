@@ -1,5 +1,5 @@
---- old/src/share/vm/oops/methodCounters.cpp	2016-08-15 16:43:32.572545495 +0200
-+++ new/src/share/vm/oops/methodCounters.cpp	2016-08-15 16:43:32.480545495 +0200
+--- old/src/share/vm/oops/methodCounters.cpp	2016-08-15 16:52:12.692545495 +0200
++++ new/src/share/vm/oops/methodCounters.cpp	2016-08-15 16:52:12.608545495 +0200
 @@ -24,6 +24,7 @@
  #include "precompiled.hpp"
  #include "oops/methodCounters.hpp"
