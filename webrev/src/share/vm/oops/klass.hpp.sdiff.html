@@ -1,0 +1,191 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/oops </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/oops/instanceKlass.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/methodCounters.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/oops/klass.hpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+ 287   static ByteSize primary_supers_offset()        { return in_ByteSize(offset_of(Klass, _primary_supers)); }
+ 288   static ByteSize secondary_super_cache_offset() { return in_ByteSize(offset_of(Klass, _secondary_super_cache)); }
+ 289   static ByteSize secondary_supers_offset()      { return in_ByteSize(offset_of(Klass, _secondary_supers)); }
+ 290   static ByteSize java_mirror_offset()           { return in_ByteSize(offset_of(Klass, _java_mirror)); }
+ 291   static ByteSize modifier_flags_offset()        { return in_ByteSize(offset_of(Klass, _modifier_flags)); }
+ 292   static ByteSize layout_helper_offset()         { return in_ByteSize(offset_of(Klass, _layout_helper)); }
+ 293   static ByteSize access_flags_offset()          { return in_ByteSize(offset_of(Klass, _access_flags)); }
+ 294 
+ 295   // Unpacking layout_helper:
+ 296   enum {
+ 297     _lh_neutral_value           = 0,  // neutral non-array non-instance value
+ 298     _lh_instance_slow_path_bit  = 0x01,
+ 299     _lh_log2_element_size_shift = BitsPerByte*0,
+ 300     _lh_log2_element_size_mask  = BitsPerLong-1,
+ 301     _lh_element_type_shift      = BitsPerByte*1,
+ 302     _lh_element_type_mask       = right_n_bits(BitsPerByte),  // shifted mask
+ 303     _lh_header_size_shift       = BitsPerByte*2,
+ 304     _lh_header_size_mask        = right_n_bits(BitsPerByte),  // shifted mask
+ 305     _lh_array_tag_bits          = 2,
+ 306     _lh_array_tag_shift         = BitsPerInt - _lh_array_tag_bits,
+<span class="removed"> 307     _lh_array_tag_type_value    = ~0x00,  // 0xC0000000 &gt;&gt; 30</span>
+ 308     _lh_array_tag_obj_value     = ~0x01   // 0x80000000 &gt;&gt; 30
+ 309   };
+
+
+ 310 
+ 311   static int layout_helper_size_in_bytes(jint lh) {
+ 312     assert(lh &gt; (jint)_lh_neutral_value, "must be instance");
+ 313     return (int) lh &amp; ~_lh_instance_slow_path_bit;
+ 314   }
+ 315   static bool layout_helper_needs_slow_path(jint lh) {
+ 316     assert(lh &gt; (jint)_lh_neutral_value, "must be instance");
+ 317     return (lh &amp; _lh_instance_slow_path_bit) != 0;
+ 318   }
+ 319   static bool layout_helper_is_instance(jint lh) {
+ 320     return (jint)lh &gt; (jint)_lh_neutral_value;
+ 321   }
+ 322   static bool layout_helper_is_array(jint lh) {
+ 323     return (jint)lh &lt; (jint)_lh_neutral_value;
+ 324   }
+ 325   static bool layout_helper_is_typeArray(jint lh) {
+ 326     // _lh_array_tag_type_value == (lh &gt;&gt; _lh_array_tag_shift);
+ 327     return (juint)lh &gt;= (juint)(_lh_array_tag_type_value &lt;&lt; _lh_array_tag_shift);
+ 328   }
+ 329   static bool layout_helper_is_objArray(jint lh) {
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+ 287   static ByteSize primary_supers_offset()        { return in_ByteSize(offset_of(Klass, _primary_supers)); }
+ 288   static ByteSize secondary_super_cache_offset() { return in_ByteSize(offset_of(Klass, _secondary_super_cache)); }
+ 289   static ByteSize secondary_supers_offset()      { return in_ByteSize(offset_of(Klass, _secondary_supers)); }
+ 290   static ByteSize java_mirror_offset()           { return in_ByteSize(offset_of(Klass, _java_mirror)); }
+ 291   static ByteSize modifier_flags_offset()        { return in_ByteSize(offset_of(Klass, _modifier_flags)); }
+ 292   static ByteSize layout_helper_offset()         { return in_ByteSize(offset_of(Klass, _layout_helper)); }
+ 293   static ByteSize access_flags_offset()          { return in_ByteSize(offset_of(Klass, _access_flags)); }
+ 294 
+ 295   // Unpacking layout_helper:
+ 296   enum {
+ 297     _lh_neutral_value           = 0,  // neutral non-array non-instance value
+ 298     _lh_instance_slow_path_bit  = 0x01,
+ 299     _lh_log2_element_size_shift = BitsPerByte*0,
+ 300     _lh_log2_element_size_mask  = BitsPerLong-1,
+ 301     _lh_element_type_shift      = BitsPerByte*1,
+ 302     _lh_element_type_mask       = right_n_bits(BitsPerByte),  // shifted mask
+ 303     _lh_header_size_shift       = BitsPerByte*2,
+ 304     _lh_header_size_mask        = right_n_bits(BitsPerByte),  // shifted mask
+ 305     _lh_array_tag_bits          = 2,
+ 306     _lh_array_tag_shift         = BitsPerInt - _lh_array_tag_bits,
+
+ 307     _lh_array_tag_obj_value     = ~0x01   // 0x80000000 &gt;&gt; 30
+ 308   };
+<span class="new"> 309 </span>
+<span class="new"> 310   static const unsigned int _lh_array_tag_type_value = 0Xffffffff; // ~0x00,  // 0xC0000000 &gt;&gt; 30</span>
+ 311 
+ 312   static int layout_helper_size_in_bytes(jint lh) {
+ 313     assert(lh &gt; (jint)_lh_neutral_value, "must be instance");
+ 314     return (int) lh &amp; ~_lh_instance_slow_path_bit;
+ 315   }
+ 316   static bool layout_helper_needs_slow_path(jint lh) {
+ 317     assert(lh &gt; (jint)_lh_neutral_value, "must be instance");
+ 318     return (lh &amp; _lh_instance_slow_path_bit) != 0;
+ 319   }
+ 320   static bool layout_helper_is_instance(jint lh) {
+ 321     return (jint)lh &gt; (jint)_lh_neutral_value;
+ 322   }
+ 323   static bool layout_helper_is_array(jint lh) {
+ 324     return (jint)lh &lt; (jint)_lh_neutral_value;
+ 325   }
+ 326   static bool layout_helper_is_typeArray(jint lh) {
+ 327     // _lh_array_tag_type_value == (lh &gt;&gt; _lh_array_tag_shift);
+ 328     return (juint)lh &gt;= (juint)(_lh_array_tag_type_value &lt;&lt; _lh_array_tag_shift);
+ 329   }
+ 330   static bool layout_helper_is_objArray(jint lh) {
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/oops/instanceKlass.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/methodCounters.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

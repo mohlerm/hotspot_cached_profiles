@@ -1,0 +1,433 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>Old src/share/vm/ci/ciMethod.hpp</title>
+<body id="SUNWwebrev">
+<pre>
+   1 /*
+   2  * Copyright (c) 1999, 2015, Oracle and/or its affiliates. All rights reserved.
+   3  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   4  *
+   5  * This code is free software; you can redistribute it and/or modify it
+   6  * under the terms of the GNU General Public License version 2 only, as
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #ifndef SHARE_VM_CI_CIMETHOD_HPP
+  26 #define SHARE_VM_CI_CIMETHOD_HPP
+  27 
+  28 #include "ci/ciFlags.hpp"
+  29 #include "ci/ciInstanceKlass.hpp"
+  30 #include "ci/ciObject.hpp"
+  31 #include "ci/ciSignature.hpp"
+  32 #include "compiler/methodLiveness.hpp"
+  33 #include "prims/methodHandles.hpp"
+  34 #include "utilities/bitMap.hpp"
+  35 #include "trace/tracing.hpp"
+  36 
+  37 class ciMethodBlocks;
+  38 class MethodLiveness;
+  39 class BitMap;
+  40 class Arena;
+  41 class BCEscapeAnalyzer;
+  42 class InlineTree;
+  43 
+  44 // ciMethod
+  45 //
+  46 // This class represents a Method* in the HotSpot virtual
+  47 // machine.
+  48 class ciMethod : public ciMetadata {
+  49   friend class CompileBroker;
+  50   CI_PACKAGE_ACCESS
+  51   friend class ciEnv;
+  52   friend class ciExceptionHandlerStream;
+  53   friend class ciBytecodeStream;
+  54   friend class ciMethodHandle;
+  55   friend class ciReplay;
+  56   friend class InlineTree;
+  57 
+  58  private:
+  59   // General method information.
+  60   ciFlags          _flags;
+  61   ciSymbol*        _name;
+  62   ciInstanceKlass* _holder;
+  63   ciSignature*     _signature;
+  64   ciMethodData*    _method_data;
+  65   ciMethodBlocks*   _method_blocks;
+  66 
+  67   // Code attributes.
+  68   int _code_size;
+  69   int _max_stack;
+  70   int _max_locals;
+  71   vmIntrinsics::ID _intrinsic_id;
+  72   int _handler_count;
+  73   int _nmethod_age;
+  74   int _interpreter_invocation_count;
+  75   int _interpreter_throwout_count;
+  76   int _instructions_size;
+  77   int _size_of_parameters;
+  78 
+  79   bool _uses_monitors;
+  80   bool _balanced_monitors;
+  81   bool _is_c1_compilable;
+  82   bool _is_c2_compilable;
+  83   bool _can_be_statically_bound;
+  84   bool _has_reserved_stack_access;
+  85 
+  86   // Lazy fields, filled in on demand
+  87   address              _code;
+  88   ciExceptionHandler** _exception_handlers;
+  89 
+  90   // Optional liveness analyzer.
+  91   MethodLiveness* _liveness;
+  92 #if defined(COMPILER2) || defined(SHARK)
+  93   ciTypeFlow*         _flow;
+  94   BCEscapeAnalyzer*   _bcea;
+  95 #endif
+  96 
+  97   ciMethod(methodHandle h_m, ciInstanceKlass* holder);
+  98   ciMethod(ciInstanceKlass* holder, ciSymbol* name, ciSymbol* signature, ciInstanceKlass* accessor);
+  99 
+ 100   oop loader() const                             { return _holder-&gt;loader(); }
+ 101 
+ 102   const char* type_string()                      { return "ciMethod"; }
+ 103 
+ 104   void print_impl(outputStream* st);
+ 105 
+ 106   void load_code();
+ 107 
+ 108   bool ensure_method_data(methodHandle h_m);
+ 109 
+ 110   void code_at_put(int bci, Bytecodes::Code code) {
+ 111     Bytecodes::check(code);
+ 112     assert(0 &lt;= bci &amp;&amp; bci &lt; code_size(), "valid bci");
+ 113     address bcp = _code + bci;
+ 114     *bcp = code;
+ 115   }
+ 116 
+ 117   // Check bytecode and profile data collected are compatible
+ 118   void assert_virtual_call_type_ok(int bci);
+ 119   void assert_call_type_ok(int bci);
+ 120 
+ 121  public:
+ 122   void check_is_loaded() const                   { assert(is_loaded(), "not loaded"); }
+ 123 
+ 124   // Basic method information.
+ 125   ciFlags flags() const                          { check_is_loaded(); return _flags; }
+ 126   ciSymbol* name() const                         { return _name; }
+ 127   ciInstanceKlass* holder() const                { return _holder; }
+ 128   ciMethodData* method_data();
+ 129   ciMethodData* method_data_or_null();
+ 130 
+ 131   // Signature information.
+ 132   ciSignature* signature() const                 { return _signature; }
+ 133   ciType*      return_type() const               { return _signature-&gt;return_type(); }
+ 134   int          arg_size_no_receiver() const      { return _signature-&gt;size(); }
+ 135   // Can only be used on loaded ciMethods
+ 136   int          arg_size() const                  {
+ 137     check_is_loaded();
+ 138     return _signature-&gt;size() + (_flags.is_static() ? 0 : 1);
+ 139   }
+ 140   // Report the number of elements on stack when invoking this method.
+ 141   // This is different than the regular arg_size because invokedynamic
+ 142   // has an implicit receiver.
+ 143   int invoke_arg_size(Bytecodes::Code code) const {
+ 144     if (is_loaded()) {
+ 145       return arg_size();
+ 146     } else {
+ 147       int arg_size = _signature-&gt;size();
+ 148       // Add a receiver argument, maybe:
+ 149       if (code != Bytecodes::_invokestatic &amp;&amp;
+ 150           code != Bytecodes::_invokedynamic) {
+ 151         arg_size++;
+ 152       }
+ 153       return arg_size;
+ 154     }
+ 155   }
+ 156 
+ 157   Method* get_Method() const {
+ 158     Method* m = (Method*)_metadata;
+ 159     assert(m != NULL, "illegal use of unloaded method");
+ 160     return m;
+ 161   }
+ 162 
+ 163   // Method code and related information.
+ 164   address code()                                 { if (_code == NULL) load_code(); return _code; }
+ 165   int code_size() const                          { check_is_loaded(); return _code_size; }
+ 166   int max_stack() const                          { check_is_loaded(); return _max_stack; }
+ 167   int max_locals() const                         { check_is_loaded(); return _max_locals; }
+ 168   vmIntrinsics::ID intrinsic_id() const          { check_is_loaded(); return _intrinsic_id; }
+ 169   bool has_exception_handlers() const            { check_is_loaded(); return _handler_count &gt; 0; }
+ 170   int exception_table_length() const             { check_is_loaded(); return _handler_count; }
+ 171   int interpreter_invocation_count() const       { check_is_loaded(); return _interpreter_invocation_count; }
+ 172   int interpreter_throwout_count() const         { check_is_loaded(); return _interpreter_throwout_count; }
+ 173   int size_of_parameters() const                 { check_is_loaded(); return _size_of_parameters; }
+ 174   int nmethod_age() const                        { check_is_loaded(); return _nmethod_age; }
+ 175 
+ 176   // Should the method be compiled with an age counter?
+ 177   bool profile_aging() const;
+ 178 
+ 179   // Code size for inlining decisions.
+ 180   int code_size_for_inlining();
+ 181 
+ 182   bool caller_sensitive()    const { return get_Method()-&gt;caller_sensitive();    }
+ 183   bool force_inline()        const { return get_Method()-&gt;force_inline();        }
+ 184   bool dont_inline()         const { return get_Method()-&gt;dont_inline();         }
+ 185   bool intrinsic_candidate() const { return get_Method()-&gt;intrinsic_candidate(); }
+ 186 
+ 187   int comp_level();
+ 188   int highest_osr_comp_level();
+ 189 
+ 190   Bytecodes::Code java_code_at_bci(int bci) {
+ 191     address bcp = code() + bci;
+ 192     return Bytecodes::java_code_at(NULL, bcp);
+ 193   }
+ 194   Bytecodes::Code raw_code_at_bci(int bci) {
+ 195     address bcp = code() + bci;
+ 196     return Bytecodes::code_at(NULL, bcp);
+ 197   }
+ 198   BCEscapeAnalyzer  *get_bcea();
+ 199   ciMethodBlocks    *get_method_blocks();
+ 200 
+ 201   bool    has_linenumber_table() const;          // length unknown until decompression
+ 202   u_char* compressed_linenumber_table() const;   // not preserved by gc
+ 203 
+ 204   int line_number_from_bci(int bci) const;
+ 205 
+ 206   // Runtime information.
+ 207   int           vtable_index();
+ 208 #ifdef SHARK
+ 209   int           itable_index();
+ 210 #endif // SHARK
+ 211   address       native_entry();
+ 212   address       interpreter_entry();
+ 213 
+ 214   // Analysis and profiling.
+ 215   //
+ 216   // Usage note: liveness_at_bci and init_vars should be wrapped in ResourceMarks.
+ 217   bool          has_monitor_bytecodes() const    { return _uses_monitors; }
+ 218   bool          has_balanced_monitors();
+ 219 
+ 220   // Returns a bitmap indicating which locals are required to be
+ 221   // maintained as live for deopt.  raw_liveness_at_bci is always the
+ 222   // direct output of the liveness computation while liveness_at_bci
+ 223   // may mark all locals as live to improve support for debugging Java
+ 224   // code by maintaining the state of as many locals as possible.
+ 225   MethodLivenessResult raw_liveness_at_bci(int bci);
+ 226   MethodLivenessResult liveness_at_bci(int bci);
+ 227 
+ 228   // Get the interpreters viewpoint on oop liveness.  MethodLiveness is
+ 229   // conservative in the sense that it may consider locals to be live which
+ 230   // cannot be live, like in the case where a local could contain an oop or
+ 231   // a primitive along different paths.  In that case the local must be
+ 232   // dead when those paths merge. Since the interpreter's viewpoint is
+ 233   // used when gc'ing an interpreter frame we need to use its viewpoint
+ 234   // during OSR when loading the locals.
+ 235 
+ 236   BitMap  live_local_oops_at_bci(int bci);
+ 237 
+ 238 #ifdef COMPILER1
+ 239   const BitMap  bci_block_start();
+ 240 #endif
+ 241 
+ 242   ciTypeFlow*   get_flow_analysis();
+ 243   ciTypeFlow*   get_osr_flow_analysis(int osr_bci);  // alternate entry point
+ 244   ciCallProfile call_profile_at_bci(int bci);
+ 245   int           interpreter_call_site_count(int bci);
+ 246 
+ 247   // Does type profiling provide any useful information at this point?
+ 248   bool          argument_profiled_type(int bci, int i, ciKlass*&amp; type, bool&amp; maybe_null);
+ 249   bool          parameter_profiled_type(int i, ciKlass*&amp; type, bool&amp; maybe_null);
+ 250   bool          return_profiled_type(int bci, ciKlass*&amp; type, bool&amp; maybe_null);
+ 251 
+ 252   ciField*      get_field_at_bci( int bci, bool &amp;will_link);
+ 253   ciMethod*     get_method_at_bci(int bci, bool &amp;will_link, ciSignature* *declared_signature);
+ 254   ciMethod*     get_method_at_bci(int bci) {
+ 255     bool ignored_will_link;
+ 256     ciSignature* ignored_declared_signature;
+ 257     return get_method_at_bci(bci, ignored_will_link, &amp;ignored_declared_signature);
+ 258   }
+ 259 
+ 260   // Given a certain calling environment, find the monomorphic target
+ 261   // for the call.  Return NULL if the call is not monomorphic in
+ 262   // its calling environment.
+ 263   ciMethod* find_monomorphic_target(ciInstanceKlass* caller,
+ 264                                     ciInstanceKlass* callee_holder,
+ 265                                     ciInstanceKlass* actual_receiver,
+ 266                                     bool check_access = true);
+ 267 
+ 268   // Given a known receiver klass, find the target for the call.
+ 269   // Return NULL if the call has no target or is abstract.
+ 270   ciMethod* resolve_invoke(ciKlass* caller, ciKlass* exact_receiver, bool check_access = true);
+ 271 
+ 272   // Find the proper vtable index to invoke this method.
+ 273   int resolve_vtable_index(ciKlass* caller, ciKlass* receiver);
+ 274 
+ 275   bool has_option(const char *option);
+ 276   bool has_option_value(const char* option, double&amp; value);
+ 277   bool can_be_compiled();
+ 278   bool can_be_osr_compiled(int entry_bci);
+ 279   void set_not_compilable(const char* reason = NULL);
+ 280   bool has_compiled_code();
+ 281   void log_nmethod_identity(xmlStream* log);
+ 282   bool is_not_reached(int bci);
+ 283   bool was_executed_more_than(int times);
+ 284   bool has_unloaded_classes_in_signature();
+ 285   bool is_klass_loaded(int refinfo_index, bool must_be_resolved) const;
+ 286   bool check_call(int refinfo_index, bool is_static) const;
+ 287   bool ensure_method_data();  // make sure it exists in the VM also
+ 288   MethodCounters* ensure_method_counters();
+ 289   int instructions_size();
+ 290   int scale_count(int count, float prof_factor = 1.);  // make MDO count commensurate with IIC
+ 291 
+ 292   // Stack walking support
+ 293   bool is_ignored_by_security_stack_walk() const;
+ 294 
+ 295   // JSR 292 support
+ 296   bool is_method_handle_intrinsic()  const;
+ 297   bool is_compiled_lambda_form() const;
+ 298   bool has_member_arg() const;
+ 299 
+ 300   // What kind of ciObject is this?
+ 301   bool is_method() const                         { return true; }
+ 302 
+ 303   // Java access flags
+ 304   bool is_public      () const                   { return flags().is_public(); }
+ 305   bool is_private     () const                   { return flags().is_private(); }
+ 306   bool is_protected   () const                   { return flags().is_protected(); }
+ 307   bool is_static      () const                   { return flags().is_static(); }
+ 308   bool is_final       () const                   { return flags().is_final(); }
+ 309   bool is_synchronized() const                   { return flags().is_synchronized(); }
+ 310   bool is_native      () const                   { return flags().is_native(); }
+ 311   bool is_interface   () const                   { return flags().is_interface(); }
+ 312   bool is_abstract    () const                   { return flags().is_abstract(); }
+ 313   bool is_strict      () const                   { return flags().is_strict(); }
+ 314 
+ 315   // Other flags
+ 316   bool is_empty_method() const;
+ 317   bool is_vanilla_constructor() const;
+ 318   bool is_final_method() const                   { return is_final() || holder()-&gt;is_final(); }
+ 319   bool has_loops      () const;
+ 320   bool has_jsrs       () const;
+ 321   bool is_getter      () const;
+ 322   bool is_setter      () const;
+ 323   bool is_accessor    () const;
+ 324   bool is_initializer () const;
+ 325   bool can_be_statically_bound() const           { return _can_be_statically_bound; }
+ 326   bool has_reserved_stack_access() const         { return _has_reserved_stack_access; }
+ 327   bool is_boxing_method() const;
+ 328   bool is_unboxing_method() const;
+ 329 
+ 330   // Replay data methods
+ 331   void dump_name_as_ascii(outputStream* st);
+ 332   void dump_replay_data(outputStream* st);
+ 333 
+ 334   // Print the bytecodes of this method.
+ 335   void print_codes_on(outputStream* st);
+ 336   void print_codes() {
+ 337     print_codes_on(tty);
+ 338   }
+ 339   void print_codes_on(int from, int to, outputStream* st);
+ 340 
+ 341   // Print the name of this method in various incarnations.
+ 342   void print_name(outputStream* st = tty);
+ 343   void print_short_name(outputStream* st = tty);
+ 344 
+ 345 #if INCLUDE_TRACE
+ 346   TraceStructCiMethod to_trace_struct() const;
+ 347 #endif
+ 348 };
+ 349 
+ 350 #endif // SHARE_VM_CI_CIMETHOD_HPP
+</pre></body></html>

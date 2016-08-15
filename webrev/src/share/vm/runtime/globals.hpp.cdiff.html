@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Cdiff src/share/vm/runtime/globals.hpp</title>
+</head>
+<body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/runtime/deoptimization.hpp.cdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/java.cpp.cdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/runtime/globals.hpp</h2>
+        <a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+        <pre>
+<hr /><span class="oldmarker">*** 3558,3567 ****</span>
+<span class="newmarker">--- 3558,3605 ----</span>
+                                                                              \
+    product(ccstr, ReplayDataFile, NULL,                                      \
+            "File containing compilation replay information"                  \
+            "[default: ./replay_pid%p.log] (%p replaced with pid)")           \
+                                                                              \
+<span class="new">+   experimental(bool, DumpProfiles, false,                                   \</span>
+<span class="new">+           "Cache profiling information for future VM runs")                 \</span>
+<span class="new">+                                                                             \</span>
+<span class="new">+   experimental(intx, DumpProfilesMinTier, 3,                                \</span>
+<span class="new">+           "Specifies the minimum compilation tier that dumps"               \</span>
+<span class="new">+           "method profiles. Use 3 or 4"                                     \</span>
+<span class="new">+           "since methods lvl&lt;3 do not get dumped anyway")                   \</span>
+<span class="new">+                                                                             \</span>
+<span class="new">+   experimental(bool, CacheProfiles, false,                                  \</span>
+<span class="new">+           "Use profiling information")                                      \</span>
+<span class="new">+                                                                             \</span>
+<span class="new">+   experimental(intx, CacheProfilesMode, 2,                                  \</span>
+<span class="new">+           "Mode in which CacheProfiling is operating: "                     \</span>
+<span class="new">+           "0 - lower threshold and compile to C2 directly; "                \</span>
+<span class="new">+           "1 - do not lower thresholds and"                                 \</span>
+<span class="new">+           "    compile to highest profile directly; "                       \</span>
+<span class="new">+           "2 - skip C1 profiling phase and"                                 \</span>
+<span class="new">+           "    keep everything else as standard; ")                         \</span>
+<span class="new">+                                                                             \</span>
+<span class="new">+   experimental(double, CacheProfilesMode0ThresholdScaling, 0.01,            \</span>
+<span class="new">+           "CompileThresholdScaling in case of mode0")                       \</span>
+<span class="new">+                                                                             \</span>
+<span class="new">+   experimental(ccstr, CacheProfilesFile, NULL,                              \</span>
+<span class="new">+           "File containing cached profiles"                                 \</span>
+<span class="new">+           "[default: ./profiles_pid%p.log] (%p replaced with pid)")         \</span>
+<span class="new">+                                                                             \</span>
+<span class="new">+   experimental(bool, PrintCacheProfiles, false,                             \</span>
+<span class="new">+            "Prints cache profiling information")                            \</span>
+<span class="new">+                                                                             \</span>
+<span class="new">+   experimental(bool, PrintDeoptimizationCount, false,                       \</span>
+<span class="new">+            "Prints count of deoptimizations at JVM shutdown")               \</span>
+<span class="new">+                                                                             \</span>
+<span class="new">+   experimental(bool, PrintDeoptimizationCountVerbose, false,                \</span>
+<span class="new">+            "Prints count of deoptimizations after each deopt")              \</span>
+<span class="new">+                                                                             \</span>
+<span class="new">+   experimental(bool, PrintCompileQueueSize, false,                          \</span>
+<span class="new">+            "Prints size of compile queue after each add")                   \</span>
+<span class="new">+                                                                             \</span>
+    product(ccstr, InlineDataFile, NULL,                                      \
+            "File containing inlining replay information"                     \
+            "[default: ./inline_pid%p.log] (%p replaced with pid)")           \
+                                                                              \
+    develop(intx, ReplaySuppressInitializers, 2,                              \
+</pre>
+<center><a href='../../../../src/share/vm/runtime/deoptimization.hpp.cdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/java.cpp.cdiff.html' target='_top'>next &gt</a></center>
+</body></html>
+

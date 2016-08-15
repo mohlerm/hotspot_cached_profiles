@@ -1,0 +1,10 @@
+--- old/src/share/vm/ci/ciMethod.hpp	2016-08-15 12:19:43.777019658 +0200
++++ new/src/share/vm/ci/ciMethod.hpp	2016-08-15 12:19:43.593019658 +0200
+@@ -53,6 +53,7 @@
+   friend class ciBytecodeStream;
+   friend class ciMethodHandle;
+   friend class ciReplay;
++  friend class ciCacheReplay;
+   friend class InlineTree;
+ 
+  private:

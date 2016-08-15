@@ -1,0 +1,191 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/runtime </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/prims/jvmtiExport.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/deoptimization.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/runtime/advancedThresholdPolicy.cpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+ 391 #endif
+ 392         // C1-generated fully profiled code is about 30% slower than the limited profile
+ 393         // code that has only invocation and backedge counters. The observation is that
+ 394         // if C2 queue is large enough we can spend too much time in the fully profiled code
+ 395         // while waiting for C2 to pick the method from the queue. To alleviate this problem
+ 396         // we introduce a feedback on the C2 queue size. If the C2 queue is sufficiently long
+ 397         // we choose to compile a limited profiled version and then recompile with full profiling
+ 398         // when the load on C2 goes down.
+ 399         if (!disable_feedback &amp;&amp; CompileBroker::queue_size(CompLevel_full_optimization) &gt;
+ 400             Tier3DelayOn * compiler_count(CompLevel_full_optimization)) {
+ 401           next_level = CompLevel_limited_profile;
+ 402         } else {
+ 403           next_level = CompLevel_full_profile;
+ 404         }
+ 405       }
+ 406       break;
+ 407     case CompLevel_limited_profile:
+ 408       if (is_method_profiled(method)) {
+ 409         // Special case: we got here because this method was fully profiled in the interpreter.
+ 410         next_level = CompLevel_full_optimization;
+
+
+
+
+
+ 411       } else {
+ 412         MethodData* mdo = method-&gt;method_data();
+ 413         if (mdo != NULL) {
+ 414           if (mdo-&gt;would_profile()) {
+ 415             if (disable_feedback || (CompileBroker::queue_size(CompLevel_full_optimization) &lt;=
+ 416                                      Tier3DelayOff * compiler_count(CompLevel_full_optimization) &amp;&amp;
+ 417                                      (this-&gt;*p)(i, b, cur_level, method))) {
+ 418               next_level = CompLevel_full_profile;
+ 419             }
+ 420           } else {
+ 421             next_level = CompLevel_full_optimization;
+ 422           }
+ 423         }
+ 424       }
+ 425       break;
+ 426     case CompLevel_full_profile:
+ 427       {
+ 428         MethodData* mdo = method-&gt;method_data();
+ 429         if (mdo != NULL) {
+ 430           if (mdo-&gt;would_profile()) {
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+ 391 #endif
+ 392         // C1-generated fully profiled code is about 30% slower than the limited profile
+ 393         // code that has only invocation and backedge counters. The observation is that
+ 394         // if C2 queue is large enough we can spend too much time in the fully profiled code
+ 395         // while waiting for C2 to pick the method from the queue. To alleviate this problem
+ 396         // we introduce a feedback on the C2 queue size. If the C2 queue is sufficiently long
+ 397         // we choose to compile a limited profiled version and then recompile with full profiling
+ 398         // when the load on C2 goes down.
+ 399         if (!disable_feedback &amp;&amp; CompileBroker::queue_size(CompLevel_full_optimization) &gt;
+ 400             Tier3DelayOn * compiler_count(CompLevel_full_optimization)) {
+ 401           next_level = CompLevel_limited_profile;
+ 402         } else {
+ 403           next_level = CompLevel_full_profile;
+ 404         }
+ 405       }
+ 406       break;
+ 407     case CompLevel_limited_profile:
+ 408       if (is_method_profiled(method)) {
+ 409         // Special case: we got here because this method was fully profiled in the interpreter.
+ 410         next_level = CompLevel_full_optimization;
+<span class="new"> 411       } else if (CacheProfiles &amp;&amp; CacheProfilesMode==2 &amp;&amp; ciCacheProfiles::is_initialized() &amp;&amp; ciCacheProfiles::is_cached(method)==CompLevel_full_optimization) {</span>
+<span class="new"> 412         // another Special case: we run in CacheProfilesMode=2 meaning all methods that are cached</span>
+<span class="new"> 413         // (with full optimizations) and want to be compiled with full profiles get degraded to</span>
+<span class="new"> 414         // limited profiles therefore we need a new transition from limited profiles to full optimization.</span>
+<span class="new"> 415         next_level = CompLevel_full_optimization;</span>
+ 416       } else {
+ 417         MethodData* mdo = method-&gt;method_data();
+ 418         if (mdo != NULL) {
+ 419           if (mdo-&gt;would_profile()) {
+ 420             if (disable_feedback || (CompileBroker::queue_size(CompLevel_full_optimization) &lt;=
+ 421                                      Tier3DelayOff * compiler_count(CompLevel_full_optimization) &amp;&amp;
+ 422                                      (this-&gt;*p)(i, b, cur_level, method))) {
+ 423               next_level = CompLevel_full_profile;
+ 424             }
+ 425           } else {
+ 426             next_level = CompLevel_full_optimization;
+ 427           }
+ 428         }
+ 429       }
+ 430       break;
+ 431     case CompLevel_full_profile:
+ 432       {
+ 433         MethodData* mdo = method-&gt;method_data();
+ 434         if (mdo != NULL) {
+ 435           if (mdo-&gt;would_profile()) {
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/prims/jvmtiExport.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/deoptimization.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

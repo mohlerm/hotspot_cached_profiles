@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/oops </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/interpreter/invocationCounter.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/klass.hpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/oops/instanceKlass.hpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+  96   void set_count(uint count) { _count = count; }
+  97 
+  98   // sizeof(OopMapBlock) in words.
+  99   static const int size_in_words() {
+ 100     return align_size_up(int(sizeof(OopMapBlock)), wordSize) &gt;&gt;
+ 101       LogBytesPerWord;
+ 102   }
+ 103 
+ 104  private:
+ 105   int  _offset;
+ 106   uint _count;
+ 107 };
+ 108 
+ 109 struct JvmtiCachedClassFileData;
+ 110 
+ 111 class InstanceKlass: public Klass {
+ 112   friend class VMStructs;
+ 113   friend class JVMCIVMStructs;
+ 114   friend class ClassFileParser;
+ 115   friend class CompileReplay;
+
+ 116 
+ 117  protected:
+ 118   InstanceKlass(const ClassFileParser&amp; parser, unsigned kind);
+ 119 
+ 120  public:
+ 121   InstanceKlass() { assert(DumpSharedSpaces || UseSharedSpaces, "only for CDS"); }
+ 122 
+ 123   // See "The Java Virtual Machine Specification" section 2.16.2-5 for a detailed description
+ 124   // of the class loading &amp; initialization procedure, and the use of the states.
+ 125   enum ClassState {
+ 126     allocated,                          // allocated (but not yet linked)
+ 127     loaded,                             // loaded and inserted in class hierarchy (but not linked yet)
+ 128     linked,                             // successfully linked/verified (but not initialized yet)
+ 129     being_initialized,                  // currently running class initializer
+ 130     fully_initialized,                  // initialized (successfull final state)
+ 131     initialization_error                // error happened during initialization
+ 132   };
+ 133 
+ 134   static int number_of_instance_classes() { return _total_instanceKlass_count; }
+ 135 
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+  96   void set_count(uint count) { _count = count; }
+  97 
+  98   // sizeof(OopMapBlock) in words.
+  99   static const int size_in_words() {
+ 100     return align_size_up(int(sizeof(OopMapBlock)), wordSize) &gt;&gt;
+ 101       LogBytesPerWord;
+ 102   }
+ 103 
+ 104  private:
+ 105   int  _offset;
+ 106   uint _count;
+ 107 };
+ 108 
+ 109 struct JvmtiCachedClassFileData;
+ 110 
+ 111 class InstanceKlass: public Klass {
+ 112   friend class VMStructs;
+ 113   friend class JVMCIVMStructs;
+ 114   friend class ClassFileParser;
+ 115   friend class CompileReplay;
+<span class="new"> 116   friend class CacheCompileReplay;</span>
+ 117 
+ 118  protected:
+ 119   InstanceKlass(const ClassFileParser&amp; parser, unsigned kind);
+ 120 
+ 121  public:
+ 122   InstanceKlass() { assert(DumpSharedSpaces || UseSharedSpaces, "only for CDS"); }
+ 123 
+ 124   // See "The Java Virtual Machine Specification" section 2.16.2-5 for a detailed description
+ 125   // of the class loading &amp; initialization procedure, and the use of the states.
+ 126   enum ClassState {
+ 127     allocated,                          // allocated (but not yet linked)
+ 128     loaded,                             // loaded and inserted in class hierarchy (but not linked yet)
+ 129     linked,                             // successfully linked/verified (but not initialized yet)
+ 130     being_initialized,                  // currently running class initializer
+ 131     fully_initialized,                  // initialized (successfull final state)
+ 132     initialization_error                // error happened during initialization
+ 133   };
+ 134 
+ 135   static int number_of_instance_classes() { return _total_instanceKlass_count; }
+ 136 
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/interpreter/invocationCounter.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/klass.hpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

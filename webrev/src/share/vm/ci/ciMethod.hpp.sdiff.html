@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/ci </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/ci/ciMethod.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciMethodData.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/ci/ciMethod.hpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+  36 
+  37 class ciMethodBlocks;
+  38 class MethodLiveness;
+  39 class BitMap;
+  40 class Arena;
+  41 class BCEscapeAnalyzer;
+  42 class InlineTree;
+  43 
+  44 // ciMethod
+  45 //
+  46 // This class represents a Method* in the HotSpot virtual
+  47 // machine.
+  48 class ciMethod : public ciMetadata {
+  49   friend class CompileBroker;
+  50   CI_PACKAGE_ACCESS
+  51   friend class ciEnv;
+  52   friend class ciExceptionHandlerStream;
+  53   friend class ciBytecodeStream;
+  54   friend class ciMethodHandle;
+  55   friend class ciReplay;
+
+  56   friend class InlineTree;
+  57 
+  58  private:
+  59   // General method information.
+  60   ciFlags          _flags;
+  61   ciSymbol*        _name;
+  62   ciInstanceKlass* _holder;
+  63   ciSignature*     _signature;
+  64   ciMethodData*    _method_data;
+  65   ciMethodBlocks*   _method_blocks;
+  66 
+  67   // Code attributes.
+  68   int _code_size;
+  69   int _max_stack;
+  70   int _max_locals;
+  71   vmIntrinsics::ID _intrinsic_id;
+  72   int _handler_count;
+  73   int _nmethod_age;
+  74   int _interpreter_invocation_count;
+  75   int _interpreter_throwout_count;
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+  36 
+  37 class ciMethodBlocks;
+  38 class MethodLiveness;
+  39 class BitMap;
+  40 class Arena;
+  41 class BCEscapeAnalyzer;
+  42 class InlineTree;
+  43 
+  44 // ciMethod
+  45 //
+  46 // This class represents a Method* in the HotSpot virtual
+  47 // machine.
+  48 class ciMethod : public ciMetadata {
+  49   friend class CompileBroker;
+  50   CI_PACKAGE_ACCESS
+  51   friend class ciEnv;
+  52   friend class ciExceptionHandlerStream;
+  53   friend class ciBytecodeStream;
+  54   friend class ciMethodHandle;
+  55   friend class ciReplay;
+<span class="new">  56   friend class ciCacheReplay;</span>
+  57   friend class InlineTree;
+  58 
+  59  private:
+  60   // General method information.
+  61   ciFlags          _flags;
+  62   ciSymbol*        _name;
+  63   ciInstanceKlass* _holder;
+  64   ciSignature*     _signature;
+  65   ciMethodData*    _method_data;
+  66   ciMethodBlocks*   _method_blocks;
+  67 
+  68   // Code attributes.
+  69   int _code_size;
+  70   int _max_stack;
+  71   int _max_locals;
+  72   vmIntrinsics::ID _intrinsic_id;
+  73   int _handler_count;
+  74   int _nmethod_age;
+  75   int _interpreter_invocation_count;
+  76   int _interpreter_throwout_count;
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/ci/ciMethod.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciMethodData.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/interpreter </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/compiler/compileBroker.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/instanceKlass.hpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/interpreter/invocationCounter.hpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+  24 
+  25 #ifndef SHARE_VM_INTERPRETER_INVOCATIONCOUNTER_HPP
+  26 #define SHARE_VM_INTERPRETER_INVOCATIONCOUNTER_HPP
+  27 
+  28 #include "memory/allocation.hpp"
+  29 #include "runtime/handles.hpp"
+  30 #include "utilities/exceptions.hpp"
+  31 
+  32 // InvocationCounters are used to trigger actions when a limit (threshold) is reached.
+  33 // For different states, different limits and actions can be defined in the initialization
+  34 // routine of InvocationCounters.
+  35 //
+  36 // Implementation notes: For space reasons, state &amp; counter are both encoded in one word,
+  37 // The state is encoded using some of the least significant bits, the counter is using the
+  38 // more significant bits. The counter is incremented before a method is activated and an
+  39 // action is triggered when count() &gt; limit().
+  40 
+  41 class InvocationCounter VALUE_OBJ_CLASS_SPEC {
+  42   friend class VMStructs;
+  43   friend class ciReplay;
+
+  44  private:                             // bit no: |31  3|  2  | 1 0 |
+  45   unsigned int _counter;              // format: [count|carry|state]
+  46 
+  47   enum PrivateConstants {
+  48     number_of_state_bits = 2,
+  49     number_of_carry_bits = 1,
+  50     number_of_noncount_bits = number_of_state_bits + number_of_carry_bits,
+  51     state_limit          = nth_bit(number_of_state_bits),
+  52     count_grain          = nth_bit(number_of_state_bits + number_of_carry_bits),
+  53     carry_mask           = right_n_bits(number_of_carry_bits) &lt;&lt; number_of_state_bits,
+  54     state_mask           = right_n_bits(number_of_state_bits),
+  55     status_mask          = right_n_bits(number_of_state_bits + number_of_carry_bits),
+  56     count_mask           = ((int)(-1) ^ status_mask)
+  57   };
+  58 
+  59  public:
+  60   static int InterpreterInvocationLimit;        // CompileThreshold scaled for interpreter use
+  61   static int InterpreterBackwardBranchLimit;    // A separate threshold for on stack replacement
+  62   static int InterpreterProfileLimit;           // Profiling threshold scaled for interpreter use
+  63 
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+  24 
+  25 #ifndef SHARE_VM_INTERPRETER_INVOCATIONCOUNTER_HPP
+  26 #define SHARE_VM_INTERPRETER_INVOCATIONCOUNTER_HPP
+  27 
+  28 #include "memory/allocation.hpp"
+  29 #include "runtime/handles.hpp"
+  30 #include "utilities/exceptions.hpp"
+  31 
+  32 // InvocationCounters are used to trigger actions when a limit (threshold) is reached.
+  33 // For different states, different limits and actions can be defined in the initialization
+  34 // routine of InvocationCounters.
+  35 //
+  36 // Implementation notes: For space reasons, state &amp; counter are both encoded in one word,
+  37 // The state is encoded using some of the least significant bits, the counter is using the
+  38 // more significant bits. The counter is incremented before a method is activated and an
+  39 // action is triggered when count() &gt; limit().
+  40 
+  41 class InvocationCounter VALUE_OBJ_CLASS_SPEC {
+  42   friend class VMStructs;
+  43   friend class ciReplay;
+<span class="new">  44   friend class ciCacheReplay;</span>
+  45  private:                             // bit no: |31  3|  2  | 1 0 |
+  46   unsigned int _counter;              // format: [count|carry|state]
+  47 
+  48   enum PrivateConstants {
+  49     number_of_state_bits = 2,
+  50     number_of_carry_bits = 1,
+  51     number_of_noncount_bits = number_of_state_bits + number_of_carry_bits,
+  52     state_limit          = nth_bit(number_of_state_bits),
+  53     count_grain          = nth_bit(number_of_state_bits + number_of_carry_bits),
+  54     carry_mask           = right_n_bits(number_of_carry_bits) &lt;&lt; number_of_state_bits,
+  55     state_mask           = right_n_bits(number_of_state_bits),
+  56     status_mask          = right_n_bits(number_of_state_bits + number_of_carry_bits),
+  57     count_mask           = ((int)(-1) ^ status_mask)
+  58   };
+  59 
+  60  public:
+  61   static int InterpreterInvocationLimit;        // CompileThreshold scaled for interpreter use
+  62   static int InterpreterBackwardBranchLimit;    // A separate threshold for on stack replacement
+  63   static int InterpreterProfileLimit;           // Profiling threshold scaled for interpreter use
+  64 
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/compiler/compileBroker.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/instanceKlass.hpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

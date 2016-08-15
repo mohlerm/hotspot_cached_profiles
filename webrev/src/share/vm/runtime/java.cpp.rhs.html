@@ -1,0 +1,904 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+    <script type="text/javascript" src="../../../../ancnav.js"></script>
+    </head>
+    <body id="SUNWwebrev" onkeypress="keypress(event);">
+    <a name="0"></a>
+    <pre></pre><hr></hr>
+<pre>
+   1 /*
+   2  * Copyright (c) 1997, 2016, Oracle and/or its affiliates. All rights reserved.
+   3  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   4  *
+   5  * This code is free software; you can redistribute it and/or modify it
+   6  * under the terms of the GNU General Public License version 2 only, as
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "classfile/classLoader.hpp"
+  27 #include "classfile/stringTable.hpp"
+  28 #include "classfile/systemDictionary.hpp"
+  29 #include "code/codeCache.hpp"
+  30 #include "compiler/compileBroker.hpp"
+  31 #include "compiler/compilerOracle.hpp"
+  32 #include "gc/shared/genCollectedHeap.hpp"
+  33 #include "interpreter/bytecodeHistogram.hpp"
+  34 #if INCLUDE_JVMCI
+  35 #include "jvmci/jvmciCompiler.hpp"
+  36 #include "jvmci/jvmciRuntime.hpp"
+  37 #endif
+  38 #include "logging/log.hpp"
+  39 #include "memory/oopFactory.hpp"
+  40 #include "memory/universe.hpp"
+  41 #include "oops/constantPool.hpp"
+  42 #include "oops/generateOopMap.hpp"
+  43 #include "oops/instanceKlass.hpp"
+  44 #include "oops/instanceOop.hpp"
+  45 #include "oops/method.hpp"
+  46 #include "oops/objArrayOop.hpp"
+  47 #include "oops/oop.inline.hpp"
+  48 #include "oops/symbol.hpp"
+  49 #include "prims/jvmtiExport.hpp"
+  50 #include "runtime/arguments.hpp"
+  51 #include "runtime/biasedLocking.hpp"
+  52 #include "runtime/compilationPolicy.hpp"
+  53 #include "runtime/deoptimization.hpp"
+  54 #include "runtime/fprofiler.hpp"
+  55 #include "runtime/init.hpp"
+  56 #include "runtime/interfaceSupport.hpp"
+  57 #include "runtime/java.hpp"
+  58 #include "runtime/memprofiler.hpp"
+  59 #include "runtime/sharedRuntime.hpp"
+  60 #include "runtime/statSampler.hpp"
+  61 #include "runtime/sweeper.hpp"
+  62 #include "runtime/task.hpp"
+  63 #include "runtime/thread.inline.hpp"
+  64 #include "runtime/timer.hpp"
+  65 #include "runtime/vm_operations.hpp"
+  66 #include "services/memTracker.hpp"
+  67 #include "trace/traceMacros.hpp"
+  68 #include "trace/tracing.hpp"
+  69 #include "utilities/dtrace.hpp"
+  70 #include "utilities/globalDefinitions.hpp"
+  71 #include "utilities/histogram.hpp"
+  72 #include "utilities/macros.hpp"
+  73 #include "utilities/vmError.hpp"
+  74 #if INCLUDE_ALL_GCS
+  75 #include "gc/cms/concurrentMarkSweepThread.hpp"
+  76 #include "gc/parallel/psScavenge.hpp"
+  77 #endif // INCLUDE_ALL_GCS
+  78 #ifdef COMPILER1
+  79 #include "c1/c1_Compiler.hpp"
+  80 #include "c1/c1_Runtime1.hpp"
+  81 #endif
+  82 #ifdef COMPILER2
+  83 #include "code/compiledIC.hpp"
+  84 #include "compiler/methodLiveness.hpp"
+  85 #include "opto/compile.hpp"
+  86 #include "opto/indexSet.hpp"
+  87 #include "opto/runtime.hpp"
+  88 #endif
+  89 
+  90 GrowableArray&lt;Method*&gt;* collected_profiled_methods;
+  91 
+  92 int compare_methods(Method** a, Method** b) {
+  93   // %%% there can be 32-bit overflow here
+  94   return ((*b)-&gt;invocation_count() + (*b)-&gt;compiled_invocation_count())
+  95        - ((*a)-&gt;invocation_count() + (*a)-&gt;compiled_invocation_count());
+  96 }
+  97 
+  98 void collect_profiled_methods(Method* m) {
+  99   Thread* thread = Thread::current();
+ 100   // This HandleMark prevents a huge amount of handles from being added
+ 101   // to the metadata_handles() array on the thread.
+ 102   HandleMark hm(thread);
+ 103   methodHandle mh(thread, m);
+ 104   if ((m-&gt;method_data() != NULL) &amp;&amp;
+ 105       (PrintMethodData || CompilerOracle::should_print(mh))) {
+ 106     collected_profiled_methods-&gt;push(m);
+ 107   }
+ 108 }
+ 109 
+ 110 void print_method_profiling_data() {
+ 111   if (ProfileInterpreter COMPILER1_PRESENT(|| C1UpdateMethodData) &amp;&amp;
+ 112      (PrintMethodData || CompilerOracle::should_print_methods())) {
+ 113     ResourceMark rm;
+ 114     HandleMark hm;
+ 115     collected_profiled_methods = new GrowableArray&lt;Method*&gt;(1024);
+ 116     ClassLoaderDataGraph::methods_do(collect_profiled_methods);
+ 117     collected_profiled_methods-&gt;sort(&amp;compare_methods);
+ 118 
+ 119     int count = collected_profiled_methods-&gt;length();
+ 120     int total_size = 0;
+ 121     if (count &gt; 0) {
+ 122       for (int index = 0; index &lt; count; index++) {
+ 123         Method* m = collected_profiled_methods-&gt;at(index);
+ 124         ttyLocker ttyl;
+ 125         tty-&gt;print_cr("------------------------------------------------------------------------");
+ 126         m-&gt;print_invocation_count();
+ 127         tty-&gt;print_cr("  mdo size: %d bytes", m-&gt;method_data()-&gt;size_in_bytes());
+ 128         tty-&gt;cr();
+ 129         // Dump data on parameters if any
+ 130         if (m-&gt;method_data() != NULL &amp;&amp; m-&gt;method_data()-&gt;parameters_type_data() != NULL) {
+ 131           tty-&gt;fill_to(2);
+ 132           m-&gt;method_data()-&gt;parameters_type_data()-&gt;print_data_on(tty);
+ 133         }
+ 134         m-&gt;print_codes();
+ 135         total_size += m-&gt;method_data()-&gt;size_in_bytes();
+ 136       }
+ 137       tty-&gt;print_cr("------------------------------------------------------------------------");
+ 138       tty-&gt;print_cr("Total MDO size: %d bytes", total_size);
+ 139     }
+ 140   }
+ 141 }
+ 142 
+ 143 
+ 144 #ifndef PRODUCT
+ 145 
+ 146 // Statistics printing (method invocation histogram)
+ 147 
+ 148 GrowableArray&lt;Method*&gt;* collected_invoked_methods;
+ 149 
+ 150 void collect_invoked_methods(Method* m) {
+ 151   if (m-&gt;invocation_count() + m-&gt;compiled_invocation_count() &gt;= 1 ) {
+ 152     collected_invoked_methods-&gt;push(m);
+ 153   }
+ 154 }
+ 155 
+ 156 
+ 157 
+ 158 
+ 159 void print_method_invocation_histogram() {
+ 160   ResourceMark rm;
+ 161   HandleMark hm;
+ 162   collected_invoked_methods = new GrowableArray&lt;Method*&gt;(1024);
+ 163   SystemDictionary::methods_do(collect_invoked_methods);
+ 164   collected_invoked_methods-&gt;sort(&amp;compare_methods);
+ 165   //
+ 166   tty-&gt;cr();
+ 167   tty-&gt;print_cr("Histogram Over MethodOop Invocation Counters (cutoff = " INTX_FORMAT "):", MethodHistogramCutoff);
+ 168   tty-&gt;cr();
+ 169   tty-&gt;print_cr("____Count_(I+C)____Method________________________Module_________________");
+ 170   unsigned total = 0, int_total = 0, comp_total = 0, static_total = 0, final_total = 0,
+ 171       synch_total = 0, nativ_total = 0, acces_total = 0;
+ 172   for (int index = 0; index &lt; collected_invoked_methods-&gt;length(); index++) {
+ 173     Method* m = collected_invoked_methods-&gt;at(index);
+ 174     int c = m-&gt;invocation_count() + m-&gt;compiled_invocation_count();
+ 175     if (c &gt;= MethodHistogramCutoff) m-&gt;print_invocation_count();
+ 176     int_total  += m-&gt;invocation_count();
+ 177     comp_total += m-&gt;compiled_invocation_count();
+ 178     if (m-&gt;is_final())        final_total  += c;
+ 179     if (m-&gt;is_static())       static_total += c;
+ 180     if (m-&gt;is_synchronized()) synch_total  += c;
+ 181     if (m-&gt;is_native())       nativ_total  += c;
+ 182     if (m-&gt;is_accessor())     acces_total  += c;
+ 183   }
+ 184   tty-&gt;cr();
+ 185   total = int_total + comp_total;
+ 186   tty-&gt;print_cr("Invocations summary:");
+ 187   tty-&gt;print_cr("\t%9d (%4.1f%%) interpreted",  int_total,    100.0 * int_total    / total);
+ 188   tty-&gt;print_cr("\t%9d (%4.1f%%) compiled",     comp_total,   100.0 * comp_total   / total);
+ 189   tty-&gt;print_cr("\t%9d (100%%)  total",         total);
+ 190   tty-&gt;print_cr("\t%9d (%4.1f%%) synchronized", synch_total,  100.0 * synch_total  / total);
+ 191   tty-&gt;print_cr("\t%9d (%4.1f%%) final",        final_total,  100.0 * final_total  / total);
+ 192   tty-&gt;print_cr("\t%9d (%4.1f%%) static",       static_total, 100.0 * static_total / total);
+ 193   tty-&gt;print_cr("\t%9d (%4.1f%%) native",       nativ_total,  100.0 * nativ_total  / total);
+ 194   tty-&gt;print_cr("\t%9d (%4.1f%%) accessor",     acces_total,  100.0 * acces_total  / total);
+ 195   tty-&gt;cr();
+ 196   SharedRuntime::print_call_statistics(comp_total);
+ 197 }
+ 198 
+ 199 void print_bytecode_count() {
+ 200   if (CountBytecodes || TraceBytecodes || StopInterpreterAt) {
+ 201     tty-&gt;print_cr("[BytecodeCounter::counter_value = %d]", BytecodeCounter::counter_value());
+ 202   }
+ 203 }
+ 204 
+ 205 AllocStats alloc_stats;
+ 206 
+ 207 
+ 208 
+ 209 // General statistics printing (profiling ...)
+ 210 void print_statistics() {
+ 211 #ifdef ASSERT
+ 212 
+ 213   if (CountRuntimeCalls) {
+ 214     extern Histogram *RuntimeHistogram;
+ 215     RuntimeHistogram-&gt;print();
+ 216   }
+ 217 
+ 218   if (CountJNICalls) {
+ 219     extern Histogram *JNIHistogram;
+ 220     JNIHistogram-&gt;print();
+ 221   }
+ 222 
+ 223   if (CountJVMCalls) {
+ 224     extern Histogram *JVMHistogram;
+ 225     JVMHistogram-&gt;print();
+ 226   }
+ 227 
+ 228 #endif
+ 229 
+ 230   if (MemProfiling) {
+ 231     MemProfiler::disengage();
+ 232   }
+ 233 
+ 234   if (CITime) {
+ 235     CompileBroker::print_times();
+ 236   }
+ 237 
+ 238 #ifdef COMPILER1
+ 239   if ((PrintC1Statistics || LogVMOutput || LogCompilation) &amp;&amp; UseCompiler) {
+ 240     FlagSetting fs(DisplayVMOutput, DisplayVMOutput &amp;&amp; PrintC1Statistics);
+ 241     Runtime1::print_statistics();
+ 242     Deoptimization::print_statistics();
+ 243     SharedRuntime::print_statistics();
+ 244   }
+ 245 #endif /* COMPILER1 */
+ 246 
+ 247 #ifdef COMPILER2
+ 248   if ((PrintOptoStatistics || LogVMOutput || LogCompilation) &amp;&amp; UseCompiler) {
+ 249     FlagSetting fs(DisplayVMOutput, DisplayVMOutput &amp;&amp; PrintOptoStatistics);
+ 250     Compile::print_statistics();
+ 251 #ifndef COMPILER1
+ 252     Deoptimization::print_statistics();
+ 253     SharedRuntime::print_statistics();
+ 254 #endif //COMPILER1
+ 255     os::print_statistics();
+ 256   }
+ 257 
+ 258   if (PrintLockStatistics || PrintPreciseBiasedLockingStatistics || PrintPreciseRTMLockingStatistics) {
+ 259     OptoRuntime::print_named_counters();
+ 260   }
+ 261 
+ 262   if (TimeLivenessAnalysis) {
+ 263     MethodLiveness::print_times();
+ 264   }
+ 265 #ifdef ASSERT
+ 266   if (CollectIndexSetStatistics) {
+ 267     IndexSet::print_statistics();
+ 268   }
+ 269 #endif // ASSERT
+ 270 #else
+ 271 #ifdef INCLUDE_JVMCI
+ 272 #ifndef COMPILER1
+ 273   if ((TraceDeoptimization || LogVMOutput || LogCompilation) &amp;&amp; UseCompiler) {
+ 274     FlagSetting fs(DisplayVMOutput, DisplayVMOutput &amp;&amp; TraceDeoptimization);
+ 275     Deoptimization::print_statistics();
+ 276     SharedRuntime::print_statistics();
+ 277   }
+ 278 #endif
+ 279 #endif
+ 280 #endif
+ 281 
+ 282   if (PrintNMethodStatistics) {
+ 283     nmethod::print_statistics();
+ 284   }
+ 285   if (CountCompiledCalls) {
+ 286     print_method_invocation_histogram();
+ 287   }
+ 288 
+ 289   print_method_profiling_data();
+ 290 
+ 291   if (TimeCompilationPolicy) {
+ 292     CompilationPolicy::policy()-&gt;print_time();
+ 293   }
+ 294   if (TimeOopMap) {
+ 295     GenerateOopMap::print_time();
+ 296   }
+ 297   if (ProfilerCheckIntervals) {
+ 298     PeriodicTask::print_intervals();
+ 299   }
+ 300   if (PrintSymbolTableSizeHistogram) {
+ 301     SymbolTable::print_histogram();
+ 302   }
+ 303   if (CountBytecodes || TraceBytecodes || StopInterpreterAt) {
+ 304     BytecodeCounter::print();
+ 305   }
+ 306   if (PrintBytecodePairHistogram) {
+ 307     BytecodePairHistogram::print();
+ 308   }
+ 309 
+ 310   if (PrintCodeCache) {
+ 311     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+ 312     CodeCache::print();
+ 313   }
+ 314 
+<a name="1" id="anc1"></a><span class="new"> 315   if (PrintDeoptimizationCount) {</span>
+<span class="new"> 316     Deoptimization::print_deoptimization_count();</span>
+<span class="new"> 317   }</span>
+<span class="new"> 318 </span>
+ 319   if (PrintMethodFlushingStatistics) {
+ 320     NMethodSweeper::print();
+ 321   }
+ 322 
+ 323   if (PrintCodeCache2) {
+ 324     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+ 325     CodeCache::print_internals();
+ 326   }
+ 327 
+ 328   if (PrintVtableStats) {
+ 329     klassVtable::print_statistics();
+ 330     klassItable::print_statistics();
+ 331   }
+ 332   if (VerifyOops) {
+ 333     tty-&gt;print_cr("+VerifyOops count: %d", StubRoutines::verify_oop_count());
+ 334   }
+ 335 
+ 336   print_bytecode_count();
+ 337   if (PrintMallocStatistics) {
+ 338     tty-&gt;print("allocation stats: ");
+ 339     alloc_stats.print();
+ 340     tty-&gt;cr();
+ 341   }
+ 342 
+ 343   if (PrintSystemDictionaryAtExit) {
+ 344     SystemDictionary::print();
+ 345   }
+ 346 
+ 347   if (LogTouchedMethods &amp;&amp; PrintTouchedMethodsAtExit) {
+ 348     Method::print_touched_methods(tty);
+ 349   }
+ 350 
+ 351   if (PrintBiasedLockingStatistics) {
+ 352     BiasedLocking::print_counters();
+ 353   }
+ 354 
+ 355   // Native memory tracking data
+ 356   if (PrintNMTStatistics) {
+ 357     MemTracker::final_report(tty);
+ 358   }
+ 359 }
+ 360 
+ 361 #else // PRODUCT MODE STATISTICS
+ 362 
+ 363 void print_statistics() {
+ 364 
+ 365   if (PrintMethodData) {
+ 366     print_method_profiling_data();
+ 367   }
+ 368 
+ 369   if (CITime) {
+ 370     CompileBroker::print_times();
+ 371   }
+ 372 
+ 373   if (PrintCodeCache) {
+ 374     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+ 375     CodeCache::print();
+<a name="2" id="anc2"></a><span class="new"> 376   }</span>
+<span class="new"> 377 </span>
+<span class="new"> 378   if (PrintDeoptimizationCount) {</span>
+<span class="new"> 379     Deoptimization::print_deoptimization_count();</span>
+ 380   }
+ 381 
+ 382   if (PrintMethodFlushingStatistics) {
+ 383     NMethodSweeper::print();
+ 384   }
+ 385 
+ 386 #ifdef COMPILER2
+ 387   if (PrintPreciseBiasedLockingStatistics || PrintPreciseRTMLockingStatistics) {
+ 388     OptoRuntime::print_named_counters();
+ 389   }
+ 390 #endif
+ 391   if (PrintBiasedLockingStatistics) {
+ 392     BiasedLocking::print_counters();
+ 393   }
+ 394 
+ 395   // Native memory tracking data
+ 396   if (PrintNMTStatistics) {
+ 397     MemTracker::final_report(tty);
+ 398   }
+ 399 
+ 400   if (LogTouchedMethods &amp;&amp; PrintTouchedMethodsAtExit) {
+ 401     Method::print_touched_methods(tty);
+ 402   }
+ 403 }
+ 404 
+ 405 #endif
+ 406 
+ 407 // Note: before_exit() can be executed only once, if more than one threads
+ 408 //       are trying to shutdown the VM at the same time, only one thread
+ 409 //       can run before_exit() and all other threads must wait.
+ 410 void before_exit(JavaThread* thread) {
+ 411   #define BEFORE_EXIT_NOT_RUN 0
+ 412   #define BEFORE_EXIT_RUNNING 1
+ 413   #define BEFORE_EXIT_DONE    2
+ 414   static jint volatile _before_exit_status = BEFORE_EXIT_NOT_RUN;
+ 415 
+ 416   // Note: don't use a Mutex to guard the entire before_exit(), as
+ 417   // JVMTI post_thread_end_event and post_vm_death_event will run native code.
+ 418   // A CAS or OSMutex would work just fine but then we need to manipulate
+ 419   // thread state for Safepoint. Here we use Monitor wait() and notify_all()
+ 420   // for synchronization.
+ 421   { MutexLocker ml(BeforeExit_lock);
+ 422     switch (_before_exit_status) {
+ 423     case BEFORE_EXIT_NOT_RUN:
+ 424       _before_exit_status = BEFORE_EXIT_RUNNING;
+ 425       break;
+ 426     case BEFORE_EXIT_RUNNING:
+ 427       while (_before_exit_status == BEFORE_EXIT_RUNNING) {
+ 428         BeforeExit_lock-&gt;wait();
+ 429       }
+ 430       assert(_before_exit_status == BEFORE_EXIT_DONE, "invalid state");
+ 431       return;
+ 432     case BEFORE_EXIT_DONE:
+ 433       // need block to avoid SS compiler bug
+ 434       {
+ 435         return;
+ 436       }
+ 437     }
+ 438   }
+ 439 
+ 440 #if INCLUDE_JVMCI
+ 441   // We are not using CATCH here because we want the exit to continue normally.
+ 442   Thread* THREAD = thread;
+ 443   JVMCIRuntime::shutdown(THREAD);
+ 444   if (HAS_PENDING_EXCEPTION) {
+ 445     Handle exception(THREAD, PENDING_EXCEPTION);
+ 446     CLEAR_PENDING_EXCEPTION;
+ 447     java_lang_Throwable::java_printStackTrace(exception, THREAD);
+ 448   }
+ 449 #endif
+ 450 
+ 451   // Hang forever on exit if we're reporting an error.
+ 452   if (ShowMessageBoxOnError &amp;&amp; is_error_reported()) {
+ 453     os::infinite_sleep();
+ 454   }
+ 455 
+ 456   // Stop the WatcherThread. We do this before disenrolling various
+ 457   // PeriodicTasks to reduce the likelihood of races.
+ 458   if (PeriodicTask::num_tasks() &gt; 0) {
+ 459     WatcherThread::stop();
+ 460   }
+ 461 
+ 462   // Print statistics gathered (profiling ...)
+ 463   if (Arguments::has_profile()) {
+ 464     FlatProfiler::disengage();
+ 465     FlatProfiler::print(10);
+ 466   }
+ 467 
+ 468   // shut down the StatSampler task
+ 469   StatSampler::disengage();
+ 470   StatSampler::destroy();
+ 471 
+ 472   // Stop concurrent GC threads
+ 473   Universe::heap()-&gt;stop();
+ 474 
+ 475   // Print GC/heap related information.
+ 476   LogHandle(gc, heap, exit) log;
+ 477   if (log.is_info()) {
+ 478     ResourceMark rm;
+ 479     Universe::print_on(log.info_stream());
+ 480     if (log.is_trace()) {
+ 481       ClassLoaderDataGraph::dump_on(log.trace_stream());
+ 482     }
+ 483   }
+ 484   AdaptiveSizePolicyOutput::print();
+ 485 
+ 486   if (PrintBytecodeHistogram) {
+ 487     BytecodeHistogram::print();
+ 488   }
+ 489 
+ 490   if (JvmtiExport::should_post_thread_life()) {
+ 491     JvmtiExport::post_thread_end(thread);
+ 492   }
+ 493 
+ 494 
+ 495   EventThreadEnd event;
+ 496   if (event.should_commit()) {
+ 497       event.set_thread(THREAD_TRACE_ID(thread));
+ 498       event.commit();
+ 499   }
+ 500 
+ 501   // Always call even when there are not JVMTI environments yet, since environments
+ 502   // may be attached late and JVMTI must track phases of VM execution
+ 503   JvmtiExport::post_vm_death();
+ 504   Threads::shutdown_vm_agents();
+ 505 
+ 506   // Terminate the signal thread
+ 507   // Note: we don't wait until it actually dies.
+ 508   os::terminate_signal_thread();
+ 509 
+ 510   print_statistics();
+ 511   Universe::heap()-&gt;print_tracing_info();
+ 512 
+ 513   { MutexLocker ml(BeforeExit_lock);
+ 514     _before_exit_status = BEFORE_EXIT_DONE;
+ 515     BeforeExit_lock-&gt;notify_all();
+ 516   }
+ 517 
+ 518   if (VerifyStringTableAtExit) {
+ 519     int fail_cnt = 0;
+ 520     {
+ 521       MutexLocker ml(StringTable_lock);
+ 522       fail_cnt = StringTable::verify_and_compare_entries();
+ 523     }
+ 524 
+ 525     if (fail_cnt != 0) {
+ 526       tty-&gt;print_cr("ERROR: fail_cnt=%d", fail_cnt);
+ 527       guarantee(fail_cnt == 0, "unexpected StringTable verification failures");
+ 528     }
+ 529   }
+ 530 
+ 531   #undef BEFORE_EXIT_NOT_RUN
+ 532   #undef BEFORE_EXIT_RUNNING
+ 533   #undef BEFORE_EXIT_DONE
+ 534 }
+ 535 
+ 536 void vm_exit(int code) {
+ 537   Thread* thread =
+ 538       ThreadLocalStorage::is_initialized() ? Thread::current_or_null() : NULL;
+ 539   if (thread == NULL) {
+ 540     // very early initialization failure -- just exit
+ 541     vm_direct_exit(code);
+ 542   }
+ 543 
+ 544   if (VMThread::vm_thread() != NULL) {
+ 545     // Fire off a VM_Exit operation to bring VM to a safepoint and exit
+ 546     VM_Exit op(code);
+ 547     if (thread-&gt;is_Java_thread())
+ 548       ((JavaThread*)thread)-&gt;set_thread_state(_thread_in_vm);
+ 549     VMThread::execute(&amp;op);
+ 550     // should never reach here; but in case something wrong with VM Thread.
+ 551     vm_direct_exit(code);
+ 552   } else {
+ 553     // VM thread is gone, just exit
+ 554     vm_direct_exit(code);
+ 555   }
+ 556   ShouldNotReachHere();
+ 557 }
+ 558 
+ 559 void notify_vm_shutdown() {
+ 560   // For now, just a dtrace probe.
+ 561   HOTSPOT_VM_SHUTDOWN();
+ 562   HS_DTRACE_WORKAROUND_TAIL_CALL_BUG();
+ 563 }
+ 564 
+ 565 void vm_direct_exit(int code) {
+ 566   notify_vm_shutdown();
+ 567   os::wait_for_keypress_at_exit();
+ 568   os::exit(code);
+ 569 }
+ 570 
+ 571 void vm_perform_shutdown_actions() {
+ 572   // Warning: do not call 'exit_globals()' here. All threads are still running.
+ 573   // Calling 'exit_globals()' will disable thread-local-storage and cause all
+ 574   // kinds of assertions to trigger in debug mode.
+ 575   if (is_init_completed()) {
+ 576     Thread* thread = Thread::current_or_null();
+ 577     if (thread != NULL &amp;&amp; thread-&gt;is_Java_thread()) {
+ 578       // We are leaving the VM, set state to native (in case any OS exit
+ 579       // handlers call back to the VM)
+ 580       JavaThread* jt = (JavaThread*)thread;
+ 581       // Must always be walkable or have no last_Java_frame when in
+ 582       // thread_in_native
+ 583       jt-&gt;frame_anchor()-&gt;make_walkable(jt);
+ 584       jt-&gt;set_thread_state(_thread_in_native);
+ 585     }
+ 586   }
+ 587   notify_vm_shutdown();
+ 588 }
+ 589 
+ 590 void vm_shutdown()
+ 591 {
+ 592   vm_perform_shutdown_actions();
+ 593   os::wait_for_keypress_at_exit();
+ 594   os::shutdown();
+ 595 }
+ 596 
+ 597 void vm_abort(bool dump_core) {
+ 598   vm_perform_shutdown_actions();
+ 599   os::wait_for_keypress_at_exit();
+ 600 
+ 601   // Flush stdout and stderr before abort.
+ 602   fflush(stdout);
+ 603   fflush(stderr);
+ 604 
+ 605   os::abort(dump_core);
+ 606   ShouldNotReachHere();
+ 607 }
+ 608 
+ 609 void vm_notify_during_shutdown(const char* error, const char* message) {
+ 610   if (error != NULL) {
+ 611     tty-&gt;print_cr("Error occurred during initialization of VM");
+ 612     tty-&gt;print("%s", error);
+ 613     if (message != NULL) {
+ 614       tty-&gt;print_cr(": %s", message);
+ 615     }
+ 616     else {
+ 617       tty-&gt;cr();
+ 618     }
+ 619   }
+ 620   if (ShowMessageBoxOnError &amp;&amp; WizardMode) {
+ 621     fatal("Error occurred during initialization of VM");
+ 622   }
+ 623 }
+ 624 
+ 625 void vm_exit_during_initialization(Handle exception) {
+ 626   tty-&gt;print_cr("Error occurred during initialization of VM");
+ 627   // If there are exceptions on this thread it must be cleared
+ 628   // first and here. Any future calls to EXCEPTION_MARK requires
+ 629   // that no pending exceptions exist.
+ 630   Thread *THREAD = Thread::current(); // can't be NULL
+ 631   if (HAS_PENDING_EXCEPTION) {
+ 632     CLEAR_PENDING_EXCEPTION;
+ 633   }
+ 634   java_lang_Throwable::print_stack_trace(exception, tty);
+ 635   tty-&gt;cr();
+ 636   vm_notify_during_shutdown(NULL, NULL);
+ 637 
+ 638   // Failure during initialization, we don't want to dump core
+ 639   vm_abort(false);
+ 640 }
+ 641 
+ 642 void vm_exit_during_initialization(Symbol* ex, const char* message) {
+ 643   ResourceMark rm;
+ 644   vm_notify_during_shutdown(ex-&gt;as_C_string(), message);
+ 645 
+ 646   // Failure during initialization, we don't want to dump core
+ 647   vm_abort(false);
+ 648 }
+ 649 
+ 650 void vm_exit_during_initialization(const char* error, const char* message) {
+ 651   vm_notify_during_shutdown(error, message);
+ 652 
+ 653   // Failure during initialization, we don't want to dump core
+ 654   vm_abort(false);
+ 655 }
+ 656 
+ 657 void vm_shutdown_during_initialization(const char* error, const char* message) {
+ 658   vm_notify_during_shutdown(error, message);
+ 659   vm_shutdown();
+ 660 }
+ 661 
+ 662 JDK_Version JDK_Version::_current;
+ 663 const char* JDK_Version::_runtime_name;
+ 664 const char* JDK_Version::_runtime_version;
+ 665 
+ 666 void JDK_Version::initialize() {
+ 667   jdk_version_info info;
+ 668   assert(!_current.is_valid(), "Don't initialize twice");
+ 669 
+ 670   void *lib_handle = os::native_java_library();
+ 671   jdk_version_info_fn_t func = CAST_TO_FN_PTR(jdk_version_info_fn_t,
+ 672      os::dll_lookup(lib_handle, "JDK_GetVersionInfo0"));
+ 673 
+ 674   assert(func != NULL, "Support for JDK 1.5 or older has been removed after JEP-223");
+ 675 
+ 676   (*func)(&amp;info, sizeof(info));
+ 677 
+ 678   int major = JDK_VERSION_MAJOR(info.jdk_version);
+ 679   int minor = JDK_VERSION_MINOR(info.jdk_version);
+ 680   int security = JDK_VERSION_SECURITY(info.jdk_version);
+ 681   int build = JDK_VERSION_BUILD(info.jdk_version);
+ 682 
+ 683   // Incompatible with pre-4243978 JDK.
+ 684   if (info.pending_list_uses_discovered_field == 0) {
+ 685     vm_exit_during_initialization(
+ 686       "Incompatible JDK is not using Reference.discovered field for pending list");
+ 687   }
+ 688   _current = JDK_Version(major, minor, security, info.patch_version, build,
+ 689                          info.thread_park_blocker == 1,
+ 690                          info.post_vm_init_hook_enabled == 1);
+ 691 }
+ 692 
+ 693 void JDK_Version_init() {
+ 694   JDK_Version::initialize();
+ 695 }
+ 696 
+ 697 static int64_t encode_jdk_version(const JDK_Version&amp; v) {
+ 698   return
+ 699     ((int64_t)v.major_version()          &lt;&lt; (BitsPerByte * 4)) |
+ 700     ((int64_t)v.minor_version()          &lt;&lt; (BitsPerByte * 3)) |
+ 701     ((int64_t)v.security_version()       &lt;&lt; (BitsPerByte * 2)) |
+ 702     ((int64_t)v.patch_version()          &lt;&lt; (BitsPerByte * 1)) |
+ 703     ((int64_t)v.build_number()           &lt;&lt; (BitsPerByte * 0));
+ 704 }
+ 705 
+ 706 int JDK_Version::compare(const JDK_Version&amp; other) const {
+ 707   assert(is_valid() &amp;&amp; other.is_valid(), "Invalid version (uninitialized?)");
+ 708   uint64_t e = encode_jdk_version(*this);
+ 709   uint64_t o = encode_jdk_version(other);
+ 710   return (e &gt; o) ? 1 : ((e == o) ? 0 : -1);
+ 711 }
+ 712 
+ 713 void JDK_Version::to_string(char* buffer, size_t buflen) const {
+ 714   assert(buffer &amp;&amp; buflen &gt; 0, "call with useful buffer");
+ 715   size_t index = 0;
+ 716 
+ 717   if (!is_valid()) {
+ 718     jio_snprintf(buffer, buflen, "%s", "(uninitialized)");
+ 719   } else {
+ 720     int rc = jio_snprintf(
+ 721         &amp;buffer[index], buflen - index, "%d.%d", _major, _minor);
+ 722     if (rc == -1) return;
+ 723     index += rc;
+ 724     if (_security &gt; 0) {
+ 725       rc = jio_snprintf(&amp;buffer[index], buflen - index, ".%d", _security);
+ 726     }
+ 727     if (_patch &gt; 0) {
+ 728       rc = jio_snprintf(&amp;buffer[index], buflen - index, ".%d", _patch);
+ 729       if (rc == -1) return;
+ 730       index += rc;
+ 731     }
+ 732     if (_build &gt; 0) {
+ 733       rc = jio_snprintf(&amp;buffer[index], buflen - index, "+%d", _build);
+ 734       if (rc == -1) return;
+ 735       index += rc;
+ 736     }
+ 737   }
+ 738 }
+<a name="3" id="anc3"></a><b style="font-size: large; color: red">--- EOF ---</b>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre><form name="eof"><input name="value" value="3" type="hidden" /></form></body></html>

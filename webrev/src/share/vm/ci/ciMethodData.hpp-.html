@@ -1,0 +1,678 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>Old src/share/vm/ci/ciMethodData.hpp</title>
+<body id="SUNWwebrev">
+<pre>
+   1 /*
+   2  * Copyright (c) 2001, 2015, Oracle and/or its affiliates. All rights reserved.
+   3  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   4  *
+   5  * This code is free software; you can redistribute it and/or modify it
+   6  * under the terms of the GNU General Public License version 2 only, as
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #ifndef SHARE_VM_CI_CIMETHODDATA_HPP
+  26 #define SHARE_VM_CI_CIMETHODDATA_HPP
+  27 
+  28 #include "ci/ciClassList.hpp"
+  29 #include "ci/ciKlass.hpp"
+  30 #include "ci/ciObject.hpp"
+  31 #include "ci/ciUtilities.hpp"
+  32 #include "oops/methodData.hpp"
+  33 #include "oops/oop.hpp"
+  34 #include "runtime/deoptimization.hpp"
+  35 
+  36 class ciBitData;
+  37 class ciCounterData;
+  38 class ciJumpData;
+  39 class ciReceiverTypeData;
+  40 class ciRetData;
+  41 class ciBranchData;
+  42 class ciArrayData;
+  43 class ciMultiBranchData;
+  44 class ciArgInfoData;
+  45 class ciCallTypeData;
+  46 class ciVirtualCallTypeData;
+  47 class ciParametersTypeData;
+  48 class ciSpeculativeTrapData;
+  49 
+  50 typedef ProfileData ciProfileData;
+  51 
+  52 class ciBitData : public BitData {
+  53 public:
+  54   ciBitData(DataLayout* layout) : BitData(layout) {};
+  55 };
+  56 
+  57 class ciCounterData : public CounterData {
+  58 public:
+  59   ciCounterData(DataLayout* layout) : CounterData(layout) {};
+  60 };
+  61 
+  62 class ciJumpData : public JumpData {
+  63 public:
+  64   ciJumpData(DataLayout* layout) : JumpData(layout) {};
+  65 };
+  66 
+  67 class ciTypeEntries {
+  68 protected:
+  69   static intptr_t translate_klass(intptr_t k) {
+  70     Klass* v = TypeEntries::valid_klass(k);
+  71     if (v != NULL) {
+  72       ciKlass* klass = CURRENT_ENV-&gt;get_klass(v);
+  73       CURRENT_ENV-&gt;ensure_metadata_alive(klass);
+  74       return with_status(klass, k);
+  75     }
+  76     return with_status(NULL, k);
+  77   }
+  78 
+  79 public:
+  80   static ciKlass* valid_ciklass(intptr_t k) {
+  81     if (!TypeEntries::is_type_none(k) &amp;&amp;
+  82         !TypeEntries::is_type_unknown(k)) {
+  83       ciKlass* res = (ciKlass*)TypeEntries::klass_part(k);
+  84       assert(res != NULL, "invalid");
+  85       return res;
+  86     } else {
+  87       return NULL;
+  88     }
+  89   }
+  90 
+  91   static intptr_t with_status(ciKlass* k, intptr_t in) {
+  92     return TypeEntries::with_status((intptr_t)k, in);
+  93   }
+  94 
+  95 #ifndef PRODUCT
+  96   static void print_ciklass(outputStream* st, intptr_t k);
+  97 #endif
+  98 };
+  99 
+ 100 class ciTypeStackSlotEntries : public TypeStackSlotEntries, ciTypeEntries {
+ 101 public:
+ 102   void translate_type_data_from(const TypeStackSlotEntries* args);
+ 103 
+ 104   ciKlass* valid_type(int i) const {
+ 105     return valid_ciklass(type(i));
+ 106   }
+ 107 
+ 108   bool maybe_null(int i) const {
+ 109     return was_null_seen(type(i));
+ 110   }
+ 111 
+ 112 #ifndef PRODUCT
+ 113   void print_data_on(outputStream* st) const;
+ 114 #endif
+ 115 };
+ 116 
+ 117 class ciReturnTypeEntry : public ReturnTypeEntry, ciTypeEntries {
+ 118 public:
+ 119   void translate_type_data_from(const ReturnTypeEntry* ret);
+ 120 
+ 121   ciKlass* valid_type() const {
+ 122     return valid_ciklass(type());
+ 123   }
+ 124 
+ 125   bool maybe_null() const {
+ 126     return was_null_seen(type());
+ 127   }
+ 128 
+ 129 #ifndef PRODUCT
+ 130   void print_data_on(outputStream* st) const;
+ 131 #endif
+ 132 };
+ 133 
+ 134 class ciCallTypeData : public CallTypeData {
+ 135 public:
+ 136   ciCallTypeData(DataLayout* layout) : CallTypeData(layout) {}
+ 137 
+ 138   ciTypeStackSlotEntries* args() const { return (ciTypeStackSlotEntries*)CallTypeData::args(); }
+ 139   ciReturnTypeEntry* ret() const { return (ciReturnTypeEntry*)CallTypeData::ret(); }
+ 140 
+ 141   void translate_from(const ProfileData* data) {
+ 142     if (has_arguments()) {
+ 143       args()-&gt;translate_type_data_from(data-&gt;as_CallTypeData()-&gt;args());
+ 144     }
+ 145     if (has_return()) {
+ 146       ret()-&gt;translate_type_data_from(data-&gt;as_CallTypeData()-&gt;ret());
+ 147     }
+ 148   }
+ 149 
+ 150   intptr_t argument_type(int i) const {
+ 151     assert(has_arguments(), "no arg type profiling data");
+ 152     return args()-&gt;type(i);
+ 153   }
+ 154 
+ 155   ciKlass* valid_argument_type(int i) const {
+ 156     assert(has_arguments(), "no arg type profiling data");
+ 157     return args()-&gt;valid_type(i);
+ 158   }
+ 159 
+ 160   intptr_t return_type() const {
+ 161     assert(has_return(), "no ret type profiling data");
+ 162     return ret()-&gt;type();
+ 163   }
+ 164 
+ 165   ciKlass* valid_return_type() const {
+ 166     assert(has_return(), "no ret type profiling data");
+ 167     return ret()-&gt;valid_type();
+ 168   }
+ 169 
+ 170   bool argument_maybe_null(int i) const {
+ 171     return args()-&gt;maybe_null(i);
+ 172   }
+ 173 
+ 174   bool return_maybe_null() const {
+ 175     return ret()-&gt;maybe_null();
+ 176   }
+ 177 
+ 178 #ifndef PRODUCT
+ 179   void print_data_on(outputStream* st, const char* extra = NULL) const;
+ 180 #endif
+ 181 };
+ 182 
+ 183 class ciReceiverTypeData : public ReceiverTypeData {
+ 184 public:
+ 185   ciReceiverTypeData(DataLayout* layout) : ReceiverTypeData(layout) {};
+ 186 
+ 187   void set_receiver(uint row, ciKlass* recv) {
+ 188     assert((uint)row &lt; row_limit(), "oob");
+ 189     set_intptr_at(receiver0_offset + row * receiver_type_row_cell_count,
+ 190                   (intptr_t) recv);
+ 191   }
+ 192 
+ 193   ciKlass* receiver(uint row) const {
+ 194     assert((uint)row &lt; row_limit(), "oob");
+ 195     ciKlass* recv = (ciKlass*)intptr_at(receiver0_offset + row * receiver_type_row_cell_count);
+ 196     assert(recv == NULL || recv-&gt;is_klass(), "wrong type");
+ 197     return recv;
+ 198   }
+ 199 
+ 200   // Copy &amp; translate from oop based ReceiverTypeData
+ 201   virtual void translate_from(const ProfileData* data) {
+ 202     translate_receiver_data_from(data);
+ 203   }
+ 204   void translate_receiver_data_from(const ProfileData* data);
+ 205 #ifndef PRODUCT
+ 206   void print_data_on(outputStream* st, const char* extra = NULL) const;
+ 207   void print_receiver_data_on(outputStream* st) const;
+ 208 #endif
+ 209 };
+ 210 
+ 211 class ciVirtualCallData : public VirtualCallData {
+ 212   // Fake multiple inheritance...  It's a ciReceiverTypeData also.
+ 213   ciReceiverTypeData* rtd_super() const { return (ciReceiverTypeData*) this; }
+ 214 
+ 215 public:
+ 216   ciVirtualCallData(DataLayout* layout) : VirtualCallData(layout) {};
+ 217 
+ 218   void set_receiver(uint row, ciKlass* recv) {
+ 219     rtd_super()-&gt;set_receiver(row, recv);
+ 220   }
+ 221 
+ 222   ciKlass* receiver(uint row) {
+ 223     return rtd_super()-&gt;receiver(row);
+ 224   }
+ 225 
+ 226   // Copy &amp; translate from oop based VirtualCallData
+ 227   virtual void translate_from(const ProfileData* data) {
+ 228     rtd_super()-&gt;translate_receiver_data_from(data);
+ 229   }
+ 230 #ifndef PRODUCT
+ 231   void print_data_on(outputStream* st, const char* extra = NULL) const;
+ 232 #endif
+ 233 };
+ 234 
+ 235 class ciVirtualCallTypeData : public VirtualCallTypeData {
+ 236 private:
+ 237   // Fake multiple inheritance...  It's a ciReceiverTypeData also.
+ 238   ciReceiverTypeData* rtd_super() const { return (ciReceiverTypeData*) this; }
+ 239 public:
+ 240   ciVirtualCallTypeData(DataLayout* layout) : VirtualCallTypeData(layout) {}
+ 241 
+ 242   void set_receiver(uint row, ciKlass* recv) {
+ 243     rtd_super()-&gt;set_receiver(row, recv);
+ 244   }
+ 245 
+ 246   ciKlass* receiver(uint row) const {
+ 247     return rtd_super()-&gt;receiver(row);
+ 248   }
+ 249 
+ 250   ciTypeStackSlotEntries* args() const { return (ciTypeStackSlotEntries*)VirtualCallTypeData::args(); }
+ 251   ciReturnTypeEntry* ret() const { return (ciReturnTypeEntry*)VirtualCallTypeData::ret(); }
+ 252 
+ 253   // Copy &amp; translate from oop based VirtualCallData
+ 254   virtual void translate_from(const ProfileData* data) {
+ 255     rtd_super()-&gt;translate_receiver_data_from(data);
+ 256     if (has_arguments()) {
+ 257       args()-&gt;translate_type_data_from(data-&gt;as_VirtualCallTypeData()-&gt;args());
+ 258     }
+ 259     if (has_return()) {
+ 260       ret()-&gt;translate_type_data_from(data-&gt;as_VirtualCallTypeData()-&gt;ret());
+ 261     }
+ 262   }
+ 263 
+ 264   intptr_t argument_type(int i) const {
+ 265     assert(has_arguments(), "no arg type profiling data");
+ 266     return args()-&gt;type(i);
+ 267   }
+ 268 
+ 269   ciKlass* valid_argument_type(int i) const {
+ 270     assert(has_arguments(), "no arg type profiling data");
+ 271     return args()-&gt;valid_type(i);
+ 272   }
+ 273 
+ 274   intptr_t return_type() const {
+ 275     assert(has_return(), "no ret type profiling data");
+ 276     return ret()-&gt;type();
+ 277   }
+ 278 
+ 279   ciKlass* valid_return_type() const {
+ 280     assert(has_return(), "no ret type profiling data");
+ 281     return ret()-&gt;valid_type();
+ 282   }
+ 283 
+ 284   bool argument_maybe_null(int i) const {
+ 285     return args()-&gt;maybe_null(i);
+ 286   }
+ 287 
+ 288   bool return_maybe_null() const {
+ 289     return ret()-&gt;maybe_null();
+ 290   }
+ 291 
+ 292 #ifndef PRODUCT
+ 293   void print_data_on(outputStream* st, const char* extra = NULL) const;
+ 294 #endif
+ 295 };
+ 296 
+ 297 
+ 298 class ciRetData : public RetData {
+ 299 public:
+ 300   ciRetData(DataLayout* layout) : RetData(layout) {};
+ 301 };
+ 302 
+ 303 class ciBranchData : public BranchData {
+ 304 public:
+ 305   ciBranchData(DataLayout* layout) : BranchData(layout) {};
+ 306 };
+ 307 
+ 308 class ciArrayData : public ArrayData {
+ 309 public:
+ 310   ciArrayData(DataLayout* layout) : ArrayData(layout) {};
+ 311 };
+ 312 
+ 313 class ciMultiBranchData : public MultiBranchData {
+ 314 public:
+ 315   ciMultiBranchData(DataLayout* layout) : MultiBranchData(layout) {};
+ 316 };
+ 317 
+ 318 class ciArgInfoData : public ArgInfoData {
+ 319 public:
+ 320   ciArgInfoData(DataLayout* layout) : ArgInfoData(layout) {};
+ 321 };
+ 322 
+ 323 class ciParametersTypeData : public ParametersTypeData {
+ 324 public:
+ 325   ciParametersTypeData(DataLayout* layout) : ParametersTypeData(layout) {}
+ 326 
+ 327   virtual void translate_from(const ProfileData* data) {
+ 328     parameters()-&gt;translate_type_data_from(data-&gt;as_ParametersTypeData()-&gt;parameters());
+ 329   }
+ 330 
+ 331   ciTypeStackSlotEntries* parameters() const { return (ciTypeStackSlotEntries*)ParametersTypeData::parameters(); }
+ 332 
+ 333   ciKlass* valid_parameter_type(int i) const {
+ 334     return parameters()-&gt;valid_type(i);
+ 335   }
+ 336 
+ 337   bool parameter_maybe_null(int i) const {
+ 338     return parameters()-&gt;maybe_null(i);
+ 339   }
+ 340 
+ 341 #ifndef PRODUCT
+ 342   void print_data_on(outputStream* st, const char* extra = NULL) const;
+ 343 #endif
+ 344 };
+ 345 
+ 346 class ciSpeculativeTrapData : public SpeculativeTrapData {
+ 347 public:
+ 348   ciSpeculativeTrapData(DataLayout* layout) : SpeculativeTrapData(layout) {}
+ 349 
+ 350   virtual void translate_from(const ProfileData* data);
+ 351 
+ 352   ciMethod* method() const {
+ 353     return (ciMethod*)intptr_at(speculative_trap_method);
+ 354   }
+ 355 
+ 356   void set_method(ciMethod* m) {
+ 357     set_intptr_at(speculative_trap_method, (intptr_t)m);
+ 358   }
+ 359 
+ 360 #ifndef PRODUCT
+ 361   void print_data_on(outputStream* st, const char* extra = NULL) const;
+ 362 #endif
+ 363 };
+ 364 
+ 365 // ciMethodData
+ 366 //
+ 367 // This class represents a MethodData* in the HotSpot virtual
+ 368 // machine.
+ 369 
+ 370 class ciMethodData : public ciMetadata {
+ 371   CI_PACKAGE_ACCESS
+ 372   friend class ciReplay;
+ 373 
+ 374 private:
+ 375   // Size in bytes
+ 376   int _data_size;
+ 377   int _extra_data_size;
+ 378 
+ 379   // Data entries
+ 380   intptr_t* _data;
+ 381 
+ 382   // Cached hint for data_before()
+ 383   int _hint_di;
+ 384 
+ 385   // Is data attached?  And is it mature?
+ 386   enum { empty_state, immature_state, mature_state };
+ 387   u_char _state;
+ 388 
+ 389   // Set this true if empty extra_data slots are ever witnessed.
+ 390   u_char _saw_free_extra_data;
+ 391 
+ 392   // Support for interprocedural escape analysis
+ 393   intx              _eflags;          // flags on escape information
+ 394   intx              _arg_local;       // bit set of non-escaping arguments
+ 395   intx              _arg_stack;       // bit set of stack-allocatable arguments
+ 396   intx              _arg_returned;    // bit set of returned arguments
+ 397 
+ 398   // Maturity of the oop when the snapshot is taken.
+ 399   int _current_mileage;
+ 400 
+ 401   // These counters hold the age of MDO in tiered. In tiered we can have the same method
+ 402   // running at different compilation levels concurrently. So, in order to precisely measure
+ 403   // its maturity we need separate counters.
+ 404   int _invocation_counter;
+ 405   int _backedge_counter;
+ 406 
+ 407   // Coherent snapshot of original header.
+ 408   MethodData _orig;
+ 409 
+ 410   // Area dedicated to parameters. NULL if no parameter profiling for
+ 411   // this method.
+ 412   DataLayout* _parameters;
+ 413   int parameters_size() const {
+ 414     return _parameters == NULL ? 0 : parameters_type_data()-&gt;size_in_bytes();
+ 415   }
+ 416 
+ 417   ciMethodData(MethodData* md);
+ 418   ciMethodData();
+ 419 
+ 420   // Accessors
+ 421   int data_size() const { return _data_size; }
+ 422   int extra_data_size() const { return _extra_data_size; }
+ 423   intptr_t * data() const { return _data; }
+ 424 
+ 425   MethodData* get_MethodData() const {
+ 426     return (MethodData*)_metadata;
+ 427   }
+ 428 
+ 429   const char* type_string()                      { return "ciMethodData"; }
+ 430 
+ 431   void print_impl(outputStream* st);
+ 432 
+ 433   DataLayout* data_layout_at(int data_index) const {
+ 434     assert(data_index % sizeof(intptr_t) == 0, "unaligned");
+ 435     return (DataLayout*) (((address)_data) + data_index);
+ 436   }
+ 437 
+ 438   bool out_of_bounds(int data_index) {
+ 439     return data_index &gt;= data_size();
+ 440   }
+ 441 
+ 442   // hint accessors
+ 443   int      hint_di() const  { return _hint_di; }
+ 444   void set_hint_di(int di)  {
+ 445     assert(!out_of_bounds(di), "hint_di out of bounds");
+ 446     _hint_di = di;
+ 447   }
+ 448   ciProfileData* data_before(int bci) {
+ 449     // avoid SEGV on this edge case
+ 450     if (data_size() == 0)
+ 451       return NULL;
+ 452     int hint = hint_di();
+ 453     if (data_layout_at(hint)-&gt;bci() &lt;= bci)
+ 454       return data_at(hint);
+ 455     return first_data();
+ 456   }
+ 457 
+ 458 
+ 459   // What is the index of the first data entry?
+ 460   int first_di() { return 0; }
+ 461 
+ 462   ciArgInfoData *arg_info() const;
+ 463 
+ 464   address data_base() const {
+ 465     return (address) _data;
+ 466   }
+ 467 
+ 468   void load_extra_data();
+ 469   ciProfileData* bci_to_extra_data(int bci, ciMethod* m, bool&amp; two_free_slots);
+ 470 
+ 471   void dump_replay_data_type_helper(outputStream* out, int round, int&amp; count, ProfileData* pdata, ByteSize offset, ciKlass* k);
+ 472   template&lt;class T&gt; void dump_replay_data_call_type_helper(outputStream* out, int round, int&amp; count, T* call_type_data);
+ 473   template&lt;class T&gt; void dump_replay_data_receiver_type_helper(outputStream* out, int round, int&amp; count, T* call_type_data);
+ 474   void dump_replay_data_extra_data_helper(outputStream* out, int round, int&amp; count);
+ 475 
+ 476 public:
+ 477   bool is_method_data() const { return true; }
+ 478 
+ 479   bool is_empty()  { return _state == empty_state; }
+ 480   bool is_mature() { return _state == mature_state; }
+ 481 
+ 482   int creation_mileage() { return _orig.creation_mileage(); }
+ 483   int current_mileage()  { return _current_mileage; }
+ 484 
+ 485   int invocation_count() { return _invocation_counter; }
+ 486   int backedge_count()   { return _backedge_counter;   }
+ 487 
+ 488 #if INCLUDE_RTM_OPT
+ 489   // return cached value
+ 490   int rtm_state() {
+ 491     if (is_empty()) {
+ 492       return NoRTM;
+ 493     } else {
+ 494       return get_MethodData()-&gt;rtm_state();
+ 495     }
+ 496   }
+ 497 #endif
+ 498 
+ 499   // Transfer information about the method to MethodData*.
+ 500   // would_profile means we would like to profile this method,
+ 501   // meaning it's not trivial.
+ 502   void set_would_profile(bool p);
+ 503   // Also set the numer of loops and blocks in the method.
+ 504   // Again, this is used to determine if a method is trivial.
+ 505   void set_compilation_stats(short loops, short blocks);
+ 506   // If the compiler finds a profiled type that is known statically
+ 507   // for sure, set it in the MethodData
+ 508   void set_argument_type(int bci, int i, ciKlass* k);
+ 509   void set_parameter_type(int i, ciKlass* k);
+ 510   void set_return_type(int bci, ciKlass* k);
+ 511 
+ 512   void load_data();
+ 513 
+ 514   // Convert a dp (data pointer) to a di (data index).
+ 515   int dp_to_di(address dp) {
+ 516     return dp - ((address)_data);
+ 517   }
+ 518 
+ 519   // Get the data at an arbitrary (sort of) data index.
+ 520   ciProfileData* data_at(int data_index);
+ 521 
+ 522   // Walk through the data in order.
+ 523   ciProfileData* first_data() { return data_at(first_di()); }
+ 524   ciProfileData* next_data(ciProfileData* current);
+ 525   bool is_valid(ciProfileData* current) { return current != NULL; }
+ 526 
+ 527   DataLayout* extra_data_base() const  { return data_layout_at(data_size()); }
+ 528   DataLayout* args_data_limit() const  { return data_layout_at(data_size() + extra_data_size() -
+ 529                                                                parameters_size()); }
+ 530 
+ 531   // Get the data at an arbitrary bci, or NULL if there is none. If m
+ 532   // is not NULL look for a SpeculativeTrapData if any first.
+ 533   ciProfileData* bci_to_data(int bci, ciMethod* m = NULL);
+ 534 
+ 535   uint overflow_trap_count() const {
+ 536     return _orig.overflow_trap_count();
+ 537   }
+ 538   uint overflow_recompile_count() const {
+ 539     return _orig.overflow_recompile_count();
+ 540   }
+ 541   uint decompile_count() const {
+ 542     return _orig.decompile_count();
+ 543   }
+ 544   uint trap_count(int reason) const {
+ 545     return _orig.trap_count(reason);
+ 546   }
+ 547   uint trap_reason_limit() const { return _orig.trap_reason_limit(); }
+ 548   uint trap_count_limit()  const { return _orig.trap_count_limit(); }
+ 549 
+ 550   // Helpful query functions that decode trap_state.
+ 551   int has_trap_at(ciProfileData* data, int reason);
+ 552   int has_trap_at(int bci, ciMethod* m, int reason) {
+ 553     assert((m != NULL) == Deoptimization::reason_is_speculate(reason), "inconsistent method/reason");
+ 554     return has_trap_at(bci_to_data(bci, m), reason);
+ 555   }
+ 556   int trap_recompiled_at(ciProfileData* data);
+ 557   int trap_recompiled_at(int bci, ciMethod* m) {
+ 558     return trap_recompiled_at(bci_to_data(bci, m));
+ 559   }
+ 560 
+ 561   void clear_escape_info();
+ 562   bool has_escape_info();
+ 563   void update_escape_info();
+ 564 
+ 565   void set_eflag(MethodData::EscapeFlag f);
+ 566   void clear_eflag(MethodData::EscapeFlag f);
+ 567   bool eflag_set(MethodData::EscapeFlag f) const;
+ 568 
+ 569   void set_arg_local(int i);
+ 570   void set_arg_stack(int i);
+ 571   void set_arg_returned(int i);
+ 572   void set_arg_modified(int arg, uint val);
+ 573 
+ 574   bool is_arg_local(int i) const;
+ 575   bool is_arg_stack(int i) const;
+ 576   bool is_arg_returned(int i) const;
+ 577   uint arg_modified(int arg) const;
+ 578 
+ 579   ciParametersTypeData* parameters_type_data() const {
+ 580     return _parameters != NULL ? new ciParametersTypeData(_parameters) : NULL;
+ 581   }
+ 582 
+ 583   // Code generation helper
+ 584   ByteSize offset_of_slot(ciProfileData* data, ByteSize slot_offset_in_data);
+ 585   int      byte_offset_of_slot(ciProfileData* data, ByteSize slot_offset_in_data) { return in_bytes(offset_of_slot(data, slot_offset_in_data)); }
+ 586 
+ 587 #ifndef PRODUCT
+ 588   // printing support for method data
+ 589   void print();
+ 590   void print_data_on(outputStream* st);
+ 591 #endif
+ 592   void dump_replay_data(outputStream* out);
+ 593 };
+ 594 
+ 595 #endif // SHARE_VM_CI_CIMETHODDATA_HPP
+</pre></body></html>

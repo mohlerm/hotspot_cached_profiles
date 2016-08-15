@@ -1,0 +1,1506 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+    <script type="text/javascript" src="../../../../ancnav.js"></script>
+    </head>
+    <body id="SUNWwebrev" onkeypress="keypress(event);">
+    <a name="0"></a>
+    <pre></pre><hr></hr>
+<pre>
+   1 /*
+   2  * Copyright (c) 1999, 2015, Oracle and/or its affiliates. All rights reserved.
+   3  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   4  *
+   5  * This code is free software; you can redistribute it and/or modify it
+   6  * under the terms of the GNU General Public License version 2 only, as
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "ci/ciConstant.hpp"
+  27 #include "ci/ciEnv.hpp"
+  28 #include "ci/ciField.hpp"
+  29 #include "ci/ciInstance.hpp"
+  30 #include "ci/ciInstanceKlass.hpp"
+  31 #include "ci/ciMethod.hpp"
+  32 #include "ci/ciNullObject.hpp"
+  33 #include "ci/ciReplay.hpp"
+<a name="1" id="anc1"></a><span class="new">  34 #include "ci/ciCacheReplay.hpp"</span>
+  35 #include "ci/ciUtilities.hpp"
+  36 #include "classfile/systemDictionary.hpp"
+  37 #include "classfile/vmSymbols.hpp"
+  38 #include "code/codeCache.hpp"
+  39 #include "code/scopeDesc.hpp"
+  40 #include "compiler/compileBroker.hpp"
+  41 #include "compiler/compileLog.hpp"
+  42 #include "compiler/disassembler.hpp"
+  43 #include "gc/shared/collectedHeap.inline.hpp"
+  44 #include "interpreter/linkResolver.hpp"
+  45 #include "memory/allocation.inline.hpp"
+  46 #include "memory/oopFactory.hpp"
+  47 #include "memory/universe.inline.hpp"
+  48 #include "oops/methodData.hpp"
+  49 #include "oops/objArrayKlass.hpp"
+  50 #include "oops/objArrayOop.inline.hpp"
+  51 #include "oops/oop.inline.hpp"
+  52 #include "prims/jvmtiExport.hpp"
+  53 #include "runtime/init.hpp"
+  54 #include "runtime/reflection.hpp"
+  55 #include "runtime/sharedRuntime.hpp"
+  56 #include "runtime/thread.inline.hpp"
+  57 #include "trace/tracing.hpp"
+  58 #include "utilities/dtrace.hpp"
+  59 #include "utilities/macros.hpp"
+  60 #ifdef COMPILER1
+  61 #include "c1/c1_Runtime1.hpp"
+  62 #endif
+  63 #ifdef COMPILER2
+  64 #include "opto/runtime.hpp"
+  65 #endif
+  66 
+  67 // ciEnv
+  68 //
+  69 // This class is the top level broker for requests from the compiler
+  70 // to the VM.
+  71 
+  72 ciObject*              ciEnv::_null_object_instance;
+  73 
+  74 #define WK_KLASS_DEFN(name, ignore_s, ignore_o) ciInstanceKlass* ciEnv::_##name = NULL;
+  75 WK_KLASSES_DO(WK_KLASS_DEFN)
+  76 #undef WK_KLASS_DEFN
+  77 
+  78 ciSymbol*        ciEnv::_unloaded_cisymbol = NULL;
+  79 ciInstanceKlass* ciEnv::_unloaded_ciinstance_klass = NULL;
+  80 ciObjArrayKlass* ciEnv::_unloaded_ciobjarrayklass = NULL;
+  81 
+  82 jobject ciEnv::_ArrayIndexOutOfBoundsException_handle = NULL;
+  83 jobject ciEnv::_ArrayStoreException_handle = NULL;
+  84 jobject ciEnv::_ClassCastException_handle = NULL;
+  85 
+  86 #ifndef PRODUCT
+  87 static bool firstEnv = true;
+  88 #endif /* PRODUCT */
+  89 
+  90 // ------------------------------------------------------------------
+  91 // ciEnv::ciEnv
+  92 ciEnv::ciEnv(CompileTask* task, int system_dictionary_modification_counter)
+  93   : _ciEnv_arena(mtCompiler) {
+  94   VM_ENTRY_MARK;
+  95 
+  96   // Set up ciEnv::current immediately, for the sake of ciObjectFactory, etc.
+  97   thread-&gt;set_env(this);
+  98   assert(ciEnv::current() == this, "sanity");
+  99 
+ 100   _oop_recorder = NULL;
+ 101   _debug_info = NULL;
+ 102   _dependencies = NULL;
+ 103   _failure_reason = NULL;
+ 104   _compilable = MethodCompilable;
+ 105   _break_at_compile = false;
+ 106   _compiler_data = NULL;
+ 107 #ifndef PRODUCT
+ 108   assert(!firstEnv, "not initialized properly");
+ 109 #endif /* !PRODUCT */
+ 110 
+ 111   _system_dictionary_modification_counter = system_dictionary_modification_counter;
+ 112   _num_inlined_bytecodes = 0;
+ 113   assert(task == NULL || thread-&gt;task() == task, "sanity");
+ 114   _task = task;
+ 115   _log = NULL;
+ 116 
+ 117   // Temporary buffer for creating symbols and such.
+ 118   _name_buffer = NULL;
+ 119   _name_buffer_len = 0;
+ 120 
+ 121   _arena   = &amp;_ciEnv_arena;
+ 122   _factory = new (_arena) ciObjectFactory(_arena, 128);
+ 123 
+ 124   // Preload commonly referenced system ciObjects.
+ 125 
+ 126   // During VM initialization, these instances have not yet been created.
+ 127   // Assertions ensure that these instances are not accessed before
+ 128   // their initialization.
+ 129 
+ 130   assert(Universe::is_fully_initialized(), "should be complete");
+ 131 
+ 132   oop o = Universe::null_ptr_exception_instance();
+ 133   assert(o != NULL, "should have been initialized");
+ 134   _NullPointerException_instance = get_object(o)-&gt;as_instance();
+ 135   o = Universe::arithmetic_exception_instance();
+ 136   assert(o != NULL, "should have been initialized");
+ 137   _ArithmeticException_instance = get_object(o)-&gt;as_instance();
+ 138 
+ 139   _ArrayIndexOutOfBoundsException_instance = NULL;
+ 140   _ArrayStoreException_instance = NULL;
+ 141   _ClassCastException_instance = NULL;
+ 142   _the_null_string = NULL;
+ 143   _the_min_jint_string = NULL;
+ 144 
+ 145   _jvmti_can_hotswap_or_post_breakpoint = false;
+ 146   _jvmti_can_access_local_variables = false;
+ 147   _jvmti_can_post_on_exceptions = false;
+ 148   _jvmti_can_pop_frame = false;
+ 149 }
+ 150 
+ 151 ciEnv::ciEnv(Arena* arena) : _ciEnv_arena(mtCompiler) {
+ 152   ASSERT_IN_VM;
+ 153 
+ 154   // Set up ciEnv::current immediately, for the sake of ciObjectFactory, etc.
+ 155   CompilerThread* current_thread = CompilerThread::current();
+ 156   assert(current_thread-&gt;env() == NULL, "must be");
+ 157   current_thread-&gt;set_env(this);
+ 158   assert(ciEnv::current() == this, "sanity");
+ 159 
+ 160   _oop_recorder = NULL;
+ 161   _debug_info = NULL;
+ 162   _dependencies = NULL;
+ 163   _failure_reason = NULL;
+ 164   _compilable = MethodCompilable_never;
+ 165   _break_at_compile = false;
+ 166   _compiler_data = NULL;
+ 167 #ifndef PRODUCT
+ 168   assert(firstEnv, "must be first");
+ 169   firstEnv = false;
+ 170 #endif /* !PRODUCT */
+ 171 
+ 172   _system_dictionary_modification_counter = 0;
+ 173   _num_inlined_bytecodes = 0;
+ 174   _task = NULL;
+ 175   _log = NULL;
+ 176 
+ 177   // Temporary buffer for creating symbols and such.
+ 178   _name_buffer = NULL;
+ 179   _name_buffer_len = 0;
+ 180 
+ 181   _arena   = arena;
+ 182   _factory = new (_arena) ciObjectFactory(_arena, 128);
+ 183 
+ 184   // Preload commonly referenced system ciObjects.
+ 185 
+ 186   // During VM initialization, these instances have not yet been created.
+ 187   // Assertions ensure that these instances are not accessed before
+ 188   // their initialization.
+ 189 
+ 190   assert(Universe::is_fully_initialized(), "must be");
+ 191 
+ 192   _NullPointerException_instance = NULL;
+ 193   _ArithmeticException_instance = NULL;
+ 194   _ArrayIndexOutOfBoundsException_instance = NULL;
+ 195   _ArrayStoreException_instance = NULL;
+ 196   _ClassCastException_instance = NULL;
+ 197   _the_null_string = NULL;
+ 198   _the_min_jint_string = NULL;
+ 199 
+ 200   _jvmti_can_hotswap_or_post_breakpoint = false;
+ 201   _jvmti_can_access_local_variables = false;
+ 202   _jvmti_can_post_on_exceptions = false;
+ 203   _jvmti_can_pop_frame = false;
+ 204 }
+ 205 
+ 206 ciEnv::~ciEnv() {
+ 207   CompilerThread* current_thread = CompilerThread::current();
+ 208   _factory-&gt;remove_symbols();
+ 209   // Need safepoint to clear the env on the thread.  RedefineClasses might
+ 210   // be reading it.
+ 211   GUARDED_VM_ENTRY(current_thread-&gt;set_env(NULL);)
+ 212 }
+ 213 
+ 214 // ------------------------------------------------------------------
+ 215 // Cache Jvmti state
+ 216 void ciEnv::cache_jvmti_state() {
+ 217   VM_ENTRY_MARK;
+ 218   // Get Jvmti capabilities under lock to get consistant values.
+ 219   MutexLocker mu(JvmtiThreadState_lock);
+ 220   _jvmti_can_hotswap_or_post_breakpoint = JvmtiExport::can_hotswap_or_post_breakpoint();
+ 221   _jvmti_can_access_local_variables     = JvmtiExport::can_access_local_variables();
+ 222   _jvmti_can_post_on_exceptions         = JvmtiExport::can_post_on_exceptions();
+ 223   _jvmti_can_pop_frame                  = JvmtiExport::can_pop_frame();
+ 224 }
+ 225 
+ 226 bool ciEnv::should_retain_local_variables() const {
+ 227   return _jvmti_can_access_local_variables || _jvmti_can_pop_frame;
+ 228 }
+ 229 
+ 230 bool ciEnv::jvmti_state_changed() const {
+ 231   if (!_jvmti_can_access_local_variables &amp;&amp;
+ 232       JvmtiExport::can_access_local_variables()) {
+ 233     return true;
+ 234   }
+ 235   if (!_jvmti_can_hotswap_or_post_breakpoint &amp;&amp;
+ 236       JvmtiExport::can_hotswap_or_post_breakpoint()) {
+ 237     return true;
+ 238   }
+ 239   if (!_jvmti_can_post_on_exceptions &amp;&amp;
+ 240       JvmtiExport::can_post_on_exceptions()) {
+ 241     return true;
+ 242   }
+ 243   if (!_jvmti_can_pop_frame &amp;&amp;
+ 244       JvmtiExport::can_pop_frame()) {
+ 245     return true;
+ 246   }
+ 247   return false;
+ 248 }
+ 249 
+ 250 // ------------------------------------------------------------------
+ 251 // Cache DTrace flags
+ 252 void ciEnv::cache_dtrace_flags() {
+ 253   // Need lock?
+ 254   _dtrace_extended_probes = ExtendedDTraceProbes;
+ 255   if (_dtrace_extended_probes) {
+ 256     _dtrace_monitor_probes  = true;
+ 257     _dtrace_method_probes   = true;
+ 258     _dtrace_alloc_probes    = true;
+ 259   } else {
+ 260     _dtrace_monitor_probes  = DTraceMonitorProbes;
+ 261     _dtrace_method_probes   = DTraceMethodProbes;
+ 262     _dtrace_alloc_probes    = DTraceAllocProbes;
+ 263   }
+ 264 }
+ 265 
+ 266 // ------------------------------------------------------------------
+ 267 // helper for lazy exception creation
+ 268 ciInstance* ciEnv::get_or_create_exception(jobject&amp; handle, Symbol* name) {
+ 269   VM_ENTRY_MARK;
+ 270   if (handle == NULL) {
+ 271     // Cf. universe.cpp, creation of Universe::_null_ptr_exception_instance.
+ 272     Klass* k = SystemDictionary::find(name, Handle(), Handle(), THREAD);
+ 273     jobject objh = NULL;
+ 274     if (!HAS_PENDING_EXCEPTION &amp;&amp; k != NULL) {
+ 275       oop obj = InstanceKlass::cast(k)-&gt;allocate_instance(THREAD);
+ 276       if (!HAS_PENDING_EXCEPTION)
+ 277         objh = JNIHandles::make_global(obj);
+ 278     }
+ 279     if (HAS_PENDING_EXCEPTION) {
+ 280       CLEAR_PENDING_EXCEPTION;
+ 281     } else {
+ 282       handle = objh;
+ 283     }
+ 284   }
+ 285   oop obj = JNIHandles::resolve(handle);
+ 286   return obj == NULL? NULL: get_object(obj)-&gt;as_instance();
+ 287 }
+ 288 
+ 289 ciInstance* ciEnv::ArrayIndexOutOfBoundsException_instance() {
+ 290   if (_ArrayIndexOutOfBoundsException_instance == NULL) {
+ 291     _ArrayIndexOutOfBoundsException_instance
+ 292           = get_or_create_exception(_ArrayIndexOutOfBoundsException_handle,
+ 293           vmSymbols::java_lang_ArrayIndexOutOfBoundsException());
+ 294   }
+ 295   return _ArrayIndexOutOfBoundsException_instance;
+ 296 }
+ 297 ciInstance* ciEnv::ArrayStoreException_instance() {
+ 298   if (_ArrayStoreException_instance == NULL) {
+ 299     _ArrayStoreException_instance
+ 300           = get_or_create_exception(_ArrayStoreException_handle,
+ 301           vmSymbols::java_lang_ArrayStoreException());
+ 302   }
+ 303   return _ArrayStoreException_instance;
+ 304 }
+ 305 ciInstance* ciEnv::ClassCastException_instance() {
+ 306   if (_ClassCastException_instance == NULL) {
+ 307     _ClassCastException_instance
+ 308           = get_or_create_exception(_ClassCastException_handle,
+ 309           vmSymbols::java_lang_ClassCastException());
+ 310   }
+ 311   return _ClassCastException_instance;
+ 312 }
+ 313 
+ 314 ciInstance* ciEnv::the_null_string() {
+ 315   if (_the_null_string == NULL) {
+ 316     VM_ENTRY_MARK;
+ 317     _the_null_string = get_object(Universe::the_null_string())-&gt;as_instance();
+ 318   }
+ 319   return _the_null_string;
+ 320 }
+ 321 
+ 322 ciInstance* ciEnv::the_min_jint_string() {
+ 323   if (_the_min_jint_string == NULL) {
+ 324     VM_ENTRY_MARK;
+ 325     _the_min_jint_string = get_object(Universe::the_min_jint_string())-&gt;as_instance();
+ 326   }
+ 327   return _the_min_jint_string;
+ 328 }
+ 329 
+ 330 // ------------------------------------------------------------------
+ 331 // ciEnv::get_method_from_handle
+ 332 ciMethod* ciEnv::get_method_from_handle(Method* method) {
+ 333   VM_ENTRY_MARK;
+ 334   return get_metadata(method)-&gt;as_method();
+ 335 }
+ 336 
+ 337 // ------------------------------------------------------------------
+ 338 // ciEnv::array_element_offset_in_bytes
+ 339 int ciEnv::array_element_offset_in_bytes(ciArray* a_h, ciObject* o_h) {
+ 340   VM_ENTRY_MARK;
+ 341   objArrayOop a = (objArrayOop)a_h-&gt;get_oop();
+ 342   assert(a-&gt;is_objArray(), "");
+ 343   int length = a-&gt;length();
+ 344   oop o = o_h-&gt;get_oop();
+ 345   for (int i = 0; i &lt; length; i++) {
+ 346     if (a-&gt;obj_at(i) == o)  return i;
+ 347   }
+ 348   return -1;
+ 349 }
+ 350 
+ 351 
+ 352 // ------------------------------------------------------------------
+ 353 // ciEnv::check_klass_accessiblity
+ 354 //
+ 355 // Note: the logic of this method should mirror the logic of
+ 356 // ConstantPool::verify_constant_pool_resolve.
+ 357 bool ciEnv::check_klass_accessibility(ciKlass* accessing_klass,
+ 358                                       Klass* resolved_klass) {
+ 359   if (accessing_klass == NULL || !accessing_klass-&gt;is_loaded()) {
+ 360     return true;
+ 361   }
+ 362   if (accessing_klass-&gt;is_obj_array_klass()) {
+ 363     accessing_klass = accessing_klass-&gt;as_obj_array_klass()-&gt;base_element_klass();
+ 364   }
+ 365   if (!accessing_klass-&gt;is_instance_klass()) {
+ 366     return true;
+ 367   }
+ 368 
+ 369   if (resolved_klass-&gt;is_objArray_klass()) {
+ 370     // Find the element klass, if this is an array.
+ 371     resolved_klass = ObjArrayKlass::cast(resolved_klass)-&gt;bottom_klass();
+ 372   }
+ 373   if (resolved_klass-&gt;is_instance_klass()) {
+ 374     return Reflection::verify_class_access(accessing_klass-&gt;get_Klass(),
+ 375                                            resolved_klass,
+ 376                                            true);
+ 377   }
+ 378   return true;
+ 379 }
+ 380 
+ 381 // ------------------------------------------------------------------
+ 382 // ciEnv::get_klass_by_name_impl
+ 383 ciKlass* ciEnv::get_klass_by_name_impl(ciKlass* accessing_klass,
+ 384                                        const constantPoolHandle&amp; cpool,
+ 385                                        ciSymbol* name,
+ 386                                        bool require_local) {
+ 387   ASSERT_IN_VM;
+ 388   EXCEPTION_CONTEXT;
+ 389 
+ 390   // Now we need to check the SystemDictionary
+ 391   Symbol* sym = name-&gt;get_symbol();
+ 392   if (sym-&gt;byte_at(0) == 'L' &amp;&amp;
+ 393     sym-&gt;byte_at(sym-&gt;utf8_length()-1) == ';') {
+ 394     // This is a name from a signature.  Strip off the trimmings.
+ 395     // Call recursive to keep scope of strippedsym.
+ 396     TempNewSymbol strippedsym = SymbolTable::new_symbol(sym-&gt;as_utf8()+1,
+ 397                     sym-&gt;utf8_length()-2,
+ 398                     KILL_COMPILE_ON_FATAL_(_unloaded_ciinstance_klass));
+ 399     ciSymbol* strippedname = get_symbol(strippedsym);
+ 400     return get_klass_by_name_impl(accessing_klass, cpool, strippedname, require_local);
+ 401   }
+ 402 
+ 403   // Check for prior unloaded klass.  The SystemDictionary's answers
+ 404   // can vary over time but the compiler needs consistency.
+ 405   ciKlass* unloaded_klass = check_get_unloaded_klass(accessing_klass, name);
+ 406   if (unloaded_klass != NULL) {
+ 407     if (require_local)  return NULL;
+ 408     return unloaded_klass;
+ 409   }
+ 410 
+ 411   Handle loader(THREAD, (oop)NULL);
+ 412   Handle domain(THREAD, (oop)NULL);
+ 413   if (accessing_klass != NULL) {
+ 414     loader = Handle(THREAD, accessing_klass-&gt;loader());
+ 415     domain = Handle(THREAD, accessing_klass-&gt;protection_domain());
+ 416   }
+ 417 
+ 418   // setup up the proper type to return on OOM
+ 419   ciKlass* fail_type;
+ 420   if (sym-&gt;byte_at(0) == '[') {
+ 421     fail_type = _unloaded_ciobjarrayklass;
+ 422   } else {
+ 423     fail_type = _unloaded_ciinstance_klass;
+ 424   }
+ 425   KlassHandle found_klass;
+ 426   {
+ 427     ttyUnlocker ttyul;  // release tty lock to avoid ordering problems
+ 428     MutexLocker ml(Compile_lock);
+ 429     Klass* kls;
+ 430     if (!require_local) {
+ 431       kls = SystemDictionary::find_constrained_instance_or_array_klass(sym, loader,
+ 432                                                                        KILL_COMPILE_ON_FATAL_(fail_type));
+ 433     } else {
+ 434       kls = SystemDictionary::find_instance_or_array_klass(sym, loader, domain,
+ 435                                                            KILL_COMPILE_ON_FATAL_(fail_type));
+ 436     }
+ 437     found_klass = KlassHandle(THREAD, kls);
+ 438   }
+ 439 
+ 440   // If we fail to find an array klass, look again for its element type.
+ 441   // The element type may be available either locally or via constraints.
+ 442   // In either case, if we can find the element type in the system dictionary,
+ 443   // we must build an array type around it.  The CI requires array klasses
+ 444   // to be loaded if their element klasses are loaded, except when memory
+ 445   // is exhausted.
+ 446   if (sym-&gt;byte_at(0) == '[' &amp;&amp;
+ 447       (sym-&gt;byte_at(1) == '[' || sym-&gt;byte_at(1) == 'L')) {
+ 448     // We have an unloaded array.
+ 449     // Build it on the fly if the element class exists.
+ 450     TempNewSymbol elem_sym = SymbolTable::new_symbol(sym-&gt;as_utf8()+1,
+ 451                                                  sym-&gt;utf8_length()-1,
+ 452                                                  KILL_COMPILE_ON_FATAL_(fail_type));
+ 453 
+ 454     // Get element ciKlass recursively.
+ 455     ciKlass* elem_klass =
+ 456       get_klass_by_name_impl(accessing_klass,
+ 457                              cpool,
+ 458                              get_symbol(elem_sym),
+ 459                              require_local);
+ 460     if (elem_klass != NULL &amp;&amp; elem_klass-&gt;is_loaded()) {
+ 461       // Now make an array for it
+ 462       return ciObjArrayKlass::make_impl(elem_klass);
+ 463     }
+ 464   }
+ 465 
+ 466   if (found_klass() == NULL &amp;&amp; !cpool.is_null() &amp;&amp; cpool-&gt;has_preresolution()) {
+ 467     // Look inside the constant pool for pre-resolved class entries.
+ 468     for (int i = cpool-&gt;length() - 1; i &gt;= 1; i--) {
+ 469       if (cpool-&gt;tag_at(i).is_klass()) {
+ 470         Klass* kls = cpool-&gt;resolved_klass_at(i);
+ 471         if (kls-&gt;name() == sym) {
+ 472           found_klass = KlassHandle(THREAD, kls);
+ 473           break;
+ 474         }
+ 475       }
+ 476     }
+ 477   }
+ 478 
+ 479   if (found_klass() != NULL) {
+ 480     // Found it.  Build a CI handle.
+ 481     return get_klass(found_klass());
+ 482   }
+ 483 
+ 484   if (require_local)  return NULL;
+ 485 
+ 486   // Not yet loaded into the VM, or not governed by loader constraints.
+ 487   // Make a CI representative for it.
+ 488   return get_unloaded_klass(accessing_klass, name);
+ 489 }
+ 490 
+ 491 // ------------------------------------------------------------------
+ 492 // ciEnv::get_klass_by_name
+ 493 ciKlass* ciEnv::get_klass_by_name(ciKlass* accessing_klass,
+ 494                                   ciSymbol* klass_name,
+ 495                                   bool require_local) {
+ 496   GUARDED_VM_ENTRY(return get_klass_by_name_impl(accessing_klass,
+ 497                                                  constantPoolHandle(),
+ 498                                                  klass_name,
+ 499                                                  require_local);)
+ 500 }
+ 501 
+ 502 // ------------------------------------------------------------------
+ 503 // ciEnv::get_klass_by_index_impl
+ 504 //
+ 505 // Implementation of get_klass_by_index.
+ 506 ciKlass* ciEnv::get_klass_by_index_impl(const constantPoolHandle&amp; cpool,
+ 507                                         int index,
+ 508                                         bool&amp; is_accessible,
+ 509                                         ciInstanceKlass* accessor) {
+ 510   EXCEPTION_CONTEXT;
+ 511   KlassHandle klass; // = NULL;
+ 512   Symbol* klass_name = NULL;
+ 513 
+ 514   if (cpool-&gt;tag_at(index).is_symbol()) {
+ 515     klass_name = cpool-&gt;symbol_at(index);
+ 516   } else {
+ 517     // Check if it's resolved if it's not a symbol constant pool entry.
+ 518     klass = KlassHandle(THREAD, ConstantPool::klass_at_if_loaded(cpool, index));
+ 519     // Try to look it up by name.
+ 520   if (klass.is_null()) {
+ 521       klass_name = cpool-&gt;klass_name_at(index);
+ 522   }
+ 523   }
+ 524 
+ 525   if (klass.is_null()) {
+ 526     // Not found in constant pool.  Use the name to do the lookup.
+ 527     ciKlass* k = get_klass_by_name_impl(accessor,
+ 528                                         cpool,
+ 529                                         get_symbol(klass_name),
+ 530                                         false);
+ 531     // Calculate accessibility the hard way.
+ 532     if (!k-&gt;is_loaded()) {
+ 533       is_accessible = false;
+ 534     } else if (k-&gt;loader() != accessor-&gt;loader() &amp;&amp;
+ 535                get_klass_by_name_impl(accessor, cpool, k-&gt;name(), true) == NULL) {
+ 536       // Loaded only remotely.  Not linked yet.
+ 537       is_accessible = false;
+ 538     } else {
+ 539       // Linked locally, and we must also check public/private, etc.
+ 540       is_accessible = check_klass_accessibility(accessor, k-&gt;get_Klass());
+ 541     }
+ 542     return k;
+ 543   }
+ 544 
+ 545   // Check for prior unloaded klass.  The SystemDictionary's answers
+ 546   // can vary over time but the compiler needs consistency.
+ 547   ciSymbol* name = get_symbol(klass()-&gt;name());
+ 548   ciKlass* unloaded_klass = check_get_unloaded_klass(accessor, name);
+ 549   if (unloaded_klass != NULL) {
+ 550     is_accessible = false;
+ 551     return unloaded_klass;
+ 552   }
+ 553 
+ 554   // It is known to be accessible, since it was found in the constant pool.
+ 555   is_accessible = true;
+ 556   return get_klass(klass());
+ 557 }
+ 558 
+ 559 // ------------------------------------------------------------------
+ 560 // ciEnv::get_klass_by_index
+ 561 //
+ 562 // Get a klass from the constant pool.
+ 563 ciKlass* ciEnv::get_klass_by_index(const constantPoolHandle&amp; cpool,
+ 564                                    int index,
+ 565                                    bool&amp; is_accessible,
+ 566                                    ciInstanceKlass* accessor) {
+ 567   GUARDED_VM_ENTRY(return get_klass_by_index_impl(cpool, index, is_accessible, accessor);)
+ 568 }
+ 569 
+ 570 // ------------------------------------------------------------------
+ 571 // ciEnv::get_constant_by_index_impl
+ 572 //
+ 573 // Implementation of get_constant_by_index().
+ 574 ciConstant ciEnv::get_constant_by_index_impl(const constantPoolHandle&amp; cpool,
+ 575                                              int pool_index, int cache_index,
+ 576                                              ciInstanceKlass* accessor) {
+ 577   bool ignore_will_link;
+ 578   EXCEPTION_CONTEXT;
+ 579   int index = pool_index;
+ 580   if (cache_index &gt;= 0) {
+ 581     assert(index &lt; 0, "only one kind of index at a time");
+ 582     oop obj = cpool-&gt;resolved_references()-&gt;obj_at(cache_index);
+ 583     if (obj != NULL) {
+ 584       ciObject* ciobj = get_object(obj);
+ 585       if (ciobj-&gt;is_array()) {
+ 586         return ciConstant(T_ARRAY, ciobj);
+ 587       } else {
+ 588         assert(ciobj-&gt;is_instance(), "should be an instance");
+ 589         return ciConstant(T_OBJECT, ciobj);
+ 590       }
+ 591     }
+ 592     index = cpool-&gt;object_to_cp_index(cache_index);
+ 593   }
+ 594   constantTag tag = cpool-&gt;tag_at(index);
+ 595   if (tag.is_int()) {
+ 596     return ciConstant(T_INT, (jint)cpool-&gt;int_at(index));
+ 597   } else if (tag.is_long()) {
+ 598     return ciConstant((jlong)cpool-&gt;long_at(index));
+ 599   } else if (tag.is_float()) {
+ 600     return ciConstant((jfloat)cpool-&gt;float_at(index));
+ 601   } else if (tag.is_double()) {
+ 602     return ciConstant((jdouble)cpool-&gt;double_at(index));
+ 603   } else if (tag.is_string()) {
+ 604     oop string = NULL;
+ 605     assert(cache_index &gt;= 0, "should have a cache index");
+ 606     if (cpool-&gt;is_pseudo_string_at(index)) {
+ 607       string = cpool-&gt;pseudo_string_at(index, cache_index);
+ 608     } else {
+ 609       string = cpool-&gt;string_at(index, cache_index, THREAD);
+ 610       if (HAS_PENDING_EXCEPTION) {
+ 611         CLEAR_PENDING_EXCEPTION;
+ 612         record_out_of_memory_failure();
+ 613         return ciConstant();
+ 614       }
+ 615     }
+ 616     ciObject* constant = get_object(string);
+ 617     if (constant-&gt;is_array()) {
+ 618       return ciConstant(T_ARRAY, constant);
+ 619     } else {
+ 620       assert (constant-&gt;is_instance(), "must be an instance, or not? ");
+ 621       return ciConstant(T_OBJECT, constant);
+ 622     }
+ 623   } else if (tag.is_klass() || tag.is_unresolved_klass()) {
+ 624     // 4881222: allow ldc to take a class type
+ 625     ciKlass* klass = get_klass_by_index_impl(cpool, index, ignore_will_link, accessor);
+ 626     if (HAS_PENDING_EXCEPTION) {
+ 627       CLEAR_PENDING_EXCEPTION;
+ 628       record_out_of_memory_failure();
+ 629       return ciConstant();
+ 630     }
+ 631     assert (klass-&gt;is_instance_klass() || klass-&gt;is_array_klass(),
+ 632             "must be an instance or array klass ");
+ 633     return ciConstant(T_OBJECT, klass-&gt;java_mirror());
+ 634   } else if (tag.is_method_type()) {
+ 635     // must execute Java code to link this CP entry into cache[i].f1
+ 636     ciSymbol* signature = get_symbol(cpool-&gt;method_type_signature_at(index));
+ 637     ciObject* ciobj = get_unloaded_method_type_constant(signature);
+ 638     return ciConstant(T_OBJECT, ciobj);
+ 639   } else if (tag.is_method_handle()) {
+ 640     // must execute Java code to link this CP entry into cache[i].f1
+ 641     int ref_kind        = cpool-&gt;method_handle_ref_kind_at(index);
+ 642     int callee_index    = cpool-&gt;method_handle_klass_index_at(index);
+ 643     ciKlass* callee     = get_klass_by_index_impl(cpool, callee_index, ignore_will_link, accessor);
+ 644     ciSymbol* name      = get_symbol(cpool-&gt;method_handle_name_ref_at(index));
+ 645     ciSymbol* signature = get_symbol(cpool-&gt;method_handle_signature_ref_at(index));
+ 646     ciObject* ciobj     = get_unloaded_method_handle_constant(callee, name, signature, ref_kind);
+ 647     return ciConstant(T_OBJECT, ciobj);
+ 648   } else {
+ 649     ShouldNotReachHere();
+ 650     return ciConstant();
+ 651   }
+ 652 }
+ 653 
+ 654 // ------------------------------------------------------------------
+ 655 // ciEnv::get_constant_by_index
+ 656 //
+ 657 // Pull a constant out of the constant pool.  How appropriate.
+ 658 //
+ 659 // Implementation note: this query is currently in no way cached.
+ 660 ciConstant ciEnv::get_constant_by_index(const constantPoolHandle&amp; cpool,
+ 661                                         int pool_index, int cache_index,
+ 662                                         ciInstanceKlass* accessor) {
+ 663   GUARDED_VM_ENTRY(return get_constant_by_index_impl(cpool, pool_index, cache_index, accessor);)
+ 664 }
+ 665 
+ 666 // ------------------------------------------------------------------
+ 667 // ciEnv::get_field_by_index_impl
+ 668 //
+ 669 // Implementation of get_field_by_index.
+ 670 //
+ 671 // Implementation note: the results of field lookups are cached
+ 672 // in the accessor klass.
+ 673 ciField* ciEnv::get_field_by_index_impl(ciInstanceKlass* accessor,
+ 674                                         int index) {
+ 675   ciConstantPoolCache* cache = accessor-&gt;field_cache();
+ 676   if (cache == NULL) {
+ 677     ciField* field = new (arena()) ciField(accessor, index);
+ 678     return field;
+ 679   } else {
+ 680     ciField* field = (ciField*)cache-&gt;get(index);
+ 681     if (field == NULL) {
+ 682       field = new (arena()) ciField(accessor, index);
+ 683       cache-&gt;insert(index, field);
+ 684     }
+ 685     return field;
+ 686   }
+ 687 }
+ 688 
+ 689 // ------------------------------------------------------------------
+ 690 // ciEnv::get_field_by_index
+ 691 //
+ 692 // Get a field by index from a klass's constant pool.
+ 693 ciField* ciEnv::get_field_by_index(ciInstanceKlass* accessor,
+ 694                                    int index) {
+ 695   GUARDED_VM_ENTRY(return get_field_by_index_impl(accessor, index);)
+ 696 }
+ 697 
+ 698 // ------------------------------------------------------------------
+ 699 // ciEnv::lookup_method
+ 700 //
+ 701 // Perform an appropriate method lookup based on accessor, holder,
+ 702 // name, signature, and bytecode.
+ 703 Method* ciEnv::lookup_method(InstanceKlass*  accessor,
+ 704                                InstanceKlass*  holder,
+ 705                                Symbol*       name,
+ 706                                Symbol*       sig,
+ 707                                Bytecodes::Code bc) {
+ 708   EXCEPTION_CONTEXT;
+ 709   KlassHandle h_accessor(THREAD, accessor);
+ 710   KlassHandle h_holder(THREAD, holder);
+ 711   LinkResolver::check_klass_accessability(h_accessor, h_holder, KILL_COMPILE_ON_FATAL_(NULL));
+ 712   methodHandle dest_method;
+ 713   LinkInfo link_info(h_holder, name, sig, h_accessor, /*check_access*/true);
+ 714   switch (bc) {
+ 715   case Bytecodes::_invokestatic:
+ 716     dest_method =
+ 717       LinkResolver::resolve_static_call_or_null(link_info);
+ 718     break;
+ 719   case Bytecodes::_invokespecial:
+ 720     dest_method =
+ 721       LinkResolver::resolve_special_call_or_null(link_info);
+ 722     break;
+ 723   case Bytecodes::_invokeinterface:
+ 724     dest_method =
+ 725       LinkResolver::linktime_resolve_interface_method_or_null(link_info);
+ 726     break;
+ 727   case Bytecodes::_invokevirtual:
+ 728     dest_method =
+ 729       LinkResolver::linktime_resolve_virtual_method_or_null(link_info);
+ 730     break;
+ 731   default: ShouldNotReachHere();
+ 732   }
+ 733 
+ 734   return dest_method();
+ 735 }
+ 736 
+ 737 
+ 738 // ------------------------------------------------------------------
+ 739 // ciEnv::get_method_by_index_impl
+ 740 ciMethod* ciEnv::get_method_by_index_impl(const constantPoolHandle&amp; cpool,
+ 741                                           int index, Bytecodes::Code bc,
+ 742                                           ciInstanceKlass* accessor) {
+ 743   if (bc == Bytecodes::_invokedynamic) {
+ 744     ConstantPoolCacheEntry* cpce = cpool-&gt;invokedynamic_cp_cache_entry_at(index);
+ 745     bool is_resolved = !cpce-&gt;is_f1_null();
+ 746     // FIXME: code generation could allow for null (unlinked) call site
+ 747     // The call site could be made patchable as follows:
+ 748     // Load the appendix argument from the constant pool.
+ 749     // Test the appendix argument and jump to a known deopt routine if it is null.
+ 750     // Jump through a patchable call site, which is initially a deopt routine.
+ 751     // Patch the call site to the nmethod entry point of the static compiled lambda form.
+ 752     // As with other two-component call sites, both values must be independently verified.
+ 753 
+ 754     if (is_resolved) {
+ 755       // Get the invoker Method* from the constant pool.
+ 756       // (The appendix argument, if any, will be noted in the method's signature.)
+ 757       Method* adapter = cpce-&gt;f1_as_method();
+ 758       return get_method(adapter);
+ 759     }
+ 760 
+ 761     // Fake a method that is equivalent to a declared method.
+ 762     ciInstanceKlass* holder    = get_instance_klass(SystemDictionary::MethodHandle_klass());
+ 763     ciSymbol*        name      = ciSymbol::invokeBasic_name();
+ 764     ciSymbol*        signature = get_symbol(cpool-&gt;signature_ref_at(index));
+ 765     return get_unloaded_method(holder, name, signature, accessor);
+ 766   } else {
+ 767     const int holder_index = cpool-&gt;klass_ref_index_at(index);
+ 768     bool holder_is_accessible;
+ 769     ciKlass* holder = get_klass_by_index_impl(cpool, holder_index, holder_is_accessible, accessor);
+ 770     ciInstanceKlass* declared_holder = get_instance_klass_for_declared_method_holder(holder);
+ 771 
+ 772     // Get the method's name and signature.
+ 773     Symbol* name_sym = cpool-&gt;name_ref_at(index);
+ 774     Symbol* sig_sym  = cpool-&gt;signature_ref_at(index);
+ 775 
+ 776     if (cpool-&gt;has_preresolution()
+ 777         || (holder == ciEnv::MethodHandle_klass() &amp;&amp;
+ 778             MethodHandles::is_signature_polymorphic_name(holder-&gt;get_Klass(), name_sym))) {
+ 779       // Short-circuit lookups for JSR 292-related call sites.
+ 780       // That is, do not rely only on name-based lookups, because they may fail
+ 781       // if the names are not resolvable in the boot class loader (7056328).
+ 782       switch (bc) {
+ 783       case Bytecodes::_invokevirtual:
+ 784       case Bytecodes::_invokeinterface:
+ 785       case Bytecodes::_invokespecial:
+ 786       case Bytecodes::_invokestatic:
+ 787         {
+ 788           Method* m = ConstantPool::method_at_if_loaded(cpool, index);
+ 789           if (m != NULL) {
+ 790             return get_method(m);
+ 791           }
+ 792         }
+ 793         break;
+ 794       }
+ 795     }
+ 796 
+ 797     if (holder_is_accessible) {  // Our declared holder is loaded.
+ 798       InstanceKlass* lookup = declared_holder-&gt;get_instanceKlass();
+ 799       Method* m = lookup_method(accessor-&gt;get_instanceKlass(), lookup, name_sym, sig_sym, bc);
+ 800       if (m != NULL &amp;&amp;
+ 801           (bc == Bytecodes::_invokestatic
+ 802            ?  m-&gt;method_holder()-&gt;is_not_initialized()
+ 803            : !m-&gt;method_holder()-&gt;is_loaded())) {
+ 804         m = NULL;
+ 805       }
+ 806 #ifdef ASSERT
+ 807       if (m != NULL &amp;&amp; ReplayCompiles &amp;&amp; !ciReplay::is_loaded(m)) {
+ 808         m = NULL;
+ 809       }
+ 810 #endif
+ 811       if (m != NULL) {
+ 812         // We found the method.
+ 813         return get_method(m);
+ 814       }
+ 815     }
+ 816 
+ 817     // Either the declared holder was not loaded, or the method could
+ 818     // not be found.  Create a dummy ciMethod to represent the failed
+ 819     // lookup.
+ 820     ciSymbol* name      = get_symbol(name_sym);
+ 821     ciSymbol* signature = get_symbol(sig_sym);
+ 822     return get_unloaded_method(declared_holder, name, signature, accessor);
+ 823   }
+ 824 }
+ 825 
+ 826 
+ 827 // ------------------------------------------------------------------
+ 828 // ciEnv::get_instance_klass_for_declared_method_holder
+ 829 ciInstanceKlass* ciEnv::get_instance_klass_for_declared_method_holder(ciKlass* method_holder) {
+ 830   // For the case of &lt;array&gt;.clone(), the method holder can be a ciArrayKlass
+ 831   // instead of a ciInstanceKlass.  For that case simply pretend that the
+ 832   // declared holder is Object.clone since that's where the call will bottom out.
+ 833   // A more correct fix would trickle out through many interfaces in CI,
+ 834   // requiring ciInstanceKlass* to become ciKlass* and many more places would
+ 835   // require checks to make sure the expected type was found.  Given that this
+ 836   // only occurs for clone() the more extensive fix seems like overkill so
+ 837   // instead we simply smear the array type into Object.
+ 838   guarantee(method_holder != NULL, "no method holder");
+ 839   if (method_holder-&gt;is_instance_klass()) {
+ 840     return method_holder-&gt;as_instance_klass();
+ 841   } else if (method_holder-&gt;is_array_klass()) {
+ 842     return current()-&gt;Object_klass();
+ 843   } else {
+ 844     ShouldNotReachHere();
+ 845   }
+ 846   return NULL;
+ 847 }
+ 848 
+ 849 
+ 850 // ------------------------------------------------------------------
+ 851 // ciEnv::get_method_by_index
+ 852 ciMethod* ciEnv::get_method_by_index(const constantPoolHandle&amp; cpool,
+ 853                                      int index, Bytecodes::Code bc,
+ 854                                      ciInstanceKlass* accessor) {
+ 855   GUARDED_VM_ENTRY(return get_method_by_index_impl(cpool, index, bc, accessor);)
+ 856 }
+ 857 
+ 858 
+ 859 // ------------------------------------------------------------------
+ 860 // ciEnv::name_buffer
+ 861 char *ciEnv::name_buffer(int req_len) {
+ 862   if (_name_buffer_len &lt; req_len) {
+ 863     if (_name_buffer == NULL) {
+ 864       _name_buffer = (char*)arena()-&gt;Amalloc(sizeof(char)*req_len);
+ 865       _name_buffer_len = req_len;
+ 866     } else {
+ 867       _name_buffer =
+ 868         (char*)arena()-&gt;Arealloc(_name_buffer, _name_buffer_len, req_len);
+ 869       _name_buffer_len = req_len;
+ 870     }
+ 871   }
+ 872   return _name_buffer;
+ 873 }
+ 874 
+ 875 // ------------------------------------------------------------------
+ 876 // ciEnv::is_in_vm
+ 877 bool ciEnv::is_in_vm() {
+ 878   return JavaThread::current()-&gt;thread_state() == _thread_in_vm;
+ 879 }
+ 880 
+ 881 bool ciEnv::system_dictionary_modification_counter_changed() {
+ 882   return _system_dictionary_modification_counter != SystemDictionary::number_of_modifications();
+ 883 }
+ 884 
+ 885 // ------------------------------------------------------------------
+ 886 // ciEnv::validate_compile_task_dependencies
+ 887 //
+ 888 // Check for changes during compilation (e.g. class loads, evolution,
+ 889 // breakpoints, call site invalidation).
+ 890 void ciEnv::validate_compile_task_dependencies(ciMethod* target) {
+ 891   if (failing())  return;  // no need for further checks
+ 892 
+ 893   // First, check non-klass dependencies as we might return early and
+ 894   // not check klass dependencies if the system dictionary
+ 895   // modification counter hasn't changed (see below).
+ 896   for (Dependencies::DepStream deps(dependencies()); deps.next(); ) {
+ 897     if (deps.is_klass_type())  continue;  // skip klass dependencies
+ 898     Klass* witness = deps.check_dependency();
+ 899     if (witness != NULL) {
+ 900       record_failure("invalid non-klass dependency");
+ 901       return;
+ 902     }
+ 903   }
+ 904 
+ 905   // Klass dependencies must be checked when the system dictionary
+ 906   // changes.  If logging is enabled all violated dependences will be
+ 907   // recorded in the log.  In debug mode check dependencies even if
+ 908   // the system dictionary hasn't changed to verify that no invalid
+ 909   // dependencies were inserted.  Any violated dependences in this
+ 910   // case are dumped to the tty.
+ 911   bool counter_changed = system_dictionary_modification_counter_changed();
+ 912 
+ 913   bool verify_deps = trueInDebug;
+ 914   if (!counter_changed &amp;&amp; !verify_deps)  return;
+ 915 
+ 916   int klass_violations = 0;
+ 917   for (Dependencies::DepStream deps(dependencies()); deps.next(); ) {
+ 918     if (!deps.is_klass_type())  continue;  // skip non-klass dependencies
+ 919     Klass* witness = deps.check_dependency();
+ 920     if (witness != NULL) {
+ 921       klass_violations++;
+ 922       if (!counter_changed) {
+ 923         // Dependence failed but counter didn't change.  Log a message
+ 924         // describing what failed and allow the assert at the end to
+ 925         // trigger.
+ 926         deps.print_dependency(witness);
+ 927       } else if (xtty == NULL) {
+ 928         // If we're not logging then a single violation is sufficient,
+ 929         // otherwise we want to log all the dependences which were
+ 930         // violated.
+ 931         break;
+ 932       }
+ 933     }
+ 934   }
+ 935 
+ 936   if (klass_violations != 0) {
+ 937 #ifdef ASSERT
+ 938     if (!counter_changed &amp;&amp; !PrintCompilation) {
+ 939       // Print out the compile task that failed
+ 940       _task-&gt;print_tty();
+ 941     }
+ 942 #endif
+ 943     assert(counter_changed, "failed dependencies, but counter didn't change");
+ 944     record_failure("concurrent class loading");
+ 945   }
+ 946 }
+ 947 
+ 948 // ------------------------------------------------------------------
+ 949 // ciEnv::register_method
+ 950 void ciEnv::register_method(ciMethod* target,
+ 951                             int entry_bci,
+ 952                             CodeOffsets* offsets,
+ 953                             int orig_pc_offset,
+ 954                             CodeBuffer* code_buffer,
+ 955                             int frame_words,
+ 956                             OopMapSet* oop_map_set,
+ 957                             ExceptionHandlerTable* handler_table,
+ 958                             ImplicitExceptionTable* inc_table,
+ 959                             AbstractCompiler* compiler,
+ 960                             bool has_unsafe_access,
+ 961                             bool has_wide_vectors,
+ 962                             RTMState  rtm_state) {
+ 963   VM_ENTRY_MARK;
+ 964   nmethod* nm = NULL;
+ 965   {
+ 966     // To prevent compile queue updates.
+ 967     MutexLocker locker(MethodCompileQueue_lock, THREAD);
+ 968 
+ 969     // Prevent SystemDictionary::add_to_hierarchy from running
+ 970     // and invalidating our dependencies until we install this method.
+ 971     // No safepoints are allowed. Otherwise, class redefinition can occur in between.
+ 972     MutexLocker ml(Compile_lock);
+ 973     NoSafepointVerifier nsv;
+ 974 
+ 975     // Change in Jvmti state may invalidate compilation.
+ 976     if (!failing() &amp;&amp; jvmti_state_changed()) {
+ 977       record_failure("Jvmti state change invalidated dependencies");
+ 978     }
+ 979 
+ 980     // Change in DTrace flags may invalidate compilation.
+ 981     if (!failing() &amp;&amp;
+ 982         ( (!dtrace_extended_probes() &amp;&amp; ExtendedDTraceProbes) ||
+ 983           (!dtrace_method_probes() &amp;&amp; DTraceMethodProbes) ||
+ 984           (!dtrace_alloc_probes() &amp;&amp; DTraceAllocProbes) )) {
+ 985       record_failure("DTrace flags change invalidated dependencies");
+ 986     }
+ 987 
+ 988     if (!failing()) {
+ 989       if (log() != NULL) {
+ 990         // Log the dependencies which this compilation declares.
+ 991         dependencies()-&gt;log_all_dependencies();
+ 992       }
+ 993 
+ 994       // Encode the dependencies now, so we can check them right away.
+ 995       dependencies()-&gt;encode_content_bytes();
+ 996 
+ 997       // Check for {class loads, evolution, breakpoints, ...} during compilation
+ 998       validate_compile_task_dependencies(target);
+ 999     }
+1000 
+1001     methodHandle method(THREAD, target-&gt;get_Method());
+1002 
+1003 #if INCLUDE_RTM_OPT
+1004     if (!failing() &amp;&amp; (rtm_state != NoRTM) &amp;&amp;
+1005         (method()-&gt;method_data() != NULL) &amp;&amp;
+1006         (method()-&gt;method_data()-&gt;rtm_state() != rtm_state)) {
+1007       // Preemptive decompile if rtm state was changed.
+1008       record_failure("RTM state change invalidated rtm code");
+1009     }
+1010 #endif
+1011 
+1012     if (failing()) {
+1013       // While not a true deoptimization, it is a preemptive decompile.
+1014       MethodData* mdo = method()-&gt;method_data();
+1015       if (mdo != NULL) {
+1016         mdo-&gt;inc_decompile_count();
+1017       }
+1018 
+1019       // All buffers in the CodeBuffer are allocated in the CodeCache.
+1020       // If the code buffer is created on each compile attempt
+1021       // as in C2, then it must be freed.
+1022       code_buffer-&gt;free_blob();
+1023       return;
+1024     }
+1025 
+1026     assert(offsets-&gt;value(CodeOffsets::Deopt) != -1, "must have deopt entry");
+1027     assert(offsets-&gt;value(CodeOffsets::Exceptions) != -1, "must have exception entry");
+1028 
+1029     nm =  nmethod::new_nmethod(method,
+1030                                compile_id(),
+1031                                entry_bci,
+1032                                offsets,
+1033                                orig_pc_offset,
+1034                                debug_info(), dependencies(), code_buffer,
+1035                                frame_words, oop_map_set,
+1036                                handler_table, inc_table,
+1037                                compiler, task()-&gt;comp_level());
+1038 
+1039     // Free codeBlobs
+1040     code_buffer-&gt;free_blob();
+1041 
+1042     if (nm != NULL) {
+1043       nm-&gt;set_has_unsafe_access(has_unsafe_access);
+1044       nm-&gt;set_has_wide_vectors(has_wide_vectors);
+1045 #if INCLUDE_RTM_OPT
+1046       nm-&gt;set_rtm_state(rtm_state);
+1047 #endif
+1048 
+1049       // Record successful registration.
+1050       // (Put nm into the task handle *before* publishing to the Java heap.)
+1051       if (task() != NULL) {
+1052         task()-&gt;set_code(nm);
+1053       }
+1054 
+1055       if (entry_bci == InvocationEntryBci) {
+1056         if (TieredCompilation) {
+1057           // If there is an old version we're done with it
+1058           nmethod* old = method-&gt;code();
+1059           if (TraceMethodReplacement &amp;&amp; old != NULL) {
+1060             ResourceMark rm;
+1061             char *method_name = method-&gt;name_and_sig_as_C_string();
+1062             tty-&gt;print_cr("Replacing method %s", method_name);
+1063           }
+1064           if (old != NULL) {
+1065             old-&gt;make_not_entrant();
+1066           }
+1067         }
+1068         if (TraceNMethodInstalls) {
+1069           ResourceMark rm;
+1070           char *method_name = method-&gt;name_and_sig_as_C_string();
+1071           ttyLocker ttyl;
+1072           tty-&gt;print_cr("Installing method (%d) %s ",
+1073                         task()-&gt;comp_level(),
+1074                         method_name);
+1075         }
+1076         // Allow the code to be executed
+1077         method-&gt;set_code(method, nm);
+1078       } else {
+1079         if (TraceNMethodInstalls) {
+1080           ResourceMark rm;
+1081           char *method_name = method-&gt;name_and_sig_as_C_string();
+1082           ttyLocker ttyl;
+1083           tty-&gt;print_cr("Installing osr method (%d) %s @ %d",
+1084                         task()-&gt;comp_level(),
+1085                         method_name,
+1086                         entry_bci);
+1087         }
+1088         method-&gt;method_holder()-&gt;add_osr_nmethod(nm);
+1089       }
+1090     }
+1091   }  // safepoints are allowed again
+1092 
+1093   if (nm != NULL) {
+1094     // JVMTI -- compiled method notification (must be done outside lock)
+1095     nm-&gt;post_compiled_method_load_event();
+1096   } else {
+1097     // The CodeCache is full.
+1098     record_failure("code cache is full");
+1099   }
+1100 }
+1101 
+1102 
+1103 // ------------------------------------------------------------------
+1104 // ciEnv::find_system_klass
+1105 ciKlass* ciEnv::find_system_klass(ciSymbol* klass_name) {
+1106   VM_ENTRY_MARK;
+1107   return get_klass_by_name_impl(NULL, constantPoolHandle(), klass_name, false);
+1108 }
+1109 
+1110 // ------------------------------------------------------------------
+1111 // ciEnv::comp_level
+1112 int ciEnv::comp_level() {
+1113   if (task() == NULL)  return CompLevel_highest_tier;
+1114   return task()-&gt;comp_level();
+1115 }
+1116 
+1117 // ------------------------------------------------------------------
+1118 // ciEnv::compile_id
+1119 uint ciEnv::compile_id() {
+1120   if (task() == NULL)  return 0;
+1121   return task()-&gt;compile_id();
+1122 }
+1123 
+1124 // ------------------------------------------------------------------
+1125 // ciEnv::notice_inlined_method()
+1126 void ciEnv::notice_inlined_method(ciMethod* method) {
+1127   _num_inlined_bytecodes += method-&gt;code_size_for_inlining();
+1128 }
+1129 
+1130 // ------------------------------------------------------------------
+1131 // ciEnv::num_inlined_bytecodes()
+1132 int ciEnv::num_inlined_bytecodes() const {
+1133   return _num_inlined_bytecodes;
+1134 }
+1135 
+1136 // ------------------------------------------------------------------
+1137 // ciEnv::record_failure()
+1138 void ciEnv::record_failure(const char* reason) {
+1139   if (_failure_reason == NULL) {
+1140     // Record the first failure reason.
+1141     _failure_reason = reason;
+1142   }
+1143 }
+1144 
+1145 void ciEnv::report_failure(const char* reason) {
+1146   // Create and fire JFR event
+1147   EventCompilerFailure event;
+1148   if (event.should_commit()) {
+1149     event.set_compileID(compile_id());
+1150     event.set_failure(reason);
+1151     event.commit();
+1152   }
+1153 }
+1154 
+1155 // ------------------------------------------------------------------
+1156 // ciEnv::record_method_not_compilable()
+1157 void ciEnv::record_method_not_compilable(const char* reason, bool all_tiers) {
+1158   int new_compilable =
+1159     all_tiers ? MethodCompilable_never : MethodCompilable_not_at_tier ;
+1160 
+1161   // Only note transitions to a worse state
+1162   if (new_compilable &gt; _compilable) {
+1163     if (log() != NULL) {
+1164       if (all_tiers) {
+1165         log()-&gt;elem("method_not_compilable");
+1166       } else {
+1167         log()-&gt;elem("method_not_compilable_at_tier level='%d'",
+1168                     current()-&gt;task()-&gt;comp_level());
+1169       }
+1170     }
+1171     _compilable = new_compilable;
+1172 
+1173     // Reset failure reason; this one is more important.
+1174     _failure_reason = NULL;
+1175     record_failure(reason);
+1176   }
+1177 }
+1178 
+1179 // ------------------------------------------------------------------
+1180 // ciEnv::record_out_of_memory_failure()
+1181 void ciEnv::record_out_of_memory_failure() {
+1182   // If memory is low, we stop compiling methods.
+1183   record_method_not_compilable("out of memory");
+1184 }
+1185 
+1186 ciInstance* ciEnv::unloaded_ciinstance() {
+1187   GUARDED_VM_ENTRY(return _factory-&gt;get_unloaded_object_constant();)
+1188 }
+1189 
+1190 // ------------------------------------------------------------------
+1191 // ciEnv::dump_replay_data*
+1192 
+1193 // Don't change thread state and acquire any locks.
+1194 // Safe to call from VM error reporter.
+1195 
+1196 void ciEnv::dump_compile_data(outputStream* out) {
+1197   CompileTask* task = this-&gt;task();
+1198   Method* method = task-&gt;method();
+1199   int entry_bci = task-&gt;osr_bci();
+1200   int comp_level = task-&gt;comp_level();
+1201   out-&gt;print("compile %s %s %s %d %d",
+1202                 method-&gt;klass_name()-&gt;as_quoted_ascii(),
+1203                 method-&gt;name()-&gt;as_quoted_ascii(),
+1204                 method-&gt;signature()-&gt;as_quoted_ascii(),
+1205                 entry_bci, comp_level);
+1206   if (compiler_data() != NULL) {
+1207     if (is_c2_compile(comp_level)) { // C2 or Shark
+1208 #ifdef COMPILER2
+1209       // Dump C2 inlining data.
+1210       ((Compile*)compiler_data())-&gt;dump_inline_data(out);
+1211 #endif
+1212     } else if (is_c1_compile(comp_level)) { // C1
+1213 #ifdef COMPILER1
+1214       // Dump C1 inlining data.
+1215       ((Compilation*)compiler_data())-&gt;dump_inline_data(out);
+1216 #endif
+1217     }
+1218   }
+1219   out-&gt;cr();
+1220 }
+1221 
+1222 void ciEnv::dump_replay_data_unsafe(outputStream* out) {
+1223   ResourceMark rm;
+1224 #if INCLUDE_JVMTI
+1225   out-&gt;print_cr("JvmtiExport can_access_local_variables %d",     _jvmti_can_access_local_variables);
+1226   out-&gt;print_cr("JvmtiExport can_hotswap_or_post_breakpoint %d", _jvmti_can_hotswap_or_post_breakpoint);
+1227   out-&gt;print_cr("JvmtiExport can_post_on_exceptions %d",         _jvmti_can_post_on_exceptions);
+1228 #endif // INCLUDE_JVMTI
+1229 
+1230   GrowableArray&lt;ciMetadata*&gt;* objects = _factory-&gt;get_ci_metadata();
+1231   out-&gt;print_cr("# %d ciObject found", objects-&gt;length());
+1232   for (int i = 0; i &lt; objects-&gt;length(); i++) {
+1233     objects-&gt;at(i)-&gt;dump_replay_data(out);
+1234   }
+1235   dump_compile_data(out);
+1236   out-&gt;flush();
+1237 }
+1238 
+1239 void ciEnv::dump_replay_data(outputStream* out) {
+1240   GUARDED_VM_ENTRY(
+1241     MutexLocker ml(Compile_lock);
+1242     dump_replay_data_unsafe(out);
+1243   )
+1244 }
+1245 
+1246 void ciEnv::dump_replay_data(int compile_id) {
+1247   static char buffer[O_BUFLEN];
+<a name="2" id="anc2"></a><span class="changed">1248   int ret = jio_snprintf(buffer, O_BUFLEN, "replay_pid%d_compid%d.log", os::current_process_id(), compile_id);</span>
+1249   if (ret &gt; 0) {
+1250     int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
+1251     if (fd != -1) {
+1252       FILE* replay_data_file = os::open(fd, "w");
+1253       if (replay_data_file != NULL) {
+1254         fileStream replay_data_stream(replay_data_file, /*need_close=*/true);
+1255         dump_replay_data(&amp;replay_data_stream);
+1256         tty-&gt;print_cr("# Compiler replay data is saved as: %s", buffer);
+1257       } else {
+1258         tty-&gt;print_cr("# Can't open file to dump replay data.");
+1259       }
+1260     }
+1261   }
+1262 }
+1263 
+<a name="3" id="anc3"></a><span class="new">1264 </span>
+1265 void ciEnv::dump_inline_data(int compile_id) {
+1266   static char buffer[O_BUFLEN];
+<a name="4" id="anc4"></a><span class="changed">1267   int ret = jio_snprintf(buffer, O_BUFLEN, "inline_pid%d_compid%d.log", os::current_process_id(), compile_id);</span>
+1268   if (ret &gt; 0) {
+1269     int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
+1270     if (fd != -1) {
+1271       FILE* inline_data_file = os::open(fd, "w");
+1272       if (inline_data_file != NULL) {
+1273         fileStream replay_data_stream(inline_data_file, /*need_close=*/true);
+1274         GUARDED_VM_ENTRY(
+1275           MutexLocker ml(Compile_lock);
+1276           dump_compile_data(&amp;replay_data_stream);
+1277         )
+1278         replay_data_stream.flush();
+1279         tty-&gt;print("# Compiler inline data is saved as: ");
+1280         tty-&gt;print_cr("%s", buffer);
+1281       } else {
+1282         tty-&gt;print_cr("# Can't open file to dump inline data.");
+<a name="5" id="anc5"></a><span class="new">1283       }</span>
+<span class="new">1284     }</span>
+<span class="new">1285   }</span>
+<span class="new">1286 }</span>
+<span class="new">1287 </span>
+<span class="new">1288 void ciEnv::dump_cache_profiles_unsafe(outputStream* out) {</span>
+<span class="new">1289   ResourceMark rm;</span>
+<span class="new">1290 #if INCLUDE_JVMTI</span>
+<span class="new">1291   out-&gt;print_cr("JvmtiExport can_access_local_variables %d",     _jvmti_can_access_local_variables);</span>
+<span class="new">1292   out-&gt;print_cr("JvmtiExport can_hotswap_or_post_breakpoint %d", _jvmti_can_hotswap_or_post_breakpoint);</span>
+<span class="new">1293   out-&gt;print_cr("JvmtiExport can_post_on_exceptions %d",         _jvmti_can_post_on_exceptions);</span>
+<span class="new">1294 #endif // INCLUDE_JVMTI</span>
+<span class="new">1295 </span>
+<span class="new">1296   GrowableArray&lt;ciMetadata*&gt;* objects = _factory-&gt;get_ci_metadata();</span>
+<span class="new">1297   out-&gt;print_cr("# %d ciObject found", objects-&gt;length());</span>
+<span class="new">1298   for (int i = 0; i &lt; objects-&gt;length(); i++) {</span>
+<span class="new">1299     if(objects-&gt;at(i)-&gt;is_method() || objects-&gt;at(i)-&gt;is_method_data()) {</span>
+<span class="new">1300       objects-&gt;at(i)-&gt;dump_replay_data(out);</span>
+<span class="new">1301     }</span>
+<span class="new">1302   }</span>
+<span class="new">1303   dump_compile_data(out);</span>
+<span class="new">1304   out-&gt;flush();</span>
+<span class="new">1305 }</span>
+<span class="new">1306 </span>
+<span class="new">1307 void ciEnv::dump_cache_profiles(outputStream* out) {</span>
+<span class="new">1308   GUARDED_VM_ENTRY(</span>
+<span class="new">1309     MutexLocker ml(Compile_lock);</span>
+<span class="new">1310     dump_cache_profiles_unsafe(out);</span>
+<span class="new">1311   )</span>
+<span class="new">1312 }</span>
+<span class="new">1313 </span>
+<span class="new">1314 bool ciEnv::first_dump = true;</span>
+<span class="new">1315 </span>
+<span class="new">1316 void ciEnv::dump_cache_profiles(int compile_id, const char* methodName) {</span>
+<span class="new">1317   static char buffer[O_BUFLEN];</span>
+<span class="new">1318   //int ret = jio_snprintf(buffer, O_BUFLEN, "profiles_pid%d_compid%d.dat", os::current_process_id(), compile_id);</span>
+<span class="new">1319   //int ret = jio_snprintf(buffer, O_BUFLEN, "cached_profiles_%s.dat", methodName);</span>
+<span class="new">1320   int ret = jio_snprintf(buffer, O_BUFLEN, "cached_profiles.dat");</span>
+<span class="new">1321   if (ret &gt; 0) {</span>
+<span class="new">1322     int fd = -1;</span>
+<span class="new">1323     if(first_dump) {</span>
+<span class="new">1324       fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);</span>
+<span class="new">1325       first_dump = false;</span>
+<span class="new">1326     } else {</span>
+<span class="new">1327       fd = open(buffer, O_RDWR | O_CREAT | O_APPEND, 0666);</span>
+<span class="new">1328     }</span>
+<span class="new">1329     if (fd != -1) {</span>
+<span class="new">1330       FILE* replay_data_file = os::open(fd, "w");</span>
+<span class="new">1331       if (replay_data_file != NULL) {</span>
+<span class="new">1332         fileStream replay_data_stream(replay_data_file, /*need_close=*/true);</span>
+<span class="new">1333         dump_cache_profiles(&amp;replay_data_stream);</span>
+<span class="new">1334         if(PrintCacheProfiles) tty-&gt;print_cr("# Compiler cached profile is saved as: %s", buffer);</span>
+<span class="new">1335       } else {</span>
+<span class="new">1336         if(PrintCacheProfiles) tty-&gt;print_cr("# Can't open file to dump cached profile.");</span>
+1337       }
+1338     }
+1339   }
+1340 }
+<a name="6" id="anc6"></a><b style="font-size: large; color: red">--- EOF ---</b>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre><form name="eof"><input name="value" value="6" type="hidden" /></form></body></html>

@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Cdiff src/share/vm/c1/c1_Compilation.cpp</title>
+</head>
+<body id="SUNWwebrev">
+<center>&lt prev <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciClassList.hpp.cdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/c1/c1_Compilation.cpp</h2>
+        <a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+        <pre>
+<hr /><span class="oldmarker">*** 581,590 ****</span>
+<span class="newmarker">--- 581,606 ----</span>
+      ciMethodData *md = method-&gt;method_data_or_null();
+      if (md != NULL) {
+        md-&gt;set_would_profile(_would_profile);
+      }
+    }
+<span class="new">+   // Dump profile to allow profile caching</span>
+<span class="new">+   if(_env-&gt;comp_level()&gt;CompLevel_limited_profile &amp;&amp; _env-&gt;comp_level() &gt;= DumpProfilesMinTier) {</span>
+<span class="new">+     if ((DumpProfiles || _method-&gt;has_option("DumpProfile")) &amp;&amp; (!_method-&gt;has_option("IgnoreDumpProfile"))) {</span>
+<span class="new">+                 const char* klassmethod = _method-&gt;holder()-&gt;name()-&gt;as_utf8();</span>
+<span class="new">+                 int length = strlen(klassmethod);</span>
+<span class="new">+                 char* subbuff = NEW_RESOURCE_ARRAY(char,length+1);</span>
+<span class="new">+                 memcpy( subbuff, klassmethod, length );</span>
+<span class="new">+                 subbuff[length] = '\0';</span>
+<span class="new">+                 if(strncmp(subbuff,"jdk/nashorn/internal/scripts/Script$Recompilation", 49)==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$MH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$BMH")==0 || strcmp(subbuff,"java/lang/invoke/LambdaForm$DMH")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/ScriptObject")==0 || strcmp(subbuff,"jdk/internal/org/objectweb/asm/ClassWriter")==0 || strncmp(subbuff,"java/util/stream/ReferencePipeline", 34)==0 || strcmp(subbuff,"jdk/internal/loader/BuiltinClassLoader")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/types/Type")==0 || strcmp(subbuff,"java/util/concurrent/ConcurrentHashMap")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CompilerConstants")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/MethodEmitter")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/TypeEvaluator")==0 || strcmp(subbuff, "jdk/dynalink/TypeConverterFactory")==0 || strcmp(subbuff, "java/lang/invoke/BoundMethodHandle")==0 || strcmp(subbuff, "java/lang/invoke/MethodHandleImpl")==0 || strcmp(subbuff, "jdk/nashorn/internal/codegen/types/ArrayType")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/ClassEmitter")==0 || strcmp(subbuff,"jdk/dynalink/LinkerServicesImpl")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/linker/NashornLinker")==0 || strcmp(subbuff,"jdk/nashorn/internal/runtime/AccessorProperty")==0 || strcmp(subbuff,"jdk/nashorn/internal/codegen/CodeGenerator")==0 || strcmp(subbuff,"java/security/Permissions")==0 || strcmp(subbuff," jdk/nashorn/internal/runtime/linker/NashornGuards")==0) {</span>
+<span class="new">+                         //tty-&gt;print("###Avoided: %s\n",method()-&gt;holder()-&gt;name()-&gt;as_utf8());</span>
+<span class="new">+                 } else {</span>
+<span class="new">+                         //tty-&gt;print("###Dump: %s\n",method()-&gt;holder()-&gt;name()-&gt;as_utf8());</span>
+<span class="new">+                         _env-&gt;dump_cache_profiles(0, _method-&gt;name()-&gt;as_utf8());</span>
+<span class="new">+                 }</span>
+<span class="new">+     }</span>
+<span class="new">+   }</span>
+  }
+  
+  Compilation::~Compilation() {
+    _env-&gt;set_compiler_data(NULL);
+  }
+</pre>
+<center>&lt prev <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciClassList.hpp.cdiff.html' target='_top'>next &gt</a></center>
+</body></html>
+

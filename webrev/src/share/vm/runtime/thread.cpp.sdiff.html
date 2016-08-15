@@ -1,0 +1,275 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/runtime </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/runtime/simpleThresholdPolicy.inline.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciCacheProfiles.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/runtime/thread.cpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "classfile/classLoader.hpp"
+  27 #include "classfile/javaClasses.hpp"
+  28 #include "classfile/systemDictionary.hpp"
+  29 #include "classfile/vmSymbols.hpp"
+
+  30 #include "code/codeCache.hpp"
+  31 #include "code/codeCacheExtensions.hpp"
+  32 #include "code/scopeDesc.hpp"
+  33 #include "compiler/compileBroker.hpp"
+  34 #include "compiler/compileTask.hpp"
+  35 #include "gc/shared/gcId.hpp"
+  36 #include "gc/shared/gcLocker.inline.hpp"
+  37 #include "gc/shared/workgroup.hpp"
+  38 #include "interpreter/interpreter.hpp"
+  39 #include "interpreter/linkResolver.hpp"
+  40 #include "interpreter/oopMapCache.hpp"
+  41 #include "jvmtifiles/jvmtiEnv.hpp"
+  42 #include "logging/log.hpp"
+  43 #include "logging/logConfiguration.hpp"
+  44 #include "memory/metaspaceShared.hpp"
+  45 #include "memory/oopFactory.hpp"
+  46 #include "memory/universe.inline.hpp"
+  47 #include "oops/instanceKlass.hpp"
+  48 #include "oops/objArrayOop.hpp"
+  49 #include "oops/oop.inline.hpp"
+
+</pre><hr></hr><pre>
+3691   if (TRACE_START() != JNI_OK) {
+3692     vm_exit_during_initialization("Failed to start tracing backend.");
+3693   }
+3694 
+3695   if (CleanChunkPoolAsync) {
+3696     Chunk::start_chunk_pool_cleaner_task();
+3697   }
+3698 
+3699 #if INCLUDE_JVMCI
+3700   if (EnableJVMCI) {
+3701     const char* jvmciCompiler = Arguments::PropertyList_get_value(Arguments::system_properties(), "jvmci.compiler");
+3702     if (jvmciCompiler != NULL) {
+3703       JVMCIRuntime::save_compiler(jvmciCompiler);
+3704     }
+3705   }
+3706 #endif // INCLUDE_JVMCI
+3707 
+3708   // initialize compiler(s)
+3709 #if defined(COMPILER1) || defined(COMPILER2) || defined(SHARK) || INCLUDE_JVMCI
+3710   CompileBroker::compilation_init(CHECK_JNI_ERR);
+
+
+
+
+3711 #endif
+3712 
+3713   // Pre-initialize some JSR292 core classes to avoid deadlock during class loading.
+3714   // It is done after compilers are initialized, because otherwise compilations of
+3715   // signature polymorphic MH intrinsics can be missed
+3716   // (see SystemDictionary::find_method_handle_intrinsic).
+3717   initialize_jsr292_core_classes(CHECK_JNI_ERR);
+3718 
+3719 #if INCLUDE_MANAGEMENT
+3720   Management::initialize(THREAD);
+3721 
+3722   if (HAS_PENDING_EXCEPTION) {
+3723     // management agent fails to start possibly due to
+3724     // configuration problem and is responsible for printing
+3725     // stack trace if appropriate. Simply exit VM.
+3726     vm_exit(1);
+3727   }
+3728 #endif // INCLUDE_MANAGEMENT
+3729 
+3730   if (Arguments::has_profile())       FlatProfiler::engage(main_thread, true);
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "classfile/classLoader.hpp"
+  27 #include "classfile/javaClasses.hpp"
+  28 #include "classfile/systemDictionary.hpp"
+  29 #include "classfile/vmSymbols.hpp"
+<span class="new">  30 #include "ci/ciCacheProfiles.hpp"</span>
+  31 #include "code/codeCache.hpp"
+  32 #include "code/codeCacheExtensions.hpp"
+  33 #include "code/scopeDesc.hpp"
+  34 #include "compiler/compileBroker.hpp"
+  35 #include "compiler/compileTask.hpp"
+  36 #include "gc/shared/gcId.hpp"
+  37 #include "gc/shared/gcLocker.inline.hpp"
+  38 #include "gc/shared/workgroup.hpp"
+  39 #include "interpreter/interpreter.hpp"
+  40 #include "interpreter/linkResolver.hpp"
+  41 #include "interpreter/oopMapCache.hpp"
+  42 #include "jvmtifiles/jvmtiEnv.hpp"
+  43 #include "logging/log.hpp"
+  44 #include "logging/logConfiguration.hpp"
+  45 #include "memory/metaspaceShared.hpp"
+  46 #include "memory/oopFactory.hpp"
+  47 #include "memory/universe.inline.hpp"
+  48 #include "oops/instanceKlass.hpp"
+  49 #include "oops/objArrayOop.hpp"
+  50 #include "oops/oop.inline.hpp"
+
+</pre><hr></hr><pre>
+3692   if (TRACE_START() != JNI_OK) {
+3693     vm_exit_during_initialization("Failed to start tracing backend.");
+3694   }
+3695 
+3696   if (CleanChunkPoolAsync) {
+3697     Chunk::start_chunk_pool_cleaner_task();
+3698   }
+3699 
+3700 #if INCLUDE_JVMCI
+3701   if (EnableJVMCI) {
+3702     const char* jvmciCompiler = Arguments::PropertyList_get_value(Arguments::system_properties(), "jvmci.compiler");
+3703     if (jvmciCompiler != NULL) {
+3704       JVMCIRuntime::save_compiler(jvmciCompiler);
+3705     }
+3706   }
+3707 #endif // INCLUDE_JVMCI
+3708 
+3709   // initialize compiler(s)
+3710 #if defined(COMPILER1) || defined(COMPILER2) || defined(SHARK) || INCLUDE_JVMCI
+3711   CompileBroker::compilation_init(CHECK_JNI_ERR);
+<span class="new">3712   // if used, invoke initialization of CacheProfiles</span>
+<span class="new">3713   if(CacheProfiles &amp;&amp; !ciCacheProfiles::is_initialized()) {</span>
+<span class="new">3714     ciCacheProfiles::initialize(THREAD);</span>
+<span class="new">3715   }</span>
+3716 #endif
+3717 
+3718   // Pre-initialize some JSR292 core classes to avoid deadlock during class loading.
+3719   // It is done after compilers are initialized, because otherwise compilations of
+3720   // signature polymorphic MH intrinsics can be missed
+3721   // (see SystemDictionary::find_method_handle_intrinsic).
+3722   initialize_jsr292_core_classes(CHECK_JNI_ERR);
+3723 
+3724 #if INCLUDE_MANAGEMENT
+3725   Management::initialize(THREAD);
+3726 
+3727   if (HAS_PENDING_EXCEPTION) {
+3728     // management agent fails to start possibly due to
+3729     // configuration problem and is responsible for printing
+3730     // stack trace if appropriate. Simply exit VM.
+3731     vm_exit(1);
+3732   }
+3733 #endif // INCLUDE_MANAGEMENT
+3734 
+3735   if (Arguments::has_profile())       FlatProfiler::engage(main_thread, true);
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/runtime/simpleThresholdPolicy.inline.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciCacheProfiles.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

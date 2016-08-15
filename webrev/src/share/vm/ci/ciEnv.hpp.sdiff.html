@@ -1,0 +1,163 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/ci </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/ci/ciEnv.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciMethod.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/ci/ciEnv.hpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+ 442 
+ 443   // Total number of bytecodes in inlined methods in this compile
+ 444   int num_inlined_bytecodes() const;
+ 445 
+ 446   // Output stream for logging compilation info.
+ 447   CompileLog* log() { return _log; }
+ 448   void set_log(CompileLog* log) { _log = log; }
+ 449 
+ 450   // Check for changes to the system dictionary during compilation
+ 451   bool system_dictionary_modification_counter_changed();
+ 452 
+ 453   void record_failure(const char* reason);      // Record failure and report later
+ 454   void report_failure(const char* reason);      // Report failure immediately
+ 455   void record_method_not_compilable(const char* reason, bool all_tiers = true);
+ 456   void record_out_of_memory_failure();
+ 457 
+ 458   // RedefineClasses support
+ 459   void metadata_do(void f(Metadata*)) { _factory-&gt;metadata_do(f); }
+ 460 
+ 461   // Dump the compilation replay data for the ciEnv to the stream.
+
+ 462   void dump_replay_data(int compile_id);
+ 463   void dump_inline_data(int compile_id);
+ 464   void dump_replay_data(outputStream* out);
+ 465   void dump_replay_data_unsafe(outputStream* out);
+ 466   void dump_compile_data(outputStream* out);
+
+
+
+
+ 467 };
+ 468 
+ 469 #endif // SHARE_VM_CI_CIENV_HPP
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+ 442 
+ 443   // Total number of bytecodes in inlined methods in this compile
+ 444   int num_inlined_bytecodes() const;
+ 445 
+ 446   // Output stream for logging compilation info.
+ 447   CompileLog* log() { return _log; }
+ 448   void set_log(CompileLog* log) { _log = log; }
+ 449 
+ 450   // Check for changes to the system dictionary during compilation
+ 451   bool system_dictionary_modification_counter_changed();
+ 452 
+ 453   void record_failure(const char* reason);      // Record failure and report later
+ 454   void report_failure(const char* reason);      // Report failure immediately
+ 455   void record_method_not_compilable(const char* reason, bool all_tiers = true);
+ 456   void record_out_of_memory_failure();
+ 457 
+ 458   // RedefineClasses support
+ 459   void metadata_do(void f(Metadata*)) { _factory-&gt;metadata_do(f); }
+ 460 
+ 461   // Dump the compilation replay data for the ciEnv to the stream.
+<span class="new"> 462   static bool first_dump;</span>
+ 463   void dump_replay_data(int compile_id);
+ 464   void dump_inline_data(int compile_id);
+ 465   void dump_replay_data(outputStream* out);
+ 466   void dump_replay_data_unsafe(outputStream* out);
+ 467   void dump_compile_data(outputStream* out);
+<span class="new"> 468   // Dump the cached profiling information for the ciEnv to the stream.</span>
+<span class="new"> 469   void dump_cache_profiles(int compile_id, const char* methodName);</span>
+<span class="new"> 470   void dump_cache_profiles(outputStream* out);</span>
+<span class="new"> 471   void dump_cache_profiles_unsafe(outputStream* out);</span>
+ 472 };
+ 473 
+ 474 #endif // SHARE_VM_CI_CIENV_HPP
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/ci/ciEnv.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciMethod.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

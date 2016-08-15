@@ -1,0 +1,534 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>New src/share/vm/ci/ciCacheProfiles.cpp</title>
+<body id="SUNWwebrev">
+<pre>
+   1 /* Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+   2  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   3  *
+   4  * This code is free software; you can redistribute it and/or modify it
+   5  * under the terms of the GNU General Public License version 2 only, as
+   6  * published by the Free Software Foundation.
+   7  *
+   8  * This code is distributed in the hope that it will be useful, but WITHOUT
+   9  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  10  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  11  * version 2 for more details (a copy is included in the LICENSE file that
+  12  * accompanied this code).
+  13  *
+  14  * You should have received a copy of the GNU General Public License version
+  15  * 2 along with this work; if not, write to the Free Software Foundation,
+  16  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  17  *
+  18  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  19  * or visit www.oracle.com if you need additional information or have any
+  20  * questions.
+  21  *
+  22  */
+  23 
+  24 #include "precompiled.hpp"
+  25 #include "ci/ciMethodData.hpp"
+  26 #include "ci/ciCacheProfiles.hpp"
+  27 #include "ci/ciCacheReplay.hpp"
+  28 #include "ci/ciSymbol.hpp"
+  29 #include "ci/ciKlass.hpp"
+  30 #include "ci/ciUtilities.hpp"
+  31 #include "compiler/compileBroker.hpp"
+  32 #include "compiler/compilerOracle.hpp"
+  33 #include "memory/allocation.inline.hpp"
+  34 #include "memory/oopFactory.hpp"
+  35 #include "memory/resourceArea.hpp"
+  36 #include "oops/oop.inline.hpp"
+  37 #include "utilities/copy.hpp"
+  38 #include "utilities/macros.hpp"
+  39 
+  40 const char* ciCacheProfiles::_error_message;
+  41 const char* ciCacheProfiles::_CMD_COMPILE = "compile";
+  42 
+  43 FILE*   ciCacheProfiles::_stream = NULL;
+  44 Thread* ciCacheProfiles::_thread = NULL;
+  45 char* ciCacheProfiles::_bufptr = NULL;
+  46 char* ciCacheProfiles::_buffer = NULL;
+  47 int   ciCacheProfiles::_buffer_length = 0;
+  48 int   ciCacheProfiles::_buffer_pos = 0;
+  49 
+  50 Dict* ciCacheProfiles::_compile_records_dictionary = NULL;
+  51 Dict* ciCacheProfiles::_compile_records  = NULL;
+  52 
+  53 bool ciCacheProfiles::CacheIgnoreInitErrors = true;
+  54 bool ciCacheProfiles::_initialized = false;
+  55 
+  56 bool ciCacheProfiles::had_error() {
+  57   return _error_message != NULL || _thread-&gt;has_pending_exception();
+  58 }
+  59 
+  60 void ciCacheProfiles::report_error(const char* msg) {
+  61   _error_message = msg;
+  62   // Restore the _buffer contents for error reporting
+  63   for (int i = 0; i &lt; _buffer_pos; i++) {
+  64     if (_buffer[i] == '\0') _buffer[i] = ' ';
+  65   }
+  66 }
+  67 
+  68 int ciCacheProfiles::get_line(int c) {
+  69   while(c != EOF) {
+  70     if (_buffer_pos + 1 &gt;= _buffer_length) {
+  71       int new_length = _buffer_length * 2;
+  72       // Next call will throw error in case of OOM.
+  73       _buffer = REALLOC_RESOURCE_ARRAY(char, _buffer, _buffer_length, new_length);
+  74       _buffer_length = new_length;
+  75     }
+  76     if (c == '\n') {
+  77       _buffer[_buffer_pos++] = c;
+  78       c = getc(_stream); // get next char
+  79       break;
+  80     } else if (c == '\r') {
+  81       // skip LF
+  82     } else {
+  83       _buffer[_buffer_pos++] = c;
+  84     }
+  85     c = getc(_stream);
+  86   }
+  87   // null terminate it, reset the pointer
+  88   _buffer[_buffer_pos] = '\0'; // NL or EOF
+  89   _buffer_pos = 0;
+  90   _bufptr = _buffer;
+  91   return c;
+  92 }
+  93 
+  94 int ciCacheProfiles::parse_int(const char* label) {
+  95   if (had_error()) {
+  96     return 0;
+  97   }
+  98 
+  99   int v = 0;
+ 100   int read;
+ 101   if (sscanf(_bufptr, "%i%n", &amp;v, &amp;read) != 1) {
+ 102     report_error(label);
+ 103   } else {
+ 104     _bufptr += read;
+ 105   }
+ 106   return v;
+ 107 }
+ 108 
+ 109 void ciCacheProfiles::skip_ws() {
+ 110   // Skip any leading whitespace
+ 111   while (*_bufptr == ' ' || *_bufptr == '\t') {
+ 112     _bufptr++;
+ 113   }
+ 114 }
+ 115 
+ 116 char* ciCacheProfiles::scan_and_terminate(char delim) {
+ 117   char* str = _bufptr;
+ 118   while (*_bufptr != delim &amp;&amp; *_bufptr != '\0') {
+ 119     _bufptr++;
+ 120   }
+ 121   if (*_bufptr != '\0') {
+ 122     *_bufptr++ = '\0';
+ 123   }
+ 124   if (_bufptr == str) {
+ 125     // nothing here
+ 126     return NULL;
+ 127   }
+ 128   return str;
+ 129 }
+ 130 // Take an ascii string contain \u#### escapes and convert it to utf8
+ 131   // in place.
+ 132 void ciCacheProfiles::unescape_string(char* value) {
+ 133 char* from = value;
+ 134 char* to = value;
+ 135 while (*from != '\0') {
+ 136   if (*from != '\\') {
+ 137         *from++ = *to++;
+ 138   } else {
+ 139         switch (from[1]) {
+ 140           case 'u': {
+ 141                 from += 2;
+ 142                 jchar value=0;
+ 143                 for (int i=0; i&lt;4; i++) {
+ 144                   char c = *from++;
+ 145                   switch (c) {
+ 146                         case '0': case '1': case '2': case '3': case '4':
+ 147                         case '5': case '6': case '7': case '8': case '9':
+ 148                           value = (value &lt;&lt; 4) + c - '0';
+ 149                           break;
+ 150                         case 'a': case 'b': case 'c':
+ 151                         case 'd': case 'e': case 'f':
+ 152                           value = (value &lt;&lt; 4) + 10 + c - 'a';
+ 153                           break;
+ 154                         case 'A': case 'B': case 'C':
+ 155                         case 'D': case 'E': case 'F':
+ 156                           value = (value &lt;&lt; 4) + 10 + c - 'A';
+ 157                           break;
+ 158                         default:
+ 159                           ShouldNotReachHere();
+ 160                   }
+ 161                 }
+ 162                 UNICODE::convert_to_utf8(&amp;value, 1, to);
+ 163                 to++;
+ 164                 break;
+ 165           }
+ 166           case 't': *to++ = '\t'; from += 2; break;
+ 167           case 'n': *to++ = '\n'; from += 2; break;
+ 168           case 'r': *to++ = '\r'; from += 2; break;
+ 169           case 'f': *to++ = '\f'; from += 2; break;
+ 170           default:
+ 171                 ShouldNotReachHere();
+ 172         }
+ 173   }
+ 174 }
+ 175 *from = *to;
+ 176 }
+ 177 char* ciCacheProfiles::parse_quoted_string() {
+ 178   if (had_error()) return NULL;
+ 179 
+ 180   skip_ws();
+ 181 
+ 182   if (*_bufptr == '"') {
+ 183     _bufptr++;
+ 184     return scan_and_terminate('"');
+ 185   } else {
+ 186     return scan_and_terminate(' ');
+ 187   }
+ 188 }
+ 189 
+ 190 const char* ciCacheProfiles::parse_escaped_string() {
+ 191   char* result = parse_quoted_string();
+ 192   if (result != NULL) {
+ 193     unescape_string(result);
+ 194   }
+ 195   return result;
+ 196 }
+ 197 
+ 198 char* ciCacheProfiles::parse_string() {
+ 199   if (had_error()) return NULL;
+ 200 
+ 201   skip_ws();
+ 202   return scan_and_terminate(' ');
+ 203 }
+ 204 
+ 205 bool ciCacheProfiles::can_replay() {
+ 206   return !(_stream == NULL || had_error());
+ 207 }
+ 208 const char* ciCacheProfiles::error_message() {
+ 209   return _error_message;
+ 210 }
+ 211 
+ 212 void ciCacheProfiles::replay(TRAPS, Method* method, int osr_bci, bool blocked) {
+ 213   _thread = THREAD;
+ 214   int exit_code = replay_impl(THREAD, method, osr_bci, blocked);
+ 215 }
+ 216 
+ 217 int ciCacheProfiles::replay_impl(TRAPS, Method* method, int osr_bci, bool blocked) {
+ 218   HandleMark hm;
+ 219   ResourceMark rm;
+ 220 
+ 221   int exit_code = 0;
+ 222   if (can_replay()) {
+ 223     replay_method(THREAD, method, osr_bci, blocked);
+ 224   } else {
+ 225     exit_code = 1;
+ 226     return exit_code;
+ 227   }
+ 228 
+ 229   if (HAS_PENDING_EXCEPTION) {
+ 230     oop throwable = PENDING_EXCEPTION;
+ 231     CLEAR_PENDING_EXCEPTION;
+ 232     java_lang_Throwable::print(throwable, tty);
+ 233     tty-&gt;cr();
+ 234     java_lang_Throwable::print_stack_trace(throwable, tty);
+ 235     tty-&gt;cr();
+ 236     exit_code = 2;
+ 237   }
+ 238 
+ 239   if (had_error()) {
+ 240     tty-&gt;print_cr("Failed on %s", error_message());
+ 241     exit_code = 1;
+ 242   }
+ 243   return exit_code;
+ 244 }
+ 245 
+ 246 void ciCacheProfiles::replay_method(TRAPS, Method* method, int osr_bci, bool blocked) {
+ 247         char* key = get_key(method);
+ 248         char* rec = (char*) (*_compile_records_dictionary)[key];
+ 249         if(rec!=NULL) {
+ 250                 if(PrintCacheProfiles) tty-&gt;print_cr("Found method %s in dictionary", key);
+ 251                 ciCacheReplay::replay_cached(THREAD, rec, osr_bci, blocked);
+ 252         }  else {
+ 253             if(PrintCacheProfiles) tty-&gt;print_cr("Could not find method %s in dictionary.", key);
+ 254         }
+ 255 }
+ 256 
+ 257 // initialize the cache profiler and parse the profile file
+ 258 // to save methods in the ciCompileRecords array
+ 259 void ciCacheProfiles::initialize(TRAPS) {
+ 260   if (!is_initialized()) {
+ 261     HandleMark hm;
+ 262     ResourceMark rm;
+ 263     if (FLAG_IS_DEFAULT(CacheProfilesFile)) {
+ 264       tty-&gt;print_cr("NOTE: no explicit compiler cache profiles file specified, uses -XX:CacheProfilesFile=cached_profiles.dat.");
+ 265       CacheProfilesFile = "cached_profiles.dat";
+ 266     }
+ 267 
+ 268     // Load and parse the replay data
+ 269     // initialize variables (these were part of the cache before)
+ 270     _thread = THREAD;
+ 271 
+ 272     _stream = fopen(CacheProfilesFile, "rt");
+ 273     if (_stream == NULL) {
+ 274       fprintf(stderr, "ERROR: Can't open cache profile %s\n", CacheProfilesFile);
+ 275     }
+ 276 
+ 277     _error_message = NULL;
+ 278 
+ 279     _buffer_length = 32;
+ 280     _buffer =  NEW_RESOURCE_ARRAY(char, _buffer_length);
+ 281     _bufptr = _buffer;
+ 282     _buffer_pos = 0;
+ 283 
+ 284     Arena* shared_type_arena = new (mtCompiler)Arena(mtCompiler);
+ 285     Arena* shared_type_arena2 = new (mtCompiler)Arena(mtCompiler);
+ 286     _compile_records = new (shared_type_arena) Dict(cmpstr, hashstr, shared_type_arena);
+ 287     _compile_records_dictionary = new (shared_type_arena2) Dict(cmpstr, hashstr, shared_type_arena2);
+ 288 
+ 289     if (can_replay()) {
+ 290       process_file(THREAD);
+ 291     }
+ 292 
+ 293     if (HAS_PENDING_EXCEPTION) {
+ 294       oop throwable = PENDING_EXCEPTION;
+ 295       CLEAR_PENDING_EXCEPTION;
+ 296       java_lang_Throwable::print(throwable, tty);
+ 297       tty-&gt;cr();
+ 298       java_lang_Throwable::print_stack_trace(throwable, tty);
+ 299       tty-&gt;cr();
+ 300     }
+ 301 
+ 302     if (had_error()) {
+ 303       tty-&gt;print_cr("Processing failed on %s", error_message());
+ 304     }
+ 305   }
+ 306   is_initialized(true);
+ 307   if (PrintCacheProfiles) {
+ 308     tty-&gt;print_cr("CacheProfiles: CachedProfiles initialized!");
+ 309   }
+ 310 }
+ 311 
+ 312 bool ciCacheProfiles::is_initialized() {
+ 313   return _initialized;
+ 314 }
+ 315 
+ 316 void ciCacheProfiles::is_initialized(bool flag) {
+ 317   _initialized = flag;
+ 318 }
+ 319 
+ 320 char* ciCacheProfiles::get_key(Method* method) {
+ 321         char* klass_name =  method-&gt;method_holder()-&gt;name()-&gt;as_utf8();
+ 322         char* method_name = method-&gt;name()-&gt;as_utf8();
+ 323         char* signature = method-&gt;signature()-&gt;as_utf8();
+ 324         char* key = get_key(klass_name, method_name, signature);
+ 325         return key;
+ 326 }
+ 327 
+ 328 char* ciCacheProfiles::get_key(methodHandle method) {
+ 329         char* klass_name =  method-&gt;method_holder()-&gt;name()-&gt;as_utf8();
+ 330         char* method_name = method-&gt;name()-&gt;as_utf8();
+ 331         char* signature = method-&gt;signature()-&gt;as_utf8();
+ 332         char* key = get_key(klass_name, method_name, signature);
+ 333         return key;
+ 334 }
+ 335 
+ 336 char* ciCacheProfiles::get_key(const char* klass_name, const char* method_name, const char* signature) {
+ 337         char* key = NEW_C_HEAP_ARRAY(char, (unsigned)strlen(klass_name)+(unsigned)strlen(method_name)+(unsigned)strlen(signature)+3, mtCompiler);
+ 338         strcpy(key, klass_name);
+ 339         strcpy(key+(unsigned)strlen(klass_name), "::");
+ 340         strcpy(key+(unsigned)strlen(klass_name)+2, method_name);
+ 341         strcpy(key+(unsigned)strlen(klass_name)+2+(unsigned)strlen(method_name), signature);
+ 342         return key;
+ 343 }
+ 344 
+ 345 // returns the complevel if cached, else 0
+ 346 int ciCacheProfiles::is_cached(Method* method) {
+ 347         if (!is_initialized()) {
+ 348         return 0;
+ 349         }
+ 350         //VM_ENTRY_MARK;
+ 351         ASSERT_IN_VM;
+ 352         ResourceMark rm;
+ 353         char* key = get_key(method);
+ 354         char* rec = (char*) (*_compile_records)[key];
+ 355         if(rec == NULL) {
+ 356                 return 0;
+ 357         } else {
+ 358                 return atoi(rec);
+ 359         }
+ 360 }
+ 361 
+ 362 // same function for a method holder
+ 363 int ciCacheProfiles::is_cached(methodHandle method) {
+ 364         if (!is_initialized()) {
+ 365                 return 0;
+ 366         }
+ 367         //VM_ENTRY_MARK;
+ 368         ASSERT_IN_VM;
+ 369         ResourceMark rm;
+ 370         char* key = get_key(method);
+ 371         char* rec =  (char*) (*_compile_records)[key];
+ 372         if(rec == NULL) {
+ 373                 return 0;
+ 374         } else {
+ 375                 return atoi(rec);
+ 376         }
+ 377 }
+ 378 // returns the complevel if cached, else 0
+ 379 int ciCacheProfiles::is_cached(char* key) {
+ 380         char* rec = (char*) (*_compile_records)[key];
+ 381         if(rec == NULL) {
+ 382                 return 0;
+ 383         } else {
+ 384                 return atoi(rec);
+ 385         }
+ 386 }
+ 387 // Process each line of the replay file and store in hashmap
+ 388 void ciCacheProfiles::process_file(TRAPS) {
+ 389         int line_no = 1;
+ 390         int c = getc(_stream);
+ 391     int process_buffer_length = 1024;
+ 392     char* process_buffer = NEW_C_HEAP_ARRAY(char, process_buffer_length, mtCompiler);
+ 393     int process_buffer_pos = 0;
+ 394         while(c != EOF) {
+ 395                 c = get_line(c);
+ 396                 bool isCompileEntry = true;
+ 397                 for(int i = 0; i &lt; 7; i++) {
+ 398                         if(_buffer[i] != _CMD_COMPILE[i]) {
+ 399                                 isCompileEntry = false;
+ 400                                 break;
+ 401                         }
+ 402                 }
+ 403                 // now copy the content of _buffer to process_buffer and terminate with \n (newline)
+ 404                 int i = 0;
+ 405                 while(_buffer[i] != '\n') {
+ 406                         process_buffer[process_buffer_pos++] = _buffer[i];
+ 407                         i++;
+ 408                         if(process_buffer_pos + 2 &gt;= process_buffer_length) {
+ 409                                 // if the process buffer is out of space we need to grow it
+ 410                                 process_buffer_length = process_buffer_length * 2;
+ 411                                 // Next call will throw error in case of OOM.
+ 412                                 process_buffer = REALLOC_C_HEAP_ARRAY(char, process_buffer, process_buffer_length, mtCompiler);
+ 413                         }
+ 414                 }
+ 415                 process_buffer[process_buffer_pos++] = '\n';
+ 416                 // if it's a compile entry start a new dictionary entry and save the current one
+ 417                 if(isCompileEntry) {
+ 418                         process_buffer[process_buffer_pos++] = EOF;
+ 419                         // backup the content of the process buffer
+ 420                         char* value = NEW_C_HEAP_ARRAY(char, process_buffer_pos, mtCompiler);
+ 421                         strncpy(value, process_buffer, process_buffer_pos);
+ 422                         // first parse string is to eliminate the 'compile' keyword
+ 423                         parse_string();
+ 424                         const char* klass_name = parse_escaped_string();
+ 425                         const char* method_name = parse_escaped_string();
+ 426                         const char* signature = parse_escaped_string();
+ 427                         int entry_bci = parse_int("entry_bci");
+ 428                         int comp_level = parse_int("comp_level");
+ 429                         // old version w/o comp_level
+ 430                         if (had_error() &amp;&amp; (error_message() == "comp_level")) {
+ 431                                 comp_level = CompLevel_full_optimization;
+ 432                         }
+ 433                         char* key = get_key(klass_name, method_name, signature);
+ 434                         if(comp_level &gt;= is_cached(key)) {
+ 435                                 _compile_records_dictionary-&gt;Insert(key, value, true);
+ 436                                 char* integer = NEW_C_HEAP_ARRAY(char, 2, mtCompiler);
+ 437                                 sprintf(integer, "%d", comp_level);
+ 438                                 _compile_records-&gt;Insert(key, integer, true);
+ 439 
+ 440                         }
+ 441 
+ 442                         // reset processing datastructure
+ 443                     process_buffer = REALLOC_C_HEAP_ARRAY(char, process_buffer, 1024, mtCompiler);
+ 444                     process_buffer_length = 1024;
+ 445                     process_buffer_pos = 0;
+ 446                    // FREE_C_HEAP_ARRAY(char, value);
+ 447                 }
+ 448                 //FREE_C_HEAP_ARRAY(char, process_buffer);
+ 449                 line_no++;
+ 450         }
+ 451 }
+</pre></body></html>

@@ -1,0 +1,20 @@
+--- old/src/share/vm/ci/ciMethodData.cpp	2016-08-15 12:19:44.413019658 +0200
++++ new/src/share/vm/ci/ciMethodData.cpp	2016-08-15 12:19:44.221019658 +0200
+@@ -26,6 +26,7 @@
+ #include "ci/ciMetadata.hpp"
+ #include "ci/ciMethodData.hpp"
+ #include "ci/ciReplay.hpp"
++#include "ci/ciCacheReplay.hpp"
+ #include "ci/ciUtilities.hpp"
+ #include "memory/allocation.inline.hpp"
+ #include "memory/resourceArea.hpp"
+@@ -182,6 +183,9 @@
+     ciReplay::initialize(this);
+   }
+ #endif
++  if (CacheProfiles) {
++    ciCacheReplay::initialize(this);
++  }
+ }
+ 
+ void ciReceiverTypeData::translate_receiver_data_from(const ProfileData* data) {

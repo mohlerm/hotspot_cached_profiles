@@ -1,0 +1,25 @@
+--- old/src/share/vm/oops/methodData.cpp	2016-08-15 12:19:50.169019658 +0200
++++ new/src/share/vm/oops/methodData.cpp	2016-08-15 12:19:50.041019658 +0200
+@@ -37,6 +37,7 @@
+ #include "runtime/handles.inline.hpp"
+ #include "runtime/orderAccess.inline.hpp"
+ #include "utilities/copy.hpp"
++#include "ci/ciCacheProfiles.hpp"
+ 
+ // ==================================================================
+ // DataLayout
+@@ -1216,6 +1217,14 @@
+ 
+   // Set per-method invoke- and backedge mask.
+   double scale = 1.0;
++
++  if(CacheProfiles && ciCacheProfiles::is_initialized()) {
++    // in case the CacheProfile functionality is used:
++    // in mode0, check if method is cached and lower threshold automatically
++    if(CacheProfilesMode==0 && ciCacheProfiles::is_cached(_method)) {
++      scale = CacheProfilesMode0ThresholdScaling;
++    }
++  }
+   CompilerOracle::has_option_value(_method, "CompileThresholdScaling", scale);
+   _invoke_mask = right_n_bits(Arguments::scaled_freq_log(Tier0InvokeNotifyFreqLog, scale)) << InvocationCounter::count_shift;
+   _backedge_mask = right_n_bits(Arguments::scaled_freq_log(Tier0BackedgeNotifyFreqLog, scale)) << InvocationCounter::count_shift;

@@ -1,0 +1,204 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Udiff src/share/vm/ci/ciEnv.cpp</title>
+
+<style type="text/css" media="screen">
+span.new {
+    color: blue;
+    font-weight: normal;
+}
+</style>
+
+</head>
+<body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/ci/ciClassList.hpp.udiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciEnv.hpp.udiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/ci/ciEnv.cpp</h2>
+        <a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+        <pre>
+</pre><hr /><pre>
+<span class="newmarker">@@ -29,10 +29,11 @@</span>
+ #include "ci/ciInstance.hpp"
+ #include "ci/ciInstanceKlass.hpp"
+ #include "ci/ciMethod.hpp"
+ #include "ci/ciNullObject.hpp"
+ #include "ci/ciReplay.hpp"
+<span class="new">+#include "ci/ciCacheReplay.hpp"</span>
+ #include "ci/ciUtilities.hpp"
+ #include "classfile/systemDictionary.hpp"
+ #include "classfile/vmSymbols.hpp"
+ #include "code/codeCache.hpp"
+ #include "code/scopeDesc.hpp"
+</pre><hr /><pre>
+<span class="newmarker">@@ -1242,11 +1243,11 @@</span>
+   )
+ }
+ 
+ void ciEnv::dump_replay_data(int compile_id) {
+   static char buffer[O_BUFLEN];
+<span class="removed">-  int ret = jio_snprintf(buffer, O_BUFLEN, "replay_pid%p_compid%d.log", os::current_process_id(), compile_id);</span>
+<span class="new">+  int ret = jio_snprintf(buffer, O_BUFLEN, "replay_pid%d_compid%d.log", os::current_process_id(), compile_id);</span>
+   if (ret &gt; 0) {
+     int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
+     if (fd != -1) {
+       FILE* replay_data_file = os::open(fd, "w");
+       if (replay_data_file != NULL) {
+</pre><hr /><pre>
+<span class="newmarker">@@ -1258,13 +1259,14 @@</span>
+       }
+     }
+   }
+ }
+ 
+<span class="new">+</span>
+ void ciEnv::dump_inline_data(int compile_id) {
+   static char buffer[O_BUFLEN];
+<span class="removed">-  int ret = jio_snprintf(buffer, O_BUFLEN, "inline_pid%p_compid%d.log", os::current_process_id(), compile_id);</span>
+<span class="new">+  int ret = jio_snprintf(buffer, O_BUFLEN, "inline_pid%d_compid%d.log", os::current_process_id(), compile_id);</span>
+   if (ret &gt; 0) {
+     int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
+     if (fd != -1) {
+       FILE* inline_data_file = os::open(fd, "w");
+       if (inline_data_file != NULL) {
+</pre><hr /><pre>
+<span class="newmarker">@@ -1280,5 +1282,59 @@</span>
+         tty-&gt;print_cr("# Can't open file to dump inline data.");
+       }
+     }
+   }
+ }
+<span class="new">+</span>
+<span class="new">+void ciEnv::dump_cache_profiles_unsafe(outputStream* out) {</span>
+<span class="new">+  ResourceMark rm;</span>
+<span class="new">+#if INCLUDE_JVMTI</span>
+<span class="new">+  out-&gt;print_cr("JvmtiExport can_access_local_variables %d",     _jvmti_can_access_local_variables);</span>
+<span class="new">+  out-&gt;print_cr("JvmtiExport can_hotswap_or_post_breakpoint %d", _jvmti_can_hotswap_or_post_breakpoint);</span>
+<span class="new">+  out-&gt;print_cr("JvmtiExport can_post_on_exceptions %d",         _jvmti_can_post_on_exceptions);</span>
+<span class="new">+#endif // INCLUDE_JVMTI</span>
+<span class="new">+</span>
+<span class="new">+  GrowableArray&lt;ciMetadata*&gt;* objects = _factory-&gt;get_ci_metadata();</span>
+<span class="new">+  out-&gt;print_cr("# %d ciObject found", objects-&gt;length());</span>
+<span class="new">+  for (int i = 0; i &lt; objects-&gt;length(); i++) {</span>
+<span class="new">+    if(objects-&gt;at(i)-&gt;is_method() || objects-&gt;at(i)-&gt;is_method_data()) {</span>
+<span class="new">+      objects-&gt;at(i)-&gt;dump_replay_data(out);</span>
+<span class="new">+    }</span>
+<span class="new">+  }</span>
+<span class="new">+  dump_compile_data(out);</span>
+<span class="new">+  out-&gt;flush();</span>
+<span class="new">+}</span>
+<span class="new">+</span>
+<span class="new">+void ciEnv::dump_cache_profiles(outputStream* out) {</span>
+<span class="new">+  GUARDED_VM_ENTRY(</span>
+<span class="new">+    MutexLocker ml(Compile_lock);</span>
+<span class="new">+    dump_cache_profiles_unsafe(out);</span>
+<span class="new">+  )</span>
+<span class="new">+}</span>
+<span class="new">+</span>
+<span class="new">+bool ciEnv::first_dump = true;</span>
+<span class="new">+</span>
+<span class="new">+void ciEnv::dump_cache_profiles(int compile_id, const char* methodName) {</span>
+<span class="new">+  static char buffer[O_BUFLEN];</span>
+<span class="new">+  //int ret = jio_snprintf(buffer, O_BUFLEN, "profiles_pid%d_compid%d.dat", os::current_process_id(), compile_id);</span>
+<span class="new">+  //int ret = jio_snprintf(buffer, O_BUFLEN, "cached_profiles_%s.dat", methodName);</span>
+<span class="new">+  int ret = jio_snprintf(buffer, O_BUFLEN, "cached_profiles.dat");</span>
+<span class="new">+  if (ret &gt; 0) {</span>
+<span class="new">+    int fd = -1;</span>
+<span class="new">+    if(first_dump) {</span>
+<span class="new">+      fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);</span>
+<span class="new">+      first_dump = false;</span>
+<span class="new">+    } else {</span>
+<span class="new">+      fd = open(buffer, O_RDWR | O_CREAT | O_APPEND, 0666);</span>
+<span class="new">+    }</span>
+<span class="new">+    if (fd != -1) {</span>
+<span class="new">+      FILE* replay_data_file = os::open(fd, "w");</span>
+<span class="new">+      if (replay_data_file != NULL) {</span>
+<span class="new">+        fileStream replay_data_stream(replay_data_file, /*need_close=*/true);</span>
+<span class="new">+        dump_cache_profiles(&amp;replay_data_stream);</span>
+<span class="new">+        if(PrintCacheProfiles) tty-&gt;print_cr("# Compiler cached profile is saved as: %s", buffer);</span>
+<span class="new">+      } else {</span>
+<span class="new">+        if(PrintCacheProfiles) tty-&gt;print_cr("# Can't open file to dump cached profile.");</span>
+<span class="new">+      }</span>
+<span class="new">+    }</span>
+<span class="new">+  }</span>
+<span class="new">+}</span>
+</pre>
+<center><a href='../../../../src/share/vm/ci/ciClassList.hpp.udiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciEnv.hpp.udiff.html' target='_top'>next &gt</a></center>
+</body></html>
+

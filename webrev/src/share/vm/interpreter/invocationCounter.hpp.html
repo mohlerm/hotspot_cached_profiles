@@ -1,0 +1,240 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>New src/share/vm/interpreter/invocationCounter.hpp</title>
+<body id="SUNWwebrev">
+<pre>
+   1 /*
+   2  * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
+   3  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   4  *
+   5  * This code is free software; you can redistribute it and/or modify it
+   6  * under the terms of the GNU General Public License version 2 only, as
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #ifndef SHARE_VM_INTERPRETER_INVOCATIONCOUNTER_HPP
+  26 #define SHARE_VM_INTERPRETER_INVOCATIONCOUNTER_HPP
+  27 
+  28 #include "memory/allocation.hpp"
+  29 #include "runtime/handles.hpp"
+  30 #include "utilities/exceptions.hpp"
+  31 
+  32 // InvocationCounters are used to trigger actions when a limit (threshold) is reached.
+  33 // For different states, different limits and actions can be defined in the initialization
+  34 // routine of InvocationCounters.
+  35 //
+  36 // Implementation notes: For space reasons, state &amp; counter are both encoded in one word,
+  37 // The state is encoded using some of the least significant bits, the counter is using the
+  38 // more significant bits. The counter is incremented before a method is activated and an
+  39 // action is triggered when count() &gt; limit().
+  40 
+  41 class InvocationCounter VALUE_OBJ_CLASS_SPEC {
+  42   friend class VMStructs;
+  43   friend class ciReplay;
+  44   friend class ciCacheReplay;
+  45  private:                             // bit no: |31  3|  2  | 1 0 |
+  46   unsigned int _counter;              // format: [count|carry|state]
+  47 
+  48   enum PrivateConstants {
+  49     number_of_state_bits = 2,
+  50     number_of_carry_bits = 1,
+  51     number_of_noncount_bits = number_of_state_bits + number_of_carry_bits,
+  52     state_limit          = nth_bit(number_of_state_bits),
+  53     count_grain          = nth_bit(number_of_state_bits + number_of_carry_bits),
+  54     carry_mask           = right_n_bits(number_of_carry_bits) &lt;&lt; number_of_state_bits,
+  55     state_mask           = right_n_bits(number_of_state_bits),
+  56     status_mask          = right_n_bits(number_of_state_bits + number_of_carry_bits),
+  57     count_mask           = ((int)(-1) ^ status_mask)
+  58   };
+  59 
+  60  public:
+  61   static int InterpreterInvocationLimit;        // CompileThreshold scaled for interpreter use
+  62   static int InterpreterBackwardBranchLimit;    // A separate threshold for on stack replacement
+  63   static int InterpreterProfileLimit;           // Profiling threshold scaled for interpreter use
+  64 
+  65   typedef address (*Action)(methodHandle method, TRAPS);
+  66 
+  67   enum PublicConstants {
+  68     count_increment      = count_grain,          // use this value to increment the 32bit _counter word
+  69     count_mask_value     = count_mask,           // use this value to mask the backedge counter
+  70     count_shift          = number_of_noncount_bits,
+  71     number_of_count_bits = BitsPerInt - number_of_noncount_bits,
+  72     count_limit          = nth_bit(number_of_count_bits - 1)
+  73   };
+  74 
+  75   enum State {
+  76     wait_for_nothing,                            // do nothing when count() &gt; limit()
+  77     wait_for_compile,                            // introduce nmethod when count() &gt; limit()
+  78     number_of_states                             // must be &lt;= state_limit
+  79   };
+  80 
+  81   // Manipulation
+  82   void reset();                                  // sets state to wait state
+  83   void init();                                   // sets state into original state
+  84   void set_state(State state);                   // sets state and initializes counter correspondingly
+  85   inline void set(State state, int count);       // sets state and counter
+  86   inline void decay();                           // decay counter (divide by two)
+  87   void set_carry();                              // set the sticky carry bit
+  88   void set_carry_flag()                          {  _counter |= carry_mask; }
+  89 
+  90   int raw_counter()                              { return _counter; }
+  91 
+  92   // Accessors
+  93   State  state() const                           { return (State)(_counter &amp; state_mask); }
+  94   bool   carry() const                           { return (_counter &amp; carry_mask) != 0; }
+  95   int    limit() const                           { return CompileThreshold; }
+  96   Action action() const                          { return _action[state()]; }
+  97   int    count() const                           { return _counter &gt;&gt; number_of_noncount_bits; }
+  98 
+  99   int   get_InvocationLimit() const              { return InterpreterInvocationLimit &gt;&gt; number_of_noncount_bits; }
+ 100   int   get_BackwardBranchLimit() const          { return InterpreterBackwardBranchLimit &gt;&gt; number_of_noncount_bits; }
+ 101   int   get_ProfileLimit() const                 { return InterpreterProfileLimit &gt;&gt; number_of_noncount_bits; }
+ 102 
+ 103 #ifdef CC_INTERP
+ 104   // Test counter using scaled limits like the asm interpreter would do rather than doing
+ 105   // the shifts to normalize the counter.
+ 106   // Checks sum of invocation_counter and backedge_counter as the template interpreter does.
+ 107   bool reached_InvocationLimit(InvocationCounter *back_edge_count) const {
+ 108     return (_counter &amp; count_mask) + (back_edge_count-&gt;_counter &amp; count_mask) &gt;=
+ 109            (unsigned int) InterpreterInvocationLimit;
+ 110   }
+ 111   bool reached_BackwardBranchLimit(InvocationCounter *back_edge_count) const {
+ 112     return (_counter &amp; count_mask) + (back_edge_count-&gt;_counter &amp; count_mask) &gt;=
+ 113            (unsigned int) InterpreterBackwardBranchLimit;
+ 114   }
+ 115   // Do this just like asm interpreter does for max speed.
+ 116   bool reached_ProfileLimit(InvocationCounter *back_edge_count) const {
+ 117     return (_counter &amp; count_mask) + (back_edge_count-&gt;_counter &amp; count_mask) &gt;=
+ 118            (unsigned int) InterpreterProfileLimit;
+ 119   }
+ 120 #endif // CC_INTERP
+ 121 
+ 122   void increment()                               { _counter += count_increment; }
+ 123 
+ 124 
+ 125   // Printing
+ 126   void   print();
+ 127   void   print_short();
+ 128 
+ 129   // Miscellaneous
+ 130   static ByteSize counter_offset()               { return byte_offset_of(InvocationCounter, _counter); }
+ 131   static void reinitialize(bool delay_overflow);
+ 132 
+ 133  private:
+ 134   static int         _init  [number_of_states];  // the counter limits
+ 135   static Action      _action[number_of_states];  // the actions
+ 136 
+ 137   static void        def(State state, int init, Action action);
+ 138   static const char* state_as_string(State state);
+ 139   static const char* state_as_short_string(State state);
+ 140 };
+ 141 
+ 142 inline void InvocationCounter::set(State state, int count) {
+ 143   assert(0 &lt;= state &amp;&amp; state &lt; number_of_states, "illegal state");
+ 144   int carry = (_counter &amp; carry_mask);    // the carry bit is sticky
+ 145   _counter = (count &lt;&lt; number_of_noncount_bits) | carry | state;
+ 146 }
+ 147 
+ 148 inline void InvocationCounter::decay() {
+ 149   int c = count();
+ 150   int new_count = c &gt;&gt; 1;
+ 151   // prevent from going to zero, to distinguish from never-executed methods
+ 152   if (c &gt; 0 &amp;&amp; new_count == 0) new_count = 1;
+ 153   set(state(), new_count);
+ 154 }
+ 155 
+ 156 
+ 157 #endif // SHARE_VM_INTERPRETER_INVOCATIONCOUNTER_HPP
+</pre></body></html>

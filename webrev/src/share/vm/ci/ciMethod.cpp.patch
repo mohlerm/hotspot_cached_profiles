@@ -1,0 +1,20 @@
+--- old/src/share/vm/ci/ciMethod.cpp	2016-08-15 12:19:43.181019658 +0200
++++ new/src/share/vm/ci/ciMethod.cpp	2016-08-15 12:19:42.953019658 +0200
+@@ -32,6 +32,7 @@
+ #include "ci/ciStreams.hpp"
+ #include "ci/ciSymbol.hpp"
+ #include "ci/ciReplay.hpp"
++#include "ci/ciCacheReplay.hpp"
+ #include "ci/ciUtilities.hpp"
+ #include "classfile/systemDictionary.hpp"
+ #include "compiler/abstractCompiler.hpp"
+@@ -154,6 +155,9 @@
+     ciReplay::initialize(this);
+   }
+ #endif
++  if (CacheProfiles) {
++    ciCacheReplay::initialize(this);
++  }
+ }
+ 
+ 

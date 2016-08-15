@@ -1,0 +1,967 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+    <script type="text/javascript" src="../../../../ancnav.js"></script>
+    </head>
+    <body id="SUNWwebrev" onkeypress="keypress(event);">
+    <a name="0"></a>
+    <pre></pre><hr></hr>
+<pre>
+   1 /*
+   2  * Copyright (c) 2001, 2014, Oracle and/or its affiliates. All rights reserved.
+   3  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   4  *
+   5  * This code is free software; you can redistribute it and/or modify it
+   6  * under the terms of the GNU General Public License version 2 only, as
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "ci/ciMetadata.hpp"
+  27 #include "ci/ciMethodData.hpp"
+  28 #include "ci/ciReplay.hpp"
+<a name="1" id="anc1"></a><span class="new">  29 #include "ci/ciCacheReplay.hpp"</span>
+  30 #include "ci/ciUtilities.hpp"
+  31 #include "memory/allocation.inline.hpp"
+  32 #include "memory/resourceArea.hpp"
+  33 #include "runtime/deoptimization.hpp"
+  34 #include "utilities/copy.hpp"
+  35 
+  36 // ciMethodData
+  37 
+  38 // ------------------------------------------------------------------
+  39 // ciMethodData::ciMethodData
+  40 //
+  41 ciMethodData::ciMethodData(MethodData* md) : ciMetadata(md) {
+  42   assert(md != NULL, "no null method data");
+  43   Copy::zero_to_words((HeapWord*) &amp;_orig, sizeof(_orig) / sizeof(HeapWord));
+  44   _data = NULL;
+  45   _data_size = 0;
+  46   _extra_data_size = 0;
+  47   _current_mileage = 0;
+  48   _invocation_counter = 0;
+  49   _backedge_counter = 0;
+  50   _state = empty_state;
+  51   _saw_free_extra_data = false;
+  52   // Set an initial hint. Don't use set_hint_di() because
+  53   // first_di() may be out of bounds if data_size is 0.
+  54   _hint_di = first_di();
+  55   // Initialize the escape information (to "don't know.");
+  56   _eflags = _arg_local = _arg_stack = _arg_returned = 0;
+  57   _parameters = NULL;
+  58 }
+  59 
+  60 // ------------------------------------------------------------------
+  61 // ciMethodData::ciMethodData
+  62 //
+  63 // No MethodData*.
+  64 ciMethodData::ciMethodData() : ciMetadata(NULL) {
+  65   Copy::zero_to_words((HeapWord*) &amp;_orig, sizeof(_orig) / sizeof(HeapWord));
+  66   _data = NULL;
+  67   _data_size = 0;
+  68   _extra_data_size = 0;
+  69   _current_mileage = 0;
+  70   _invocation_counter = 0;
+  71   _backedge_counter = 0;
+  72   _state = empty_state;
+  73   _saw_free_extra_data = false;
+  74   // Set an initial hint. Don't use set_hint_di() because
+  75   // first_di() may be out of bounds if data_size is 0.
+  76   _hint_di = first_di();
+  77   // Initialize the escape information (to "don't know.");
+  78   _eflags = _arg_local = _arg_stack = _arg_returned = 0;
+  79   _parameters = NULL;
+  80 }
+  81 
+  82 void ciMethodData::load_extra_data() {
+  83   MethodData* mdo = get_MethodData();
+  84 
+  85   MutexLocker(mdo-&gt;extra_data_lock());
+  86 
+  87   // speculative trap entries also hold a pointer to a Method so need to be translated
+  88   DataLayout* dp_src  = mdo-&gt;extra_data_base();
+  89   DataLayout* end_src = mdo-&gt;args_data_limit();
+  90   DataLayout* dp_dst  = extra_data_base();
+  91   for (;; dp_src = MethodData::next_extra(dp_src), dp_dst = MethodData::next_extra(dp_dst)) {
+  92     assert(dp_src &lt; end_src, "moved past end of extra data");
+  93     assert(((intptr_t)dp_dst) - ((intptr_t)extra_data_base()) == ((intptr_t)dp_src) - ((intptr_t)mdo-&gt;extra_data_base()), "source and destination don't match");
+  94 
+  95     // New traps in the MDO may have been added since we copied the
+  96     // data (concurrent deoptimizations before we acquired
+  97     // extra_data_lock above) or can be removed (a safepoint may occur
+  98     // in the translate_from call below) as we translate the copy:
+  99     // update the copy as we go.
+ 100     int tag = dp_src-&gt;tag();
+ 101     if (tag != DataLayout::arg_info_data_tag) {
+ 102       memcpy(dp_dst, dp_src, ((intptr_t)MethodData::next_extra(dp_src)) - ((intptr_t)dp_src));
+ 103     }
+ 104 
+ 105     switch(tag) {
+ 106     case DataLayout::speculative_trap_data_tag: {
+ 107       ciSpeculativeTrapData* data_dst = new ciSpeculativeTrapData(dp_dst);
+ 108       SpeculativeTrapData* data_src = new SpeculativeTrapData(dp_src);
+ 109 
+ 110       data_dst-&gt;translate_from(data_src);
+ 111 
+ 112 #ifdef ASSERT
+ 113       SpeculativeTrapData* data_src2 = new SpeculativeTrapData(dp_src);
+ 114       assert(data_src2-&gt;method() == data_src-&gt;method() &amp;&amp; data_src2-&gt;bci() == data_src-&gt;bci(), "entries changed while translating");
+ 115 #endif
+ 116 
+ 117       break;
+ 118     }
+ 119     case DataLayout::bit_data_tag:
+ 120       break;
+ 121     case DataLayout::no_tag:
+ 122     case DataLayout::arg_info_data_tag:
+ 123       // An empty slot or ArgInfoData entry marks the end of the trap data
+ 124       return;
+ 125     default:
+ 126       fatal("bad tag = %d", dp_dst-&gt;tag());
+ 127     }
+ 128   }
+ 129 }
+ 130 
+ 131 void ciMethodData::load_data() {
+ 132   MethodData* mdo = get_MethodData();
+ 133   if (mdo == NULL) {
+ 134     return;
+ 135   }
+ 136 
+ 137   // To do: don't copy the data if it is not "ripe" -- require a minimum #
+ 138   // of invocations.
+ 139 
+ 140   // Snapshot the data -- actually, take an approximate snapshot of
+ 141   // the data.  Any concurrently executing threads may be changing the
+ 142   // data as we copy it.
+ 143   Copy::disjoint_words((HeapWord*) mdo,
+ 144                        (HeapWord*) &amp;_orig,
+ 145                        sizeof(_orig) / HeapWordSize);
+ 146   Arena* arena = CURRENT_ENV-&gt;arena();
+ 147   _data_size = mdo-&gt;data_size();
+ 148   _extra_data_size = mdo-&gt;extra_data_size();
+ 149   int total_size = _data_size + _extra_data_size;
+ 150   _data = (intptr_t *) arena-&gt;Amalloc(total_size);
+ 151   Copy::disjoint_words((HeapWord*) mdo-&gt;data_base(), (HeapWord*) _data, total_size / HeapWordSize);
+ 152 
+ 153   // Traverse the profile data, translating any oops into their
+ 154   // ci equivalents.
+ 155   ResourceMark rm;
+ 156   ciProfileData* ci_data = first_data();
+ 157   ProfileData* data = mdo-&gt;first_data();
+ 158   while (is_valid(ci_data)) {
+ 159     ci_data-&gt;translate_from(data);
+ 160     ci_data = next_data(ci_data);
+ 161     data = mdo-&gt;next_data(data);
+ 162   }
+ 163   if (mdo-&gt;parameters_type_data() != NULL) {
+ 164     _parameters = data_layout_at(mdo-&gt;parameters_type_data_di());
+ 165     ciParametersTypeData* parameters = new ciParametersTypeData(_parameters);
+ 166     parameters-&gt;translate_from(mdo-&gt;parameters_type_data());
+ 167   }
+ 168 
+ 169   load_extra_data();
+ 170 
+ 171   // Note:  Extra data are all BitData, and do not need translation.
+ 172   _current_mileage = MethodData::mileage_of(mdo-&gt;method());
+ 173   _invocation_counter = mdo-&gt;invocation_count();
+ 174   _backedge_counter = mdo-&gt;backedge_count();
+ 175   _state = mdo-&gt;is_mature()? mature_state: immature_state;
+ 176 
+ 177   _eflags = mdo-&gt;eflags();
+ 178   _arg_local = mdo-&gt;arg_local();
+ 179   _arg_stack = mdo-&gt;arg_stack();
+ 180   _arg_returned  = mdo-&gt;arg_returned();
+ 181 #ifndef PRODUCT
+ 182   if (ReplayCompiles) {
+ 183     ciReplay::initialize(this);
+ 184   }
+ 185 #endif
+<a name="2" id="anc2"></a><span class="new"> 186   if (CacheProfiles) {</span>
+<span class="new"> 187     ciCacheReplay::initialize(this);</span>
+<span class="new"> 188   }</span>
+ 189 }
+ 190 
+ 191 void ciReceiverTypeData::translate_receiver_data_from(const ProfileData* data) {
+ 192   for (uint row = 0; row &lt; row_limit(); row++) {
+ 193     Klass* k = data-&gt;as_ReceiverTypeData()-&gt;receiver(row);
+ 194     if (k != NULL) {
+ 195       ciKlass* klass = CURRENT_ENV-&gt;get_klass(k);
+ 196       CURRENT_ENV-&gt;ensure_metadata_alive(klass);
+ 197       set_receiver(row, klass);
+ 198     }
+ 199   }
+ 200 }
+ 201 
+ 202 
+ 203 void ciTypeStackSlotEntries::translate_type_data_from(const TypeStackSlotEntries* entries) {
+ 204   for (int i = 0; i &lt; number_of_entries(); i++) {
+ 205     intptr_t k = entries-&gt;type(i);
+ 206     TypeStackSlotEntries::set_type(i, translate_klass(k));
+ 207   }
+ 208 }
+ 209 
+ 210 void ciReturnTypeEntry::translate_type_data_from(const ReturnTypeEntry* ret) {
+ 211   intptr_t k = ret-&gt;type();
+ 212   set_type(translate_klass(k));
+ 213 }
+ 214 
+ 215 void ciSpeculativeTrapData::translate_from(const ProfileData* data) {
+ 216   Method* m = data-&gt;as_SpeculativeTrapData()-&gt;method();
+ 217   ciMethod* ci_m = CURRENT_ENV-&gt;get_method(m);
+ 218   CURRENT_ENV-&gt;ensure_metadata_alive(ci_m);
+ 219   set_method(ci_m);
+ 220 }
+ 221 
+ 222 // Get the data at an arbitrary (sort of) data index.
+ 223 ciProfileData* ciMethodData::data_at(int data_index) {
+ 224   if (out_of_bounds(data_index)) {
+ 225     return NULL;
+ 226   }
+ 227   DataLayout* data_layout = data_layout_at(data_index);
+ 228 
+ 229   switch (data_layout-&gt;tag()) {
+ 230   case DataLayout::no_tag:
+ 231   default:
+ 232     ShouldNotReachHere();
+ 233     return NULL;
+ 234   case DataLayout::bit_data_tag:
+ 235     return new ciBitData(data_layout);
+ 236   case DataLayout::counter_data_tag:
+ 237     return new ciCounterData(data_layout);
+ 238   case DataLayout::jump_data_tag:
+ 239     return new ciJumpData(data_layout);
+ 240   case DataLayout::receiver_type_data_tag:
+ 241     return new ciReceiverTypeData(data_layout);
+ 242   case DataLayout::virtual_call_data_tag:
+ 243     return new ciVirtualCallData(data_layout);
+ 244   case DataLayout::ret_data_tag:
+ 245     return new ciRetData(data_layout);
+ 246   case DataLayout::branch_data_tag:
+ 247     return new ciBranchData(data_layout);
+ 248   case DataLayout::multi_branch_data_tag:
+ 249     return new ciMultiBranchData(data_layout);
+ 250   case DataLayout::arg_info_data_tag:
+ 251     return new ciArgInfoData(data_layout);
+ 252   case DataLayout::call_type_data_tag:
+ 253     return new ciCallTypeData(data_layout);
+ 254   case DataLayout::virtual_call_type_data_tag:
+ 255     return new ciVirtualCallTypeData(data_layout);
+ 256   case DataLayout::parameters_type_data_tag:
+ 257     return new ciParametersTypeData(data_layout);
+ 258   };
+ 259 }
+ 260 
+ 261 // Iteration over data.
+ 262 ciProfileData* ciMethodData::next_data(ciProfileData* current) {
+ 263   int current_index = dp_to_di(current-&gt;dp());
+ 264   int next_index = current_index + current-&gt;size_in_bytes();
+ 265   ciProfileData* next = data_at(next_index);
+ 266   return next;
+ 267 }
+ 268 
+ 269 ciProfileData* ciMethodData::bci_to_extra_data(int bci, ciMethod* m, bool&amp; two_free_slots) {
+ 270   DataLayout* dp  = extra_data_base();
+ 271   DataLayout* end = args_data_limit();
+ 272   two_free_slots = false;
+ 273   for (;dp &lt; end; dp = MethodData::next_extra(dp)) {
+ 274     switch(dp-&gt;tag()) {
+ 275     case DataLayout::no_tag:
+ 276       _saw_free_extra_data = true;  // observed an empty slot (common case)
+ 277       two_free_slots = (MethodData::next_extra(dp)-&gt;tag() == DataLayout::no_tag);
+ 278       return NULL;
+ 279     case DataLayout::arg_info_data_tag:
+ 280       return NULL; // ArgInfoData is at the end of extra data section.
+ 281     case DataLayout::bit_data_tag:
+ 282       if (m == NULL &amp;&amp; dp-&gt;bci() == bci) {
+ 283         return new ciBitData(dp);
+ 284       }
+ 285       break;
+ 286     case DataLayout::speculative_trap_data_tag: {
+ 287       ciSpeculativeTrapData* data = new ciSpeculativeTrapData(dp);
+ 288       // data-&gt;method() might be null if the MDO is snapshotted
+ 289       // concurrently with a trap
+ 290       if (m != NULL &amp;&amp; data-&gt;method() == m &amp;&amp; dp-&gt;bci() == bci) {
+ 291         return data;
+ 292       }
+ 293       break;
+ 294     }
+ 295     default:
+ 296       fatal("bad tag = %d", dp-&gt;tag());
+ 297     }
+ 298   }
+ 299   return NULL;
+ 300 }
+ 301 
+ 302 // Translate a bci to its corresponding data, or NULL.
+ 303 ciProfileData* ciMethodData::bci_to_data(int bci, ciMethod* m) {
+ 304   // If m is not NULL we look for a SpeculativeTrapData entry
+ 305   if (m == NULL) {
+ 306     ciProfileData* data = data_before(bci);
+ 307     for ( ; is_valid(data); data = next_data(data)) {
+ 308       if (data-&gt;bci() == bci) {
+ 309         set_hint_di(dp_to_di(data-&gt;dp()));
+ 310         return data;
+ 311       } else if (data-&gt;bci() &gt; bci) {
+ 312         break;
+ 313       }
+ 314     }
+ 315   }
+ 316   bool two_free_slots = false;
+ 317   ciProfileData* result = bci_to_extra_data(bci, m, two_free_slots);
+ 318   if (result != NULL) {
+ 319     return result;
+ 320   }
+ 321   if (m != NULL &amp;&amp; !two_free_slots) {
+ 322     // We were looking for a SpeculativeTrapData entry we didn't
+ 323     // find. Room is not available for more SpeculativeTrapData
+ 324     // entries, look in the non SpeculativeTrapData entries.
+ 325     return bci_to_data(bci, NULL);
+ 326   }
+ 327   return NULL;
+ 328 }
+ 329 
+ 330 // Conservatively decode the trap_state of a ciProfileData.
+ 331 int ciMethodData::has_trap_at(ciProfileData* data, int reason) {
+ 332   typedef Deoptimization::DeoptReason DR_t;
+ 333   int per_bc_reason
+ 334     = Deoptimization::reason_recorded_per_bytecode_if_any((DR_t) reason);
+ 335   if (trap_count(reason) == 0) {
+ 336     // Impossible for this trap to have occurred, regardless of trap_state.
+ 337     // Note:  This happens if the MDO is empty.
+ 338     return 0;
+ 339   } else if (per_bc_reason == Deoptimization::Reason_none) {
+ 340     // We cannot conclude anything; a trap happened somewhere, maybe here.
+ 341     return -1;
+ 342   } else if (data == NULL) {
+ 343     // No profile here, not even an extra_data record allocated on the fly.
+ 344     // If there are empty extra_data records, and there had been a trap,
+ 345     // there would have been a non-null data pointer.  If there are no
+ 346     // free extra_data records, we must return a conservative -1.
+ 347     if (_saw_free_extra_data)
+ 348       return 0;                 // Q.E.D.
+ 349     else
+ 350       return -1;                // bail with a conservative answer
+ 351   } else {
+ 352     return Deoptimization::trap_state_has_reason(data-&gt;trap_state(), per_bc_reason);
+ 353   }
+ 354 }
+ 355 
+ 356 int ciMethodData::trap_recompiled_at(ciProfileData* data) {
+ 357   if (data == NULL) {
+ 358     return (_saw_free_extra_data? 0: -1);  // (see previous method)
+ 359   } else {
+ 360     return Deoptimization::trap_state_is_recompiled(data-&gt;trap_state())? 1: 0;
+ 361   }
+ 362 }
+ 363 
+ 364 void ciMethodData::clear_escape_info() {
+ 365   VM_ENTRY_MARK;
+ 366   MethodData* mdo = get_MethodData();
+ 367   if (mdo != NULL) {
+ 368     mdo-&gt;clear_escape_info();
+ 369     ArgInfoData *aid = arg_info();
+ 370     int arg_count = (aid == NULL) ? 0 : aid-&gt;number_of_args();
+ 371     for (int i = 0; i &lt; arg_count; i++) {
+ 372       set_arg_modified(i, 0);
+ 373     }
+ 374   }
+ 375   _eflags = _arg_local = _arg_stack = _arg_returned = 0;
+ 376 }
+ 377 
+ 378 // copy our escape info to the MethodData* if it exists
+ 379 void ciMethodData::update_escape_info() {
+ 380   VM_ENTRY_MARK;
+ 381   MethodData* mdo = get_MethodData();
+ 382   if ( mdo != NULL) {
+ 383     mdo-&gt;set_eflags(_eflags);
+ 384     mdo-&gt;set_arg_local(_arg_local);
+ 385     mdo-&gt;set_arg_stack(_arg_stack);
+ 386     mdo-&gt;set_arg_returned(_arg_returned);
+ 387     int arg_count = mdo-&gt;method()-&gt;size_of_parameters();
+ 388     for (int i = 0; i &lt; arg_count; i++) {
+ 389       mdo-&gt;set_arg_modified(i, arg_modified(i));
+ 390     }
+ 391   }
+ 392 }
+ 393 
+ 394 void ciMethodData::set_compilation_stats(short loops, short blocks) {
+ 395   VM_ENTRY_MARK;
+ 396   MethodData* mdo = get_MethodData();
+ 397   if (mdo != NULL) {
+ 398     mdo-&gt;set_num_loops(loops);
+ 399     mdo-&gt;set_num_blocks(blocks);
+ 400   }
+ 401 }
+ 402 
+ 403 void ciMethodData::set_would_profile(bool p) {
+ 404   VM_ENTRY_MARK;
+ 405   MethodData* mdo = get_MethodData();
+ 406   if (mdo != NULL) {
+ 407     mdo-&gt;set_would_profile(p);
+ 408   }
+ 409 }
+ 410 
+ 411 void ciMethodData::set_argument_type(int bci, int i, ciKlass* k) {
+ 412   VM_ENTRY_MARK;
+ 413   MethodData* mdo = get_MethodData();
+ 414   if (mdo != NULL) {
+ 415     ProfileData* data = mdo-&gt;bci_to_data(bci);
+ 416     if (data-&gt;is_CallTypeData()) {
+ 417       data-&gt;as_CallTypeData()-&gt;set_argument_type(i, k-&gt;get_Klass());
+ 418     } else {
+ 419       assert(data-&gt;is_VirtualCallTypeData(), "no arguments!");
+ 420       data-&gt;as_VirtualCallTypeData()-&gt;set_argument_type(i, k-&gt;get_Klass());
+ 421     }
+ 422   }
+ 423 }
+ 424 
+ 425 void ciMethodData::set_parameter_type(int i, ciKlass* k) {
+ 426   VM_ENTRY_MARK;
+ 427   MethodData* mdo = get_MethodData();
+ 428   if (mdo != NULL) {
+ 429     mdo-&gt;parameters_type_data()-&gt;set_type(i, k-&gt;get_Klass());
+ 430   }
+ 431 }
+ 432 
+ 433 void ciMethodData::set_return_type(int bci, ciKlass* k) {
+ 434   VM_ENTRY_MARK;
+ 435   MethodData* mdo = get_MethodData();
+ 436   if (mdo != NULL) {
+ 437     ProfileData* data = mdo-&gt;bci_to_data(bci);
+ 438     if (data-&gt;is_CallTypeData()) {
+ 439       data-&gt;as_CallTypeData()-&gt;set_return_type(k-&gt;get_Klass());
+ 440     } else {
+ 441       assert(data-&gt;is_VirtualCallTypeData(), "no arguments!");
+ 442       data-&gt;as_VirtualCallTypeData()-&gt;set_return_type(k-&gt;get_Klass());
+ 443     }
+ 444   }
+ 445 }
+ 446 
+ 447 bool ciMethodData::has_escape_info() {
+ 448   return eflag_set(MethodData::estimated);
+ 449 }
+ 450 
+ 451 void ciMethodData::set_eflag(MethodData::EscapeFlag f) {
+ 452   set_bits(_eflags, f);
+ 453 }
+ 454 
+ 455 void ciMethodData::clear_eflag(MethodData::EscapeFlag f) {
+ 456   clear_bits(_eflags, f);
+ 457 }
+ 458 
+ 459 bool ciMethodData::eflag_set(MethodData::EscapeFlag f) const {
+ 460   return mask_bits(_eflags, f) != 0;
+ 461 }
+ 462 
+ 463 void ciMethodData::set_arg_local(int i) {
+ 464   set_nth_bit(_arg_local, i);
+ 465 }
+ 466 
+ 467 void ciMethodData::set_arg_stack(int i) {
+ 468   set_nth_bit(_arg_stack, i);
+ 469 }
+ 470 
+ 471 void ciMethodData::set_arg_returned(int i) {
+ 472   set_nth_bit(_arg_returned, i);
+ 473 }
+ 474 
+ 475 void ciMethodData::set_arg_modified(int arg, uint val) {
+ 476   ArgInfoData *aid = arg_info();
+ 477   if (aid == NULL)
+ 478     return;
+ 479   assert(arg &gt;= 0 &amp;&amp; arg &lt; aid-&gt;number_of_args(), "valid argument number");
+ 480   aid-&gt;set_arg_modified(arg, val);
+ 481 }
+ 482 
+ 483 bool ciMethodData::is_arg_local(int i) const {
+ 484   return is_set_nth_bit(_arg_local, i);
+ 485 }
+ 486 
+ 487 bool ciMethodData::is_arg_stack(int i) const {
+ 488   return is_set_nth_bit(_arg_stack, i);
+ 489 }
+ 490 
+ 491 bool ciMethodData::is_arg_returned(int i) const {
+ 492   return is_set_nth_bit(_arg_returned, i);
+ 493 }
+ 494 
+ 495 uint ciMethodData::arg_modified(int arg) const {
+ 496   ArgInfoData *aid = arg_info();
+ 497   if (aid == NULL)
+ 498     return 0;
+ 499   assert(arg &gt;= 0 &amp;&amp; arg &lt; aid-&gt;number_of_args(), "valid argument number");
+ 500   return aid-&gt;arg_modified(arg);
+ 501 }
+ 502 
+ 503 ByteSize ciMethodData::offset_of_slot(ciProfileData* data, ByteSize slot_offset_in_data) {
+ 504   // Get offset within MethodData* of the data array
+ 505   ByteSize data_offset = MethodData::data_offset();
+ 506 
+ 507   // Get cell offset of the ProfileData within data array
+ 508   int cell_offset = dp_to_di(data-&gt;dp());
+ 509 
+ 510   // Add in counter_offset, the # of bytes into the ProfileData of counter or flag
+ 511   int offset = in_bytes(data_offset) + cell_offset + in_bytes(slot_offset_in_data);
+ 512 
+ 513   return in_ByteSize(offset);
+ 514 }
+ 515 
+ 516 ciArgInfoData *ciMethodData::arg_info() const {
+ 517   // Should be last, have to skip all traps.
+ 518   DataLayout* dp  = extra_data_base();
+ 519   DataLayout* end = args_data_limit();
+ 520   for (; dp &lt; end; dp = MethodData::next_extra(dp)) {
+ 521     if (dp-&gt;tag() == DataLayout::arg_info_data_tag)
+ 522       return new ciArgInfoData(dp);
+ 523   }
+ 524   return NULL;
+ 525 }
+ 526 
+ 527 
+ 528 // Implementation of the print method.
+ 529 void ciMethodData::print_impl(outputStream* st) {
+ 530   ciMetadata::print_impl(st);
+ 531 }
+ 532 
+ 533 void ciMethodData::dump_replay_data_type_helper(outputStream* out, int round, int&amp; count, ProfileData* pdata, ByteSize offset, ciKlass* k) {
+ 534   if (k != NULL) {
+ 535     if (round == 0) {
+ 536       count++;
+ 537     } else {
+ 538       out-&gt;print(" %d %s", (int)(dp_to_di(pdata-&gt;dp() + in_bytes(offset)) / sizeof(intptr_t)), k-&gt;name()-&gt;as_quoted_ascii());
+ 539     }
+ 540   }
+ 541 }
+ 542 
+ 543 template&lt;class T&gt; void ciMethodData::dump_replay_data_receiver_type_helper(outputStream* out, int round, int&amp; count, T* vdata) {
+ 544   for (uint i = 0; i &lt; vdata-&gt;row_limit(); i++) {
+ 545     dump_replay_data_type_helper(out, round, count, vdata, vdata-&gt;receiver_offset(i), vdata-&gt;receiver(i));
+ 546   }
+ 547 }
+ 548 
+ 549 template&lt;class T&gt; void ciMethodData::dump_replay_data_call_type_helper(outputStream* out, int round, int&amp; count, T* call_type_data) {
+ 550   if (call_type_data-&gt;has_arguments()) {
+ 551     for (int i = 0; i &lt; call_type_data-&gt;number_of_arguments(); i++) {
+ 552       dump_replay_data_type_helper(out, round, count, call_type_data, call_type_data-&gt;argument_type_offset(i), call_type_data-&gt;valid_argument_type(i));
+ 553     }
+ 554   }
+ 555   if (call_type_data-&gt;has_return()) {
+ 556     dump_replay_data_type_helper(out, round, count, call_type_data, call_type_data-&gt;return_type_offset(), call_type_data-&gt;valid_return_type());
+ 557   }
+ 558 }
+ 559 
+ 560 void ciMethodData::dump_replay_data_extra_data_helper(outputStream* out, int round, int&amp; count) {
+ 561   DataLayout* dp  = extra_data_base();
+ 562   DataLayout* end = args_data_limit();
+ 563 
+ 564   for (;dp &lt; end; dp = MethodData::next_extra(dp)) {
+ 565     switch(dp-&gt;tag()) {
+ 566     case DataLayout::no_tag:
+ 567     case DataLayout::arg_info_data_tag:
+ 568       return;
+ 569     case DataLayout::bit_data_tag:
+ 570       break;
+ 571     case DataLayout::speculative_trap_data_tag: {
+ 572       ciSpeculativeTrapData* data = new ciSpeculativeTrapData(dp);
+ 573       ciMethod* m = data-&gt;method();
+ 574       if (m != NULL) {
+ 575         if (round == 0) {
+ 576           count++;
+ 577         } else {
+ 578           out-&gt;print(" %d ", (int)(dp_to_di(((address)dp) + in_bytes(ciSpeculativeTrapData::method_offset())) / sizeof(intptr_t)));
+ 579           m-&gt;dump_name_as_ascii(out);
+ 580         }
+ 581       }
+ 582       break;
+ 583     }
+ 584     default:
+ 585       fatal("bad tag = %d", dp-&gt;tag());
+ 586     }
+ 587   }
+ 588 }
+ 589 
+ 590 void ciMethodData::dump_replay_data(outputStream* out) {
+ 591   ResourceMark rm;
+ 592   MethodData* mdo = get_MethodData();
+ 593   Method* method = mdo-&gt;method();
+ 594   Klass* holder = method-&gt;method_holder();
+ 595   out-&gt;print("ciMethodData %s %s %s %d %d",
+ 596              holder-&gt;name()-&gt;as_quoted_ascii(),
+ 597              method-&gt;name()-&gt;as_quoted_ascii(),
+ 598              method-&gt;signature()-&gt;as_quoted_ascii(),
+ 599              _state,
+ 600              current_mileage());
+ 601 
+ 602   // dump the contents of the MDO header as raw data
+ 603   unsigned char* orig = (unsigned char*)&amp;_orig;
+ 604   int length = sizeof(_orig);
+ 605   out-&gt;print(" orig %d", length);
+ 606   for (int i = 0; i &lt; length; i++) {
+ 607     out-&gt;print(" %d", orig[i]);
+ 608   }
+ 609 
+ 610   // dump the MDO data as raw data
+ 611   int elements = (data_size() + extra_data_size()) / sizeof(intptr_t);
+ 612   out-&gt;print(" data %d", elements);
+ 613   for (int i = 0; i &lt; elements; i++) {
+ 614     // We could use INTPTR_FORMAT here but that's a zero justified
+ 615     // which makes comparing it with the SA version of this output
+ 616     // harder.
+ 617 #ifdef _LP64
+ 618     out-&gt;print(" 0x%" FORMAT64_MODIFIER "x", data()[i]);
+ 619 #else
+ 620     out-&gt;print(" 0x%x", data()[i]);
+ 621 #endif
+ 622   }
+ 623 
+ 624   // The MDO contained oop references as ciObjects, so scan for those
+ 625   // and emit pairs of offset and klass name so that they can be
+ 626   // reconstructed at runtime.  The first round counts the number of
+ 627   // oop references and the second actually emits them.
+ 628   ciParametersTypeData* parameters = parameters_type_data();
+ 629   for (int count = 0, round = 0; round &lt; 2; round++) {
+ 630     if (round == 1) out-&gt;print(" oops %d", count);
+ 631     ProfileData* pdata = first_data();
+ 632     for ( ; is_valid(pdata); pdata = next_data(pdata)) {
+ 633       if (pdata-&gt;is_VirtualCallData()) {
+ 634         ciVirtualCallData* vdata = (ciVirtualCallData*)pdata;
+ 635         dump_replay_data_receiver_type_helper&lt;ciVirtualCallData&gt;(out, round, count, vdata);
+ 636         if (pdata-&gt;is_VirtualCallTypeData()) {
+ 637           ciVirtualCallTypeData* call_type_data = (ciVirtualCallTypeData*)pdata;
+ 638           dump_replay_data_call_type_helper&lt;ciVirtualCallTypeData&gt;(out, round, count, call_type_data);
+ 639         }
+ 640       } else if (pdata-&gt;is_ReceiverTypeData()) {
+ 641         ciReceiverTypeData* vdata = (ciReceiverTypeData*)pdata;
+ 642         dump_replay_data_receiver_type_helper&lt;ciReceiverTypeData&gt;(out, round, count, vdata);
+ 643       } else if (pdata-&gt;is_CallTypeData()) {
+ 644           ciCallTypeData* call_type_data = (ciCallTypeData*)pdata;
+ 645           dump_replay_data_call_type_helper&lt;ciCallTypeData&gt;(out, round, count, call_type_data);
+ 646       }
+ 647     }
+ 648     if (parameters != NULL) {
+ 649       for (int i = 0; i &lt; parameters-&gt;number_of_parameters(); i++) {
+ 650         dump_replay_data_type_helper(out, round, count, parameters, ParametersTypeData::type_offset(i), parameters-&gt;valid_parameter_type(i));
+ 651       }
+ 652     }
+ 653   }
+ 654   for (int count = 0, round = 0; round &lt; 2; round++) {
+ 655     if (round == 1) out-&gt;print(" methods %d", count);
+ 656     dump_replay_data_extra_data_helper(out, round, count);
+ 657   }
+ 658   out-&gt;cr();
+ 659 }
+ 660 
+ 661 #ifndef PRODUCT
+ 662 void ciMethodData::print() {
+ 663   print_data_on(tty);
+ 664 }
+ 665 
+ 666 void ciMethodData::print_data_on(outputStream* st) {
+ 667   ResourceMark rm;
+ 668   ciParametersTypeData* parameters = parameters_type_data();
+ 669   if (parameters != NULL) {
+ 670     parameters-&gt;print_data_on(st);
+ 671   }
+ 672   ciProfileData* data;
+ 673   for (data = first_data(); is_valid(data); data = next_data(data)) {
+ 674     st-&gt;print("%d", dp_to_di(data-&gt;dp()));
+ 675     st-&gt;fill_to(6);
+ 676     data-&gt;print_data_on(st);
+ 677   }
+ 678   st-&gt;print_cr("--- Extra data:");
+ 679   DataLayout* dp  = extra_data_base();
+ 680   DataLayout* end = args_data_limit();
+ 681   for (;; dp = MethodData::next_extra(dp)) {
+ 682     assert(dp &lt; end, "moved past end of extra data");
+ 683     switch (dp-&gt;tag()) {
+ 684     case DataLayout::no_tag:
+ 685       continue;
+ 686     case DataLayout::bit_data_tag:
+ 687       data = new BitData(dp);
+ 688       break;
+ 689     case DataLayout::arg_info_data_tag:
+ 690       data = new ciArgInfoData(dp);
+ 691       dp = end; // ArgInfoData is at the end of extra data section.
+ 692       break;
+ 693     case DataLayout::speculative_trap_data_tag:
+ 694       data = new ciSpeculativeTrapData(dp);
+ 695       break;
+ 696     default:
+ 697       fatal("unexpected tag %d", dp-&gt;tag());
+ 698     }
+ 699     st-&gt;print("%d", dp_to_di(data-&gt;dp()));
+ 700     st-&gt;fill_to(6);
+ 701     data-&gt;print_data_on(st);
+ 702     if (dp &gt;= end) return;
+ 703   }
+ 704 }
+ 705 
+ 706 void ciTypeEntries::print_ciklass(outputStream* st, intptr_t k) {
+ 707   if (TypeEntries::is_type_none(k)) {
+ 708     st-&gt;print("none");
+ 709   } else if (TypeEntries::is_type_unknown(k)) {
+ 710     st-&gt;print("unknown");
+ 711   } else {
+ 712     valid_ciklass(k)-&gt;print_name_on(st);
+ 713   }
+ 714   if (TypeEntries::was_null_seen(k)) {
+ 715     st-&gt;print(" (null seen)");
+ 716   }
+ 717 }
+ 718 
+ 719 void ciTypeStackSlotEntries::print_data_on(outputStream* st) const {
+ 720   for (int i = 0; i &lt; number_of_entries(); i++) {
+ 721     _pd-&gt;tab(st);
+ 722     st-&gt;print("%d: stack (%u) ", i, stack_slot(i));
+ 723     print_ciklass(st, type(i));
+ 724     st-&gt;cr();
+ 725   }
+ 726 }
+ 727 
+ 728 void ciReturnTypeEntry::print_data_on(outputStream* st) const {
+ 729   _pd-&gt;tab(st);
+ 730   st-&gt;print("ret ");
+ 731   print_ciklass(st, type());
+ 732   st-&gt;cr();
+ 733 }
+ 734 
+ 735 void ciCallTypeData::print_data_on(outputStream* st, const char* extra) const {
+ 736   print_shared(st, "ciCallTypeData", extra);
+ 737   if (has_arguments()) {
+ 738     tab(st, true);
+ 739     st-&gt;print_cr("argument types");
+ 740     args()-&gt;print_data_on(st);
+ 741   }
+ 742   if (has_return()) {
+ 743     tab(st, true);
+ 744     st-&gt;print_cr("return type");
+ 745     ret()-&gt;print_data_on(st);
+ 746   }
+ 747 }
+ 748 
+ 749 void ciReceiverTypeData::print_receiver_data_on(outputStream* st) const {
+ 750   uint row;
+ 751   int entries = 0;
+ 752   for (row = 0; row &lt; row_limit(); row++) {
+ 753     if (receiver(row) != NULL)  entries++;
+ 754   }
+ 755   st-&gt;print_cr("count(%u) entries(%u)", count(), entries);
+ 756   for (row = 0; row &lt; row_limit(); row++) {
+ 757     if (receiver(row) != NULL) {
+ 758       tab(st);
+ 759       receiver(row)-&gt;print_name_on(st);
+ 760       st-&gt;print_cr("(%u)", receiver_count(row));
+ 761     }
+ 762   }
+ 763 }
+ 764 
+ 765 void ciReceiverTypeData::print_data_on(outputStream* st, const char* extra) const {
+ 766   print_shared(st, "ciReceiverTypeData", extra);
+ 767   print_receiver_data_on(st);
+ 768 }
+ 769 
+ 770 void ciVirtualCallData::print_data_on(outputStream* st, const char* extra) const {
+ 771   print_shared(st, "ciVirtualCallData", extra);
+ 772   rtd_super()-&gt;print_receiver_data_on(st);
+ 773 }
+ 774 
+ 775 void ciVirtualCallTypeData::print_data_on(outputStream* st, const char* extra) const {
+ 776   print_shared(st, "ciVirtualCallTypeData", extra);
+ 777   rtd_super()-&gt;print_receiver_data_on(st);
+ 778   if (has_arguments()) {
+ 779     tab(st, true);
+ 780     st-&gt;print("argument types");
+ 781     args()-&gt;print_data_on(st);
+ 782   }
+ 783   if (has_return()) {
+ 784     tab(st, true);
+ 785     st-&gt;print("return type");
+ 786     ret()-&gt;print_data_on(st);
+ 787   }
+ 788 }
+ 789 
+ 790 void ciParametersTypeData::print_data_on(outputStream* st, const char* extra) const {
+ 791   st-&gt;print_cr("ciParametersTypeData");
+ 792   parameters()-&gt;print_data_on(st);
+ 793 }
+ 794 
+ 795 void ciSpeculativeTrapData::print_data_on(outputStream* st, const char* extra) const {
+ 796   st-&gt;print_cr("ciSpeculativeTrapData");
+ 797   tab(st);
+ 798   method()-&gt;print_short_name(st);
+ 799   st-&gt;cr();
+ 800 }
+ 801 #endif
+<a name="3" id="anc3"></a><b style="font-size: large; color: red">--- EOF ---</b>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre><form name="eof"><input name="value" value="3" type="hidden" /></form></body></html>

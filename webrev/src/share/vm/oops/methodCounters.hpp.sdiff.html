@@ -1,0 +1,273 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/oops </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/oops/methodCounters.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/methodData.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/oops/methodCounters.hpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+  63   MethodCounters(methodHandle mh) : _interpreter_invocation_count(0),
+  64                                     _interpreter_throwout_count(0),
+  65                                     _number_of_breakpoints(0),
+  66                                     _nmethod_age(INT_MAX)
+  67 #ifdef TIERED
+  68                                  , _rate(0),
+  69                                    _prev_time(0),
+  70                                    _highest_comp_level(0),
+  71                                    _highest_osr_comp_level(0)
+  72 #endif
+  73   {
+  74     invocation_counter()-&gt;init();
+  75     backedge_counter()-&gt;init();
+  76 
+  77     if (StressCodeAging) {
+  78       set_nmethod_age(HotMethodDetectionLimit);
+  79     }
+  80 
+  81     // Set per-method thresholds.
+  82     double scale = 1.0;
+
+
+  83     CompilerOracle::has_option_value(mh, "CompileThresholdScaling", scale);
+  84 
+  85     int compile_threshold = Arguments::scaled_compile_threshold(CompileThreshold, scale);
+  86     _interpreter_invocation_limit = compile_threshold &lt;&lt; InvocationCounter::count_shift;
+  87     if (ProfileInterpreter) {
+  88       // If interpreter profiling is enabled, the backward branch limit
+  89       // is compared against the method data counter rather than an invocation
+  90       // counter, therefore no shifting of bits is required.
+  91       _interpreter_backward_branch_limit = (compile_threshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / 100;
+  92     } else {
+  93       _interpreter_backward_branch_limit = ((compile_threshold * OnStackReplacePercentage) / 100) &lt;&lt; InvocationCounter::count_shift;
+  94     }
+  95     _interpreter_profile_limit = ((compile_threshold * InterpreterProfilePercentage) / 100) &lt;&lt; InvocationCounter::count_shift;
+  96     _invoke_mask = right_n_bits(Arguments::scaled_freq_log(Tier0InvokeNotifyFreqLog, scale)) &lt;&lt; InvocationCounter::count_shift;
+  97     _backedge_mask = right_n_bits(Arguments::scaled_freq_log(Tier0BackedgeNotifyFreqLog, scale)) &lt;&lt; InvocationCounter::count_shift;
+  98   }
+  99 
+ 100  public:
+ 101   static MethodCounters* allocate(methodHandle mh, TRAPS);
+ 102 
+
+</pre><hr></hr><pre>
+ 125     }
+ 126   }
+ 127   int  interpreter_throwout_count() const {
+ 128     return _interpreter_throwout_count;
+ 129   }
+ 130   void set_interpreter_throwout_count(int count) {
+ 131     _interpreter_throwout_count = count;
+ 132   }
+ 133 
+ 134   u2   number_of_breakpoints() const   { return _number_of_breakpoints; }
+ 135   void incr_number_of_breakpoints()    { ++_number_of_breakpoints; }
+ 136   void decr_number_of_breakpoints()    { --_number_of_breakpoints; }
+ 137   void clear_number_of_breakpoints()   { _number_of_breakpoints = 0; }
+ 138 
+ 139 #ifdef TIERED
+ 140   jlong prev_time() const                        { return _prev_time; }
+ 141   void set_prev_time(jlong time)                 { _prev_time = time; }
+ 142   float rate() const                             { return _rate; }
+ 143   void set_rate(float rate)                      { _rate = rate; }
+ 144 #endif
+
+
+ 145 
+ 146   int highest_comp_level() const;
+ 147   void set_highest_comp_level(int level);
+ 148   int highest_osr_comp_level() const;
+ 149   void set_highest_osr_comp_level(int level);
+ 150 
+ 151   // invocation counter
+ 152   InvocationCounter* invocation_counter() { return &amp;_invocation_counter; }
+ 153   InvocationCounter* backedge_counter()   { return &amp;_backedge_counter; }
+ 154 
+ 155   int nmethod_age() {
+ 156     return _nmethod_age;
+ 157   }
+ 158   void set_nmethod_age(int age) {
+ 159     _nmethod_age = age;
+ 160   }
+ 161   void reset_nmethod_age() {
+ 162     set_nmethod_age(HotMethodDetectionLimit);
+ 163   }
+ 164 
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+  63   MethodCounters(methodHandle mh) : _interpreter_invocation_count(0),
+  64                                     _interpreter_throwout_count(0),
+  65                                     _number_of_breakpoints(0),
+  66                                     _nmethod_age(INT_MAX)
+  67 #ifdef TIERED
+  68                                  , _rate(0),
+  69                                    _prev_time(0),
+  70                                    _highest_comp_level(0),
+  71                                    _highest_osr_comp_level(0)
+  72 #endif
+  73   {
+  74     invocation_counter()-&gt;init();
+  75     backedge_counter()-&gt;init();
+  76 
+  77     if (StressCodeAging) {
+  78       set_nmethod_age(HotMethodDetectionLimit);
+  79     }
+  80 
+  81     // Set per-method thresholds.
+  82     double scale = 1.0;
+<span class="new">  83 </span>
+<span class="new">  84     scale_if_cached(mh, scale);</span>
+  85     CompilerOracle::has_option_value(mh, "CompileThresholdScaling", scale);
+  86 
+  87     int compile_threshold = Arguments::scaled_compile_threshold(CompileThreshold, scale);
+  88     _interpreter_invocation_limit = compile_threshold &lt;&lt; InvocationCounter::count_shift;
+  89     if (ProfileInterpreter) {
+  90       // If interpreter profiling is enabled, the backward branch limit
+  91       // is compared against the method data counter rather than an invocation
+  92       // counter, therefore no shifting of bits is required.
+  93       _interpreter_backward_branch_limit = (compile_threshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / 100;
+  94     } else {
+  95       _interpreter_backward_branch_limit = ((compile_threshold * OnStackReplacePercentage) / 100) &lt;&lt; InvocationCounter::count_shift;
+  96     }
+  97     _interpreter_profile_limit = ((compile_threshold * InterpreterProfilePercentage) / 100) &lt;&lt; InvocationCounter::count_shift;
+  98     _invoke_mask = right_n_bits(Arguments::scaled_freq_log(Tier0InvokeNotifyFreqLog, scale)) &lt;&lt; InvocationCounter::count_shift;
+  99     _backedge_mask = right_n_bits(Arguments::scaled_freq_log(Tier0BackedgeNotifyFreqLog, scale)) &lt;&lt; InvocationCounter::count_shift;
+ 100   }
+ 101 
+ 102  public:
+ 103   static MethodCounters* allocate(methodHandle mh, TRAPS);
+ 104 
+
+</pre><hr></hr><pre>
+ 127     }
+ 128   }
+ 129   int  interpreter_throwout_count() const {
+ 130     return _interpreter_throwout_count;
+ 131   }
+ 132   void set_interpreter_throwout_count(int count) {
+ 133     _interpreter_throwout_count = count;
+ 134   }
+ 135 
+ 136   u2   number_of_breakpoints() const   { return _number_of_breakpoints; }
+ 137   void incr_number_of_breakpoints()    { ++_number_of_breakpoints; }
+ 138   void decr_number_of_breakpoints()    { --_number_of_breakpoints; }
+ 139   void clear_number_of_breakpoints()   { _number_of_breakpoints = 0; }
+ 140 
+ 141 #ifdef TIERED
+ 142   jlong prev_time() const                        { return _prev_time; }
+ 143   void set_prev_time(jlong time)                 { _prev_time = time; }
+ 144   float rate() const                             { return _rate; }
+ 145   void set_rate(float rate)                      { _rate = rate; }
+ 146 #endif
+<span class="new"> 147 </span>
+<span class="new"> 148   bool scale_if_cached(methodHandle mh, double&amp; scale );</span>
+ 149 
+ 150   int highest_comp_level() const;
+ 151   void set_highest_comp_level(int level);
+ 152   int highest_osr_comp_level() const;
+ 153   void set_highest_osr_comp_level(int level);
+ 154 
+ 155   // invocation counter
+ 156   InvocationCounter* invocation_counter() { return &amp;_invocation_counter; }
+ 157   InvocationCounter* backedge_counter()   { return &amp;_backedge_counter; }
+ 158 
+ 159   int nmethod_age() {
+ 160     return _nmethod_age;
+ 161   }
+ 162   void set_nmethod_age(int age) {
+ 163     _nmethod_age = age;
+ 164   }
+ 165   void reset_nmethod_age() {
+ 166     set_nmethod_age(HotMethodDetectionLimit);
+ 167   }
+ 168 
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/oops/methodCounters.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/methodData.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

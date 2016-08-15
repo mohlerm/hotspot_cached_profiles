@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/ci </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/ci/ciMethodData.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/compiler/compileBroker.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/ci/ciMethodData.hpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+ 353     return (ciMethod*)intptr_at(speculative_trap_method);
+ 354   }
+ 355 
+ 356   void set_method(ciMethod* m) {
+ 357     set_intptr_at(speculative_trap_method, (intptr_t)m);
+ 358   }
+ 359 
+ 360 #ifndef PRODUCT
+ 361   void print_data_on(outputStream* st, const char* extra = NULL) const;
+ 362 #endif
+ 363 };
+ 364 
+ 365 // ciMethodData
+ 366 //
+ 367 // This class represents a MethodData* in the HotSpot virtual
+ 368 // machine.
+ 369 
+ 370 class ciMethodData : public ciMetadata {
+ 371   CI_PACKAGE_ACCESS
+ 372   friend class ciReplay;
+
+ 373 
+ 374 private:
+ 375   // Size in bytes
+ 376   int _data_size;
+ 377   int _extra_data_size;
+ 378 
+ 379   // Data entries
+ 380   intptr_t* _data;
+ 381 
+ 382   // Cached hint for data_before()
+ 383   int _hint_di;
+ 384 
+ 385   // Is data attached?  And is it mature?
+ 386   enum { empty_state, immature_state, mature_state };
+ 387   u_char _state;
+ 388 
+ 389   // Set this true if empty extra_data slots are ever witnessed.
+ 390   u_char _saw_free_extra_data;
+ 391 
+ 392   // Support for interprocedural escape analysis
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+ 353     return (ciMethod*)intptr_at(speculative_trap_method);
+ 354   }
+ 355 
+ 356   void set_method(ciMethod* m) {
+ 357     set_intptr_at(speculative_trap_method, (intptr_t)m);
+ 358   }
+ 359 
+ 360 #ifndef PRODUCT
+ 361   void print_data_on(outputStream* st, const char* extra = NULL) const;
+ 362 #endif
+ 363 };
+ 364 
+ 365 // ciMethodData
+ 366 //
+ 367 // This class represents a MethodData* in the HotSpot virtual
+ 368 // machine.
+ 369 
+ 370 class ciMethodData : public ciMetadata {
+ 371   CI_PACKAGE_ACCESS
+ 372   friend class ciReplay;
+<span class="new"> 373   friend class ciCacheReplay;</span>
+ 374 
+ 375 private:
+ 376   // Size in bytes
+ 377   int _data_size;
+ 378   int _extra_data_size;
+ 379 
+ 380   // Data entries
+ 381   intptr_t* _data;
+ 382 
+ 383   // Cached hint for data_before()
+ 384   int _hint_di;
+ 385 
+ 386   // Is data attached?  And is it mature?
+ 387   enum { empty_state, immature_state, mature_state };
+ 388   u_char _state;
+ 389 
+ 390   // Set this true if empty extra_data slots are ever witnessed.
+ 391   u_char _saw_free_extra_data;
+ 392 
+ 393   // Support for interprocedural escape analysis
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/ci/ciMethodData.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/compiler/compileBroker.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

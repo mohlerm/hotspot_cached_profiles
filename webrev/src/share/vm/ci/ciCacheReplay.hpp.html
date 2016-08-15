@@ -1,0 +1,210 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>New src/share/vm/ci/ciCacheReplay.hpp</title>
+<body id="SUNWwebrev">
+<pre>
+   1 /*
+   2  * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
+   3  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   4  *
+   5  * This code is free software; you can redistribute it and/or modify it
+   6  * under the terms of the GNU General Public License version 2 only, as
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #ifndef SHARE_VM_CI_CICACHEREPLAY_HPP
+  26 #define SHARE_VM_CI_CICACHEREPLAY_HPP
+  27 
+  28 #include "ci/ciMethod.hpp"
+  29 
+  30 // ciReplay
+  31 
+  32 //
+  33 // Replay compilation of a java method by using an information in replay file.
+  34 // Replay inlining decisions during compilation by using an information in inline file.
+  35 //
+  36 // NOTE: these replay functions only exist in debug version of VM.
+  37 //
+  38 // Replay compilation.
+  39 // -------------------
+  40 //
+  41 // Replay data file replay.txt can be created by Serviceability Agent
+  42 // from a core file, see agent/doc/cireplay.html
+  43 //
+  44 // $ java -cp &lt;jdk&gt;/lib/sa-jdi.jar sun.jvm.hotspot.CLHSDB
+  45 // hsdb&gt; attach &lt;jdk&gt;/bin/java ./core
+  46 // hsdb&gt; threads
+  47 // t@10 Service Thread
+  48 // t@9 C2 CompilerThread0
+  49 // t@8 Signal Dispatcher
+  50 // t@7 Finalizer
+  51 // t@6 Reference Handler
+  52 // t@2 main
+  53 // hsdb&gt; dumpreplaydata t@9 &gt; replay.txt
+  54 // hsdb&gt; quit
+  55 //
+  56 // (Note: SA could be also used to extract app.jar and boot.jar files
+  57 //  from core file to replay compilation if only core file is available)
+  58 //
+  59 // Replay data file replay_pid%p.log is also created when VM crashes
+  60 // in Compiler thread during compilation. It is controlled by
+  61 // DumpReplayDataOnError flag which is ON by default.
+  62 //
+  63 // Replay file replay_pid%p_compid%d.log can be created
+  64 // for the specified java method during normal execution using
+  65 // CompileCommand option DumpReplay:
+  66 //
+  67 // -XX:CompileCommand=option,Benchmark::test,DumpReplay
+  68 //
+  69 // In this case the file name has additional compilation id "_compid%d"
+  70 // because the method could be compiled several times.
+  71 //
+  72 // To replay compilation the replay file should be specified:
+  73 //
+  74 // -XX:+ReplayCompiles -XX:ReplayDataFile=replay_pid2133.log
+  75 //
+  76 // VM thread reads data from the file immediately after VM initialization
+  77 // and puts the compilation task on compile queue. After that it goes into
+  78 // wait state (BackgroundCompilation flag is set to false) since there is no
+  79 // a program to execute. VM exits when the compilation is finished.
+  80 //
+  81 //
+  82 // Replay inlining.
+  83 // ----------------
+  84 //
+  85 // Replay inlining file inline_pid%p_compid%d.log is created for
+  86 // a specific java method during normal execution of a java program
+  87 // using CompileCommand option DumpInline:
+  88 //
+  89 // -XX:CompileCommand=option,Benchmark::test,DumpInline
+  90 //
+  91 // To replay inlining the replay file and the method should be specified:
+  92 //
+  93 // -XX:CompileCommand=option,Benchmark::test,ReplayInline -XX:InlineDataFile=inline_pid3244_compid6.log
+  94 //
+  95 // The difference from replay compilation is that replay inlining
+  96 // is performed during normal java program execution.
+  97 //
+  98 
+  99 class ciCacheReplay {
+ 100   CI_PACKAGE_ACCESS
+ 101 
+ 102 //#ifndef PRODUCT
+ 103  private:
+ 104 
+ 105  public:
+ 106   // Replay specified cached compilation and do NOT exit VM.
+ 107   static void replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked);
+ 108   // Load inlining decisions from file and use them
+ 109   // during compilation of specified method.
+ 110   static void* load_inline_data(ciMethod* method, int entry_bci, int comp_level);
+ 111 
+ 112   // These are used by the CI to fill in the cached data from the
+ 113   // replay file when replaying compiles.
+ 114   static void initialize(ciMethodData* method);
+ 115   static void initialize(ciMethod* method);
+ 116 
+ 117   static bool is_loaded(Method* method);
+ 118   static bool is_loaded(Klass* klass);
+ 119 
+ 120   static bool should_not_inline(ciMethod* method);
+ 121   static bool should_inline(void* data, ciMethod* method, int bci, int inline_depth);
+ 122   static bool should_not_inline(void* data, ciMethod* method, int bci, int inline_depth);
+ 123 
+ 124 //#endif
+ 125 };
+ 126 
+ 127 #endif // SHARE_VM_CI_CICACHEREPLAY_HPP
+</pre></body></html>

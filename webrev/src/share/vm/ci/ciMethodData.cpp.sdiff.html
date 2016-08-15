@@ -1,0 +1,273 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/ci </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/ci/ciMethod.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciMethodData.hpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/ci/ciMethodData.cpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "ci/ciMetadata.hpp"
+  27 #include "ci/ciMethodData.hpp"
+  28 #include "ci/ciReplay.hpp"
+
+  29 #include "ci/ciUtilities.hpp"
+  30 #include "memory/allocation.inline.hpp"
+  31 #include "memory/resourceArea.hpp"
+  32 #include "runtime/deoptimization.hpp"
+  33 #include "utilities/copy.hpp"
+  34 
+  35 // ciMethodData
+  36 
+  37 // ------------------------------------------------------------------
+  38 // ciMethodData::ciMethodData
+  39 //
+  40 ciMethodData::ciMethodData(MethodData* md) : ciMetadata(md) {
+  41   assert(md != NULL, "no null method data");
+  42   Copy::zero_to_words((HeapWord*) &amp;_orig, sizeof(_orig) / sizeof(HeapWord));
+  43   _data = NULL;
+  44   _data_size = 0;
+  45   _extra_data_size = 0;
+  46   _current_mileage = 0;
+  47   _invocation_counter = 0;
+  48   _backedge_counter = 0;
+
+</pre><hr></hr><pre>
+ 165     parameters-&gt;translate_from(mdo-&gt;parameters_type_data());
+ 166   }
+ 167 
+ 168   load_extra_data();
+ 169 
+ 170   // Note:  Extra data are all BitData, and do not need translation.
+ 171   _current_mileage = MethodData::mileage_of(mdo-&gt;method());
+ 172   _invocation_counter = mdo-&gt;invocation_count();
+ 173   _backedge_counter = mdo-&gt;backedge_count();
+ 174   _state = mdo-&gt;is_mature()? mature_state: immature_state;
+ 175 
+ 176   _eflags = mdo-&gt;eflags();
+ 177   _arg_local = mdo-&gt;arg_local();
+ 178   _arg_stack = mdo-&gt;arg_stack();
+ 179   _arg_returned  = mdo-&gt;arg_returned();
+ 180 #ifndef PRODUCT
+ 181   if (ReplayCompiles) {
+ 182     ciReplay::initialize(this);
+ 183   }
+ 184 #endif
+
+
+
+ 185 }
+ 186 
+ 187 void ciReceiverTypeData::translate_receiver_data_from(const ProfileData* data) {
+ 188   for (uint row = 0; row &lt; row_limit(); row++) {
+ 189     Klass* k = data-&gt;as_ReceiverTypeData()-&gt;receiver(row);
+ 190     if (k != NULL) {
+ 191       ciKlass* klass = CURRENT_ENV-&gt;get_klass(k);
+ 192       CURRENT_ENV-&gt;ensure_metadata_alive(klass);
+ 193       set_receiver(row, klass);
+ 194     }
+ 195   }
+ 196 }
+ 197 
+ 198 
+ 199 void ciTypeStackSlotEntries::translate_type_data_from(const TypeStackSlotEntries* entries) {
+ 200   for (int i = 0; i &lt; number_of_entries(); i++) {
+ 201     intptr_t k = entries-&gt;type(i);
+ 202     TypeStackSlotEntries::set_type(i, translate_klass(k));
+ 203   }
+ 204 }
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "ci/ciMetadata.hpp"
+  27 #include "ci/ciMethodData.hpp"
+  28 #include "ci/ciReplay.hpp"
+<span class="new">  29 #include "ci/ciCacheReplay.hpp"</span>
+  30 #include "ci/ciUtilities.hpp"
+  31 #include "memory/allocation.inline.hpp"
+  32 #include "memory/resourceArea.hpp"
+  33 #include "runtime/deoptimization.hpp"
+  34 #include "utilities/copy.hpp"
+  35 
+  36 // ciMethodData
+  37 
+  38 // ------------------------------------------------------------------
+  39 // ciMethodData::ciMethodData
+  40 //
+  41 ciMethodData::ciMethodData(MethodData* md) : ciMetadata(md) {
+  42   assert(md != NULL, "no null method data");
+  43   Copy::zero_to_words((HeapWord*) &amp;_orig, sizeof(_orig) / sizeof(HeapWord));
+  44   _data = NULL;
+  45   _data_size = 0;
+  46   _extra_data_size = 0;
+  47   _current_mileage = 0;
+  48   _invocation_counter = 0;
+  49   _backedge_counter = 0;
+
+</pre><hr></hr><pre>
+ 166     parameters-&gt;translate_from(mdo-&gt;parameters_type_data());
+ 167   }
+ 168 
+ 169   load_extra_data();
+ 170 
+ 171   // Note:  Extra data are all BitData, and do not need translation.
+ 172   _current_mileage = MethodData::mileage_of(mdo-&gt;method());
+ 173   _invocation_counter = mdo-&gt;invocation_count();
+ 174   _backedge_counter = mdo-&gt;backedge_count();
+ 175   _state = mdo-&gt;is_mature()? mature_state: immature_state;
+ 176 
+ 177   _eflags = mdo-&gt;eflags();
+ 178   _arg_local = mdo-&gt;arg_local();
+ 179   _arg_stack = mdo-&gt;arg_stack();
+ 180   _arg_returned  = mdo-&gt;arg_returned();
+ 181 #ifndef PRODUCT
+ 182   if (ReplayCompiles) {
+ 183     ciReplay::initialize(this);
+ 184   }
+ 185 #endif
+<span class="new"> 186   if (CacheProfiles) {</span>
+<span class="new"> 187     ciCacheReplay::initialize(this);</span>
+<span class="new"> 188   }</span>
+ 189 }
+ 190 
+ 191 void ciReceiverTypeData::translate_receiver_data_from(const ProfileData* data) {
+ 192   for (uint row = 0; row &lt; row_limit(); row++) {
+ 193     Klass* k = data-&gt;as_ReceiverTypeData()-&gt;receiver(row);
+ 194     if (k != NULL) {
+ 195       ciKlass* klass = CURRENT_ENV-&gt;get_klass(k);
+ 196       CURRENT_ENV-&gt;ensure_metadata_alive(klass);
+ 197       set_receiver(row, klass);
+ 198     }
+ 199   }
+ 200 }
+ 201 
+ 202 
+ 203 void ciTypeStackSlotEntries::translate_type_data_from(const TypeStackSlotEntries* entries) {
+ 204   for (int i = 0; i &lt; number_of_entries(); i++) {
+ 205     intptr_t k = entries-&gt;type(i);
+ 206     TypeStackSlotEntries::set_type(i, translate_klass(k));
+ 207   }
+ 208 }
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/ci/ciMethod.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciMethodData.hpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

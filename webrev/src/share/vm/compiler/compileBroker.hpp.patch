@@ -1,0 +1,10 @@
+--- old/src/share/vm/compiler/compileBroker.hpp	2016-08-15 12:19:46.493019658 +0200
++++ new/src/share/vm/compiler/compileBroker.hpp	2016-08-15 12:19:46.341019658 +0200
+@@ -140,6 +140,7 @@
+ class CompileBroker: AllStatic {
+  friend class Threads;
+  friend class CompileTaskWrapper;
++ friend class CacheCompileReplay;
+ 
+  public:
+   enum {

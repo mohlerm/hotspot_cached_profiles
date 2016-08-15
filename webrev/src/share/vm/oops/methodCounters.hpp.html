@@ -1,0 +1,296 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>New src/share/vm/oops/methodCounters.hpp</title>
+<body id="SUNWwebrev">
+<pre>
+   1 /*
+   2  * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+   3  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   4  *
+   5  * This code is free software; you can redistribute it and/or modify it
+   6  * under the terms of the GNU General Public License version 2 only, as
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #ifndef SHARE_VM_OOPS_METHODCOUNTERS_HPP
+  26 #define SHARE_VM_OOPS_METHODCOUNTERS_HPP
+  27 
+  28 #include "oops/metadata.hpp"
+  29 #include "compiler/compilerOracle.hpp"
+  30 #include "interpreter/invocationCounter.hpp"
+  31 #include "runtime/arguments.hpp"
+  32 
+  33 class MethodCounters: public MetaspaceObj {
+  34  friend class VMStructs;
+  35  friend class JVMCIVMStructs;
+  36  private:
+  37   int               _interpreter_invocation_count; // Count of times invoked (reused as prev_event_count in tiered)
+  38   u2                _interpreter_throwout_count; // Count of times method was exited via exception while interpreting
+  39   u2                _number_of_breakpoints;      // fullspeed debugging support
+  40   InvocationCounter _invocation_counter;         // Incremented before each activation of the method - used to trigger frequency-based optimizations
+  41   InvocationCounter _backedge_counter;           // Incremented before each backedge taken - used to trigger frequencey-based optimizations
+  42   // NMethod age is a counter for warm methods detection in the code cache sweeper.
+  43   // The counter is reset by the sweeper and is decremented by some of the compiled
+  44   // code. The counter values are interpreted as follows:
+  45   // 1. (HotMethodDetection..INT_MAX] - initial value, no counters inserted
+  46   // 2. [1..HotMethodDetectionLimit)  - the method is warm, the counter is used
+  47   //                                    to figure out which methods can be flushed.
+  48   // 3. (INT_MIN..0]                  - method is hot and will deopt and get
+  49   //                                    recompiled without the counters
+  50   int               _nmethod_age;
+  51   int               _interpreter_invocation_limit;        // per-method InterpreterInvocationLimit
+  52   int               _interpreter_backward_branch_limit;   // per-method InterpreterBackwardBranchLimit
+  53   int               _interpreter_profile_limit;           // per-method InterpreterProfileLimit
+  54   int               _invoke_mask;                         // per-method Tier0InvokeNotifyFreqLog
+  55   int               _backedge_mask;                       // per-method Tier0BackedgeNotifyFreqLog
+  56 #ifdef TIERED
+  57   float             _rate;                        // Events (invocation and backedge counter increments) per millisecond
+  58   jlong             _prev_time;                   // Previous time the rate was acquired
+  59   u1                _highest_comp_level;          // Highest compile level this method has ever seen.
+  60   u1                _highest_osr_comp_level;      // Same for OSR level
+  61 #endif
+  62 
+  63   MethodCounters(methodHandle mh) : _interpreter_invocation_count(0),
+  64                                     _interpreter_throwout_count(0),
+  65                                     _number_of_breakpoints(0),
+  66                                     _nmethod_age(INT_MAX)
+  67 #ifdef TIERED
+  68                                  , _rate(0),
+  69                                    _prev_time(0),
+  70                                    _highest_comp_level(0),
+  71                                    _highest_osr_comp_level(0)
+  72 #endif
+  73   {
+  74     invocation_counter()-&gt;init();
+  75     backedge_counter()-&gt;init();
+  76 
+  77     if (StressCodeAging) {
+  78       set_nmethod_age(HotMethodDetectionLimit);
+  79     }
+  80 
+  81     // Set per-method thresholds.
+  82     double scale = 1.0;
+  83 
+  84     scale_if_cached(mh, scale);
+  85     CompilerOracle::has_option_value(mh, "CompileThresholdScaling", scale);
+  86 
+  87     int compile_threshold = Arguments::scaled_compile_threshold(CompileThreshold, scale);
+  88     _interpreter_invocation_limit = compile_threshold &lt;&lt; InvocationCounter::count_shift;
+  89     if (ProfileInterpreter) {
+  90       // If interpreter profiling is enabled, the backward branch limit
+  91       // is compared against the method data counter rather than an invocation
+  92       // counter, therefore no shifting of bits is required.
+  93       _interpreter_backward_branch_limit = (compile_threshold * (OnStackReplacePercentage - InterpreterProfilePercentage)) / 100;
+  94     } else {
+  95       _interpreter_backward_branch_limit = ((compile_threshold * OnStackReplacePercentage) / 100) &lt;&lt; InvocationCounter::count_shift;
+  96     }
+  97     _interpreter_profile_limit = ((compile_threshold * InterpreterProfilePercentage) / 100) &lt;&lt; InvocationCounter::count_shift;
+  98     _invoke_mask = right_n_bits(Arguments::scaled_freq_log(Tier0InvokeNotifyFreqLog, scale)) &lt;&lt; InvocationCounter::count_shift;
+  99     _backedge_mask = right_n_bits(Arguments::scaled_freq_log(Tier0BackedgeNotifyFreqLog, scale)) &lt;&lt; InvocationCounter::count_shift;
+ 100   }
+ 101 
+ 102  public:
+ 103   static MethodCounters* allocate(methodHandle mh, TRAPS);
+ 104 
+ 105   void deallocate_contents(ClassLoaderData* loader_data) {}
+ 106   DEBUG_ONLY(bool on_stack() { return false; })  // for template
+ 107 
+ 108   static int size() { return sizeof(MethodCounters) / wordSize; }
+ 109 
+ 110   bool is_klass() const { return false; }
+ 111 
+ 112   void clear_counters();
+ 113 
+ 114   int interpreter_invocation_count() {
+ 115     return _interpreter_invocation_count;
+ 116   }
+ 117   void set_interpreter_invocation_count(int count) {
+ 118     _interpreter_invocation_count = count;
+ 119   }
+ 120   int increment_interpreter_invocation_count() {
+ 121     return ++_interpreter_invocation_count;
+ 122   }
+ 123 
+ 124   void interpreter_throwout_increment() {
+ 125     if (_interpreter_throwout_count &lt; 65534) {
+ 126       _interpreter_throwout_count++;
+ 127     }
+ 128   }
+ 129   int  interpreter_throwout_count() const {
+ 130     return _interpreter_throwout_count;
+ 131   }
+ 132   void set_interpreter_throwout_count(int count) {
+ 133     _interpreter_throwout_count = count;
+ 134   }
+ 135 
+ 136   u2   number_of_breakpoints() const   { return _number_of_breakpoints; }
+ 137   void incr_number_of_breakpoints()    { ++_number_of_breakpoints; }
+ 138   void decr_number_of_breakpoints()    { --_number_of_breakpoints; }
+ 139   void clear_number_of_breakpoints()   { _number_of_breakpoints = 0; }
+ 140 
+ 141 #ifdef TIERED
+ 142   jlong prev_time() const                        { return _prev_time; }
+ 143   void set_prev_time(jlong time)                 { _prev_time = time; }
+ 144   float rate() const                             { return _rate; }
+ 145   void set_rate(float rate)                      { _rate = rate; }
+ 146 #endif
+ 147 
+ 148   bool scale_if_cached(methodHandle mh, double&amp; scale );
+ 149 
+ 150   int highest_comp_level() const;
+ 151   void set_highest_comp_level(int level);
+ 152   int highest_osr_comp_level() const;
+ 153   void set_highest_osr_comp_level(int level);
+ 154 
+ 155   // invocation counter
+ 156   InvocationCounter* invocation_counter() { return &amp;_invocation_counter; }
+ 157   InvocationCounter* backedge_counter()   { return &amp;_backedge_counter; }
+ 158 
+ 159   int nmethod_age() {
+ 160     return _nmethod_age;
+ 161   }
+ 162   void set_nmethod_age(int age) {
+ 163     _nmethod_age = age;
+ 164   }
+ 165   void reset_nmethod_age() {
+ 166     set_nmethod_age(HotMethodDetectionLimit);
+ 167   }
+ 168 
+ 169   static bool is_nmethod_hot(int age)       { return age &lt;= 0; }
+ 170   static bool is_nmethod_warm(int age)      { return age &lt; HotMethodDetectionLimit; }
+ 171   static bool is_nmethod_age_unset(int age) { return age &gt; HotMethodDetectionLimit; }
+ 172 
+ 173   static ByteSize nmethod_age_offset() {
+ 174     return byte_offset_of(MethodCounters, _nmethod_age);
+ 175   }
+ 176 
+ 177   static ByteSize interpreter_invocation_counter_offset() {
+ 178     return byte_offset_of(MethodCounters, _interpreter_invocation_count);
+ 179   }
+ 180 
+ 181   static ByteSize invocation_counter_offset()    {
+ 182     return byte_offset_of(MethodCounters, _invocation_counter);
+ 183   }
+ 184 
+ 185   static ByteSize backedge_counter_offset()      {
+ 186     return byte_offset_of(MethodCounters, _backedge_counter);
+ 187   }
+ 188 
+ 189   static int interpreter_invocation_counter_offset_in_bytes() {
+ 190     return offset_of(MethodCounters, _interpreter_invocation_count);
+ 191   }
+ 192 
+ 193   static ByteSize interpreter_invocation_limit_offset() {
+ 194     return byte_offset_of(MethodCounters, _interpreter_invocation_limit);
+ 195   }
+ 196 
+ 197   static ByteSize interpreter_backward_branch_limit_offset() {
+ 198     return byte_offset_of(MethodCounters, _interpreter_backward_branch_limit);
+ 199   }
+ 200 
+ 201   static ByteSize interpreter_profile_limit_offset() {
+ 202     return byte_offset_of(MethodCounters, _interpreter_profile_limit);
+ 203   }
+ 204 
+ 205   static ByteSize invoke_mask_offset() {
+ 206     return byte_offset_of(MethodCounters, _invoke_mask);
+ 207   }
+ 208 
+ 209   static ByteSize backedge_mask_offset() {
+ 210     return byte_offset_of(MethodCounters, _backedge_mask);
+ 211   }
+ 212 };
+ 213 #endif //SHARE_VM_OOPS_METHODCOUNTERS_HPP
+</pre></body></html>

@@ -1,0 +1,20 @@
+--- old/src/share/vm/oops/methodCounters.hpp	2016-08-15 12:19:49.601019658 +0200
++++ new/src/share/vm/oops/methodCounters.hpp	2016-08-15 12:19:49.445019658 +0200
+@@ -80,6 +80,8 @@
+ 
+     // Set per-method thresholds.
+     double scale = 1.0;
++
++    scale_if_cached(mh, scale);
+     CompilerOracle::has_option_value(mh, "CompileThresholdScaling", scale);
+ 
+     int compile_threshold = Arguments::scaled_compile_threshold(CompileThreshold, scale);
+@@ -143,6 +145,8 @@
+   void set_rate(float rate)                      { _rate = rate; }
+ #endif
+ 
++  bool scale_if_cached(methodHandle mh, double& scale );
++
+   int highest_comp_level() const;
+   void set_highest_comp_level(int level);
+   int highest_osr_comp_level() const;

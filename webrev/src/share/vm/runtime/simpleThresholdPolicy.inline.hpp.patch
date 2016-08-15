@@ -1,0 +1,73 @@
+--- old/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 12:19:56.053019658 +0200
++++ new/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 12:19:55.897019658 +0200
+@@ -25,11 +25,36 @@
+ #ifndef SHARE_VM_RUNTIME_SIMPLETHRESHOLDPOLICY_INLINE_HPP
+ #define SHARE_VM_RUNTIME_SIMPLETHRESHOLDPOLICY_INLINE_HPP
+ 
++#include <ci/ciCacheProfiles.hpp>
+ #include "compiler/compilerOracle.hpp"
+ 
+ template<CompLevel level>
+ bool SimpleThresholdPolicy::call_predicate_helper(int i, int b, double scale, Method* method) {
+-  double threshold_scaling;
++  double threshold_scaling = 1.0;
++
++  if(CacheProfiles && ciCacheProfiles::is_initialized()) {
++    if(CacheProfilesMode==0) {
++      switch(level) {
++      case CompLevel_none:
++      case CompLevel_limited_profile:
++        // if the compilation is Level 0 or 2 and therefore a Level 3
++        // compilation is next
++        // -> lower the Tier3 thresholds in case the method is cached
++        if(ciCacheProfiles::is_cached(method) >= CompLevel_full_profile) {
++          threshold_scaling = CacheProfilesMode0ThresholdScaling;
++          scale *= threshold_scaling;
++        }
++        break;
++      case CompLevel_full_profile:
++        // the Level 4 tresholds only get lowered if the profile is from C2
++        if(ciCacheProfiles::is_cached(method) == CompLevel_full_optimization) {
++          threshold_scaling = CacheProfilesMode0ThresholdScaling;
++          scale *= threshold_scaling;
++        }
++        break;
++      }
++    }
++  }
+   if (CompilerOracle::has_option_value(method, "CompileThresholdScaling", threshold_scaling)) {
+     scale *= threshold_scaling;
+   }
+@@ -47,7 +72,31 @@
+ 
+ template<CompLevel level>
+ bool SimpleThresholdPolicy::loop_predicate_helper(int i, int b, double scale, Method* method) {
+-  double threshold_scaling;
++  double threshold_scaling = 1.0;
++
++  if(CacheProfiles && ciCacheProfiles::is_initialized()) {
++    if(CacheProfilesMode==0) {
++      switch(level) {
++      case CompLevel_none:
++      case CompLevel_limited_profile:
++        // if the compilation is Level 0 or 2 and therefore a Level 3
++        // compilation is next
++        // -> lower the Tier3 thresholds in case the method is cached
++        if(ciCacheProfiles::is_cached(method) >= CompLevel_full_profile) {
++          threshold_scaling = CacheProfilesMode0ThresholdScaling;
++          scale *= threshold_scaling;
++        }
++        break;
++      case CompLevel_full_profile:
++        // the Level 4 tresholds only get lowered if the profile is from C2
++        if(ciCacheProfiles::is_cached(method) == CompLevel_full_optimization) {
++          threshold_scaling = CacheProfilesMode0ThresholdScaling;
++          scale *= threshold_scaling;
++        }
++        break;
++      }
++    }
++  }
+   if (CompilerOracle::has_option_value(method, "CompileThresholdScaling", threshold_scaling)) {
+     scale *= threshold_scaling;
+   }

@@ -1,0 +1,183 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/prims </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/opto/library_call.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/advancedThresholdPolicy.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/prims/jvmtiExport.hpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+  49 
+  50 #define JVMTI_SUPPORT_FLAG(key)                                           \
+  51   private:                                                                \
+  52   static bool  _##key;                                                    \
+  53   public:                                                                 \
+  54   inline static void set_##key(bool on) {                                 \
+  55     JVMTI_ONLY(_##key = (on != 0));                                       \
+  56     NOT_JVMTI(report_unsupported(on));                                    \
+  57   }                                                                       \
+  58   inline static bool key() {                                              \
+  59     JVMTI_ONLY(return _##key);                                            \
+  60     NOT_JVMTI(return false);                                              \
+  61   }
+  62 
+  63 
+  64 // This class contains the JVMTI interface for the rest of hotspot.
+  65 //
+  66 class JvmtiExport : public AllStatic {
+  67   friend class VMStructs;
+  68   friend class CompileReplay;
+
+  69 
+  70  private:
+  71 
+  72 #if INCLUDE_JVMTI
+  73   static int         _field_access_count;
+  74   static int         _field_modification_count;
+  75 
+  76   static bool        _can_access_local_variables;
+  77   static bool        _can_hotswap_or_post_breakpoint;
+  78   static bool        _can_modify_any_class;
+  79   static bool        _can_walk_any_space;
+  80 #endif // INCLUDE_JVMTI
+  81 
+  82   JVMTI_SUPPORT_FLAG(can_get_source_debug_extension)
+  83   JVMTI_SUPPORT_FLAG(can_maintain_original_method_order)
+  84   JVMTI_SUPPORT_FLAG(can_post_interpreter_events)
+  85   JVMTI_SUPPORT_FLAG(can_post_on_exceptions)
+  86   JVMTI_SUPPORT_FLAG(can_post_breakpoint)
+  87   JVMTI_SUPPORT_FLAG(can_post_field_access)
+  88   JVMTI_SUPPORT_FLAG(can_post_field_modification)
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+  49 
+  50 #define JVMTI_SUPPORT_FLAG(key)                                           \
+  51   private:                                                                \
+  52   static bool  _##key;                                                    \
+  53   public:                                                                 \
+  54   inline static void set_##key(bool on) {                                 \
+  55     JVMTI_ONLY(_##key = (on != 0));                                       \
+  56     NOT_JVMTI(report_unsupported(on));                                    \
+  57   }                                                                       \
+  58   inline static bool key() {                                              \
+  59     JVMTI_ONLY(return _##key);                                            \
+  60     NOT_JVMTI(return false);                                              \
+  61   }
+  62 
+  63 
+  64 // This class contains the JVMTI interface for the rest of hotspot.
+  65 //
+  66 class JvmtiExport : public AllStatic {
+  67   friend class VMStructs;
+  68   friend class CompileReplay;
+<span class="new">  69   friend class CacheCompileReplay;</span>
+  70 
+  71  private:
+  72 
+  73 #if INCLUDE_JVMTI
+  74   static int         _field_access_count;
+  75   static int         _field_modification_count;
+  76 
+  77   static bool        _can_access_local_variables;
+  78   static bool        _can_hotswap_or_post_breakpoint;
+  79   static bool        _can_modify_any_class;
+  80   static bool        _can_walk_any_space;
+  81 #endif // INCLUDE_JVMTI
+  82 
+  83   JVMTI_SUPPORT_FLAG(can_get_source_debug_extension)
+  84   JVMTI_SUPPORT_FLAG(can_maintain_original_method_order)
+  85   JVMTI_SUPPORT_FLAG(can_post_interpreter_events)
+  86   JVMTI_SUPPORT_FLAG(can_post_on_exceptions)
+  87   JVMTI_SUPPORT_FLAG(can_post_breakpoint)
+  88   JVMTI_SUPPORT_FLAG(can_post_field_access)
+  89   JVMTI_SUPPORT_FLAG(can_post_field_modification)
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/opto/library_call.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/advancedThresholdPolicy.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

@@ -1,0 +1,261 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/oops </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/oops/klass.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/methodCounters.hpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/oops/methodCounters.cpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 #include "precompiled.hpp"
+  25 #include "oops/methodCounters.hpp"
+  26 #include "runtime/handles.inline.hpp"
+
+  27 
+  28 MethodCounters* MethodCounters::allocate(methodHandle mh, TRAPS) {
+  29   ClassLoaderData* loader_data = mh-&gt;method_holder()-&gt;class_loader_data();
+  30   return new(loader_data, size(), false, MetaspaceObj::MethodCountersType, THREAD) MethodCounters(mh);
+  31 }
+  32 
+  33 void MethodCounters::clear_counters() {
+  34   invocation_counter()-&gt;reset();
+  35   backedge_counter()-&gt;reset();
+  36   set_interpreter_throwout_count(0);
+  37   set_interpreter_invocation_count(0);
+  38   set_nmethod_age(INT_MAX);
+  39 #ifdef TIERED
+  40   set_prev_time(0);
+  41   set_rate(0);
+  42   set_highest_comp_level(0);
+  43   set_highest_osr_comp_level(0);
+  44 #endif
+  45 }
+  46 
+  47 
+
+
+
+
+
+
+
+
+
+
+
+
+  48 int MethodCounters::highest_comp_level() const {
+  49 #ifdef TIERED
+  50   return _highest_comp_level;
+  51 #else
+  52   return CompLevel_none;
+  53 #endif
+  54 }
+  55 
+  56 void MethodCounters::set_highest_comp_level(int level) {
+  57 #ifdef TIERED
+  58   _highest_comp_level = level;
+  59 #endif
+  60 }
+  61 
+  62 int MethodCounters::highest_osr_comp_level() const {
+  63 #ifdef TIERED
+  64   return _highest_osr_comp_level;
+  65 #else
+  66   return CompLevel_none;
+  67 #endif
+  68 }
+  69 
+  70 void MethodCounters::set_highest_osr_comp_level(int level) {
+  71 #ifdef TIERED
+  72   _highest_osr_comp_level = level;
+  73 #endif
+  74 }
+<span class="removed">  75 </span>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 #include "precompiled.hpp"
+  25 #include "oops/methodCounters.hpp"
+  26 #include "runtime/handles.inline.hpp"
+<span class="new">  27 #include "ci/ciCacheProfiles.hpp"</span>
+  28 
+  29 MethodCounters* MethodCounters::allocate(methodHandle mh, TRAPS) {
+  30   ClassLoaderData* loader_data = mh-&gt;method_holder()-&gt;class_loader_data();
+  31   return new(loader_data, size(), false, MetaspaceObj::MethodCountersType, THREAD) MethodCounters(mh);
+  32 }
+  33 
+  34 void MethodCounters::clear_counters() {
+  35   invocation_counter()-&gt;reset();
+  36   backedge_counter()-&gt;reset();
+  37   set_interpreter_throwout_count(0);
+  38   set_interpreter_invocation_count(0);
+  39   set_nmethod_age(INT_MAX);
+  40 #ifdef TIERED
+  41   set_prev_time(0);
+  42   set_rate(0);
+  43   set_highest_comp_level(0);
+  44   set_highest_osr_comp_level(0);
+  45 #endif
+  46 }
+  47 
+  48 
+<span class="new">  49 bool MethodCounters::scale_if_cached(methodHandle mh, double&amp; scale) {</span>
+<span class="new">  50    // in case the CacheProfile functionality is used:</span>
+<span class="new">  51    // in mode0, check if method is cached and lower threshold automatically</span>
+<span class="new">  52     if(CacheProfiles &amp;&amp; ciCacheProfiles::is_initialized()) {</span>
+<span class="new">  53       if(CacheProfilesMode==0 &amp;&amp; ciCacheProfiles::is_cached(mh)) {</span>
+<span class="new">  54         scale = CacheProfilesMode0ThresholdScaling;</span>
+<span class="new">  55         return true;</span>
+<span class="new">  56       }</span>
+<span class="new">  57     }</span>
+<span class="new">  58     return false;</span>
+<span class="new">  59 }</span>
+<span class="new">  60 </span>
+  61 int MethodCounters::highest_comp_level() const {
+  62 #ifdef TIERED
+  63   return _highest_comp_level;
+  64 #else
+  65   return CompLevel_none;
+  66 #endif
+  67 }
+  68 
+  69 void MethodCounters::set_highest_comp_level(int level) {
+  70 #ifdef TIERED
+  71   _highest_comp_level = level;
+  72 #endif
+  73 }
+  74 
+  75 int MethodCounters::highest_osr_comp_level() const {
+  76 #ifdef TIERED
+  77   return _highest_osr_comp_level;
+  78 #else
+  79   return CompLevel_none;
+  80 #endif
+  81 }
+  82 
+  83 void MethodCounters::set_highest_osr_comp_level(int level) {
+  84 #ifdef TIERED
+  85   _highest_osr_comp_level = level;
+  86 #endif
+  87 }
+
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/oops/klass.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/oops/methodCounters.hpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

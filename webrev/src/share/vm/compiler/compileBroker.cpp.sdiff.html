@@ -1,0 +1,783 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/compiler </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/ci/ciMethodData.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/compiler/compileBroker.hpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/compiler/compileBroker.cpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "classfile/symbolTable.hpp"
+  27 #include "classfile/systemDictionary.hpp"
+
+  28 #include "classfile/vmSymbols.hpp"
+  29 #include "code/codeCache.hpp"
+  30 #include "code/dependencyContext.hpp"
+  31 #include "compiler/compileBroker.hpp"
+  32 #include "compiler/compileLog.hpp"
+  33 #include "compiler/compilerOracle.hpp"
+  34 #include "compiler/directivesParser.hpp"
+  35 #include "interpreter/linkResolver.hpp"
+  36 #include "memory/allocation.inline.hpp"
+  37 #include "oops/methodData.hpp"
+  38 #include "oops/method.hpp"
+  39 #include "oops/oop.inline.hpp"
+  40 #include "prims/nativeLookup.hpp"
+  41 #include "prims/whitebox.hpp"
+  42 #include "runtime/arguments.hpp"
+  43 #include "runtime/atomic.inline.hpp"
+  44 #include "runtime/compilationPolicy.hpp"
+  45 #include "runtime/init.hpp"
+  46 #include "runtime/interfaceSupport.hpp"
+  47 #include "runtime/javaCalls.hpp"
+
+</pre><hr></hr><pre>
+ 289   if (_last == NULL) {
+ 290     // The compile queue is empty.
+ 291     assert(_first == NULL, "queue is empty");
+ 292     _first = task;
+ 293     _last = task;
+ 294   } else {
+ 295     // Append the task to the queue.
+ 296     assert(_last-&gt;next() == NULL, "not last");
+ 297     _last-&gt;set_next(task);
+ 298     task-&gt;set_prev(_last);
+ 299     _last = task;
+ 300   }
+ 301   ++_size;
+ 302 
+ 303   // Mark the method as being in the compile queue.
+ 304   task-&gt;method()-&gt;set_queued_for_compilation();
+ 305 
+ 306   if (CIPrintCompileQueue) {
+ 307     print_tty();
+ 308   }
+
+
+
+ 309 
+ 310   if (LogCompilation &amp;&amp; xtty != NULL) {
+ 311     task-&gt;log_task_queued();
+ 312   }
+ 313 
+ 314   // Notify CompilerThreads that a task is available.
+ 315   MethodCompileQueue_lock-&gt;notify_all();
+ 316 }
+ 317 
+ 318 /**
+ 319  * Empties compilation queue by putting all compilation tasks onto
+ 320  * a freelist. Furthermore, the method wakes up all threads that are
+ 321  * waiting on a compilation task to finish. This can happen if background
+ 322  * compilation is disabled.
+ 323  */
+ 324 void CompileQueue::free_all() {
+ 325   MutexLocker mu(MethodCompileQueue_lock);
+ 326   CompileTask* next = _first;
+ 327 
+ 328   // Iterate over all tasks in the compile queue
+
+</pre><hr></hr><pre>
+ 376     MethodCompileQueue_lock-&gt;wait(!Mutex::_no_safepoint_check_flag, 5*1000);
+ 377   }
+ 378 
+ 379   if (CompileBroker::is_compilation_disabled_forever()) {
+ 380     return NULL;
+ 381   }
+ 382 
+ 383   CompileTask* task;
+ 384   {
+ 385     NoSafepointVerifier nsv;
+ 386     task = CompilationPolicy::policy()-&gt;select_task(this);
+ 387   }
+ 388 
+ 389   // Save method pointers across unlock safepoint.  The task is removed from
+ 390   // the compilation queue, which is walked during RedefineClasses.
+ 391   save_method = methodHandle(task-&gt;method());
+ 392   save_hot_method = methodHandle(task-&gt;hot_method());
+ 393 
+ 394   remove(task);
+ 395   purge_stale_tasks(); // may temporarily release MCQ lock
+
+ 396   return task;
+ 397 }
+ 398 
+ 399 // Clean &amp; deallocate stale compile tasks.
+ 400 // Temporarily releases MethodCompileQueue lock.
+ 401 void CompileQueue::purge_stale_tasks() {
+ 402   assert(MethodCompileQueue_lock-&gt;owned_by_self(), "must own lock");
+ 403   if (_first_stale != NULL) {
+ 404     // Stale tasks are purged when MCQ lock is released,
+ 405     // but _first_stale updates are protected by MCQ lock.
+ 406     // Once task processing starts and MCQ lock is released,
+ 407     // other compiler threads can reuse _first_stale.
+ 408     CompileTask* head = _first_stale;
+ 409     _first_stale = NULL;
+ 410     {
+ 411       MutexUnlocker ul(MethodCompileQueue_lock);
+ 412       for (CompileTask* task = head; task != NULL; ) {
+ 413         CompileTask* next_task = task-&gt;next();
+ 414         CompileTaskWrapper ctw(task); // Frees the task
+ 415         task-&gt;set_failure_reason("stale task");
+
+</pre><hr></hr><pre>
+1017     // completed, and end up introducing a "duplicate" (redundant) task.
+1018     // In that case, the compiler thread should first check if a method
+1019     // has already been compiled before trying to compile it.
+1020     // NOTE: in the event that there are multiple compiler threads and
+1021     // there is de-optimization/recompilation, things will get hairy,
+1022     // and in that case it's best to protect both the testing (here) of
+1023     // these bits, and their updating (here and elsewhere) under a
+1024     // common lock.
+1025     task = create_compile_task(queue,
+1026                                compile_id, method,
+1027                                osr_bci, comp_level,
+1028                                hot_method, hot_count, comment,
+1029                                blocking);
+1030   }
+1031 
+1032   if (blocking) {
+1033     wait_for_completion(task);
+1034   }
+1035 }
+1036 
+<span class="removed">1037 </span>
+1038 nmethod* CompileBroker::compile_method(const methodHandle&amp; method, int osr_bci,
+1039                                        int comp_level,
+1040                                        const methodHandle&amp; hot_method, int hot_count,
+1041                                        const char* comment, Thread* THREAD) {
+
+1042   // make sure arguments make sense
+1043   assert(method-&gt;method_holder()-&gt;is_instance_klass(), "not an instance method");
+1044   assert(osr_bci == InvocationEntryBci || (0 &lt;= osr_bci &amp;&amp; osr_bci &lt; method-&gt;code_size()), "bci out of range");
+1045   assert(!method-&gt;is_abstract() &amp;&amp; (osr_bci == InvocationEntryBci || !method-&gt;is_native()), "cannot compile abstract/native methods");
+1046   assert(!method-&gt;method_holder()-&gt;is_not_initialized(), "method holder must be initialized");
+1047   // allow any levels for WhiteBox
+1048   assert(WhiteBoxAPI || TieredCompilation || comp_level == CompLevel_highest_tier, "only CompLevel_highest_tier must be used in non-tiered");
+1049   // return quickly if possible
+1050 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1051   // lock, make sure that the compilation
+1052   // isn't prohibited in a straightforward way.
+1053   AbstractCompiler *comp = CompileBroker::compiler(comp_level);
+1054   if (comp == NULL || !comp-&gt;can_compile_method(method) ||
+1055       compilation_is_prohibited(method, osr_bci, comp_level)) {
+1056     return NULL;
+1057   }
+1058 
+1059   if (osr_bci == InvocationEntryBci) {
+1060     // standard compilation
+1061     nmethod* method_code = method-&gt;code();
+1062     if (method_code != NULL) {
+1063       if (compilation_is_complete(method, osr_bci, comp_level)) {
+1064         return method_code;
+1065       }
+1066     }
+1067     if (method-&gt;is_not_compilable(comp_level)) {
+1068       return NULL;
+1069     }
+1070   } else {
+
+</pre><hr></hr><pre>
+1143             method-&gt;intrinsic_id() == vmIntrinsics::_doubleToRawLongBits))) {
+1144         return NULL;
+1145       }
+1146 
+1147       // To properly handle the appendix argument for out-of-line calls we are using a small trampoline that
+1148       // pops off the appendix argument and jumps to the target (see gen_special_dispatch in SharedRuntime).
+1149       //
+1150       // Since normal compiled-to-compiled calls are not able to handle such a thing we MUST generate an adapter
+1151       // in this case.  If we can't generate one and use it we can not execute the out-of-line method handle calls.
+1152       AdapterHandlerLibrary::create_native_wrapper(method);
+1153     } else {
+1154       return NULL;
+1155     }
+1156   } else {
+1157     // If the compiler is shut off due to code cache getting full
+1158     // fail out now so blocking compiles dont hang the java thread
+1159     if (!should_compile_new_jobs()) {
+1160       CompilationPolicy::policy()-&gt;delay_compilation(method());
+1161       return NULL;
+1162     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1163     compile_method_base(method, osr_bci, comp_level, hot_method, hot_count, comment, THREAD);
+1164   }
+1165 
+1166   // return requested nmethod
+1167   // We accept a higher level osr method
+1168   if (osr_bci == InvocationEntryBci) {
+1169     return method-&gt;code();
+1170   }
+1171   return method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);
+1172 }
+1173 
+1174 
+1175 // ------------------------------------------------------------------
+1176 // CompileBroker::compilation_is_complete
+1177 //
+1178 // See if compilation of this method is already complete.
+1179 bool CompileBroker::compilation_is_complete(const methodHandle&amp; method,
+1180                                             int                 osr_bci,
+1181                                             int                 comp_level) {
+1182   bool is_osr = (osr_bci != standard_entry_bci);
+
+</pre><hr></hr><pre>
+1295 #endif
+1296 }
+1297 
+1298 // ------------------------------------------------------------------
+1299 // CompileBroker::assign_compile_id_unlocked
+1300 //
+1301 // Public wrapper for assign_compile_id that acquires the needed locks
+1302 uint CompileBroker::assign_compile_id_unlocked(Thread* thread, const methodHandle&amp; method, int osr_bci) {
+1303   MutexLocker locker(MethodCompileQueue_lock, thread);
+1304   return assign_compile_id(method, osr_bci);
+1305 }
+1306 
+1307 /**
+1308  * Should the current thread block until this compilation request
+1309  * has been fulfilled?
+1310  */
+1311 bool CompileBroker::is_compile_blocking() {
+1312   assert(!InstanceRefKlass::owns_pending_list_lock(JavaThread::current()), "possible deadlock");
+1313   return !BackgroundCompilation;
+1314 }
+<span class="removed">1315 </span>
+1316 
+1317 // ------------------------------------------------------------------
+1318 // CompileBroker::preload_classes
+1319 void CompileBroker::preload_classes(const methodHandle&amp; method, TRAPS) {
+1320   // Move this code over from c1_Compiler.cpp
+1321   ShouldNotReachHere();
+1322 }
+1323 
+1324 
+1325 // ------------------------------------------------------------------
+1326 // CompileBroker::create_compile_task
+1327 //
+1328 // Create a CompileTask object representing the current request for
+1329 // compilation.  Add this task to the queue.
+1330 CompileTask* CompileBroker::create_compile_task(CompileQueue*       queue,
+1331                                                 int                 compile_id,
+1332                                                 const methodHandle&amp; method,
+1333                                                 int                 osr_bci,
+1334                                                 int                 comp_level,
+1335                                                 const methodHandle&amp; hot_method,
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "classfile/symbolTable.hpp"
+  27 #include "classfile/systemDictionary.hpp"
+<span class="new">  28 #include "ci/ciCacheProfiles.hpp"</span>
+  29 #include "classfile/vmSymbols.hpp"
+  30 #include "code/codeCache.hpp"
+  31 #include "code/dependencyContext.hpp"
+  32 #include "compiler/compileBroker.hpp"
+  33 #include "compiler/compileLog.hpp"
+  34 #include "compiler/compilerOracle.hpp"
+  35 #include "compiler/directivesParser.hpp"
+  36 #include "interpreter/linkResolver.hpp"
+  37 #include "memory/allocation.inline.hpp"
+  38 #include "oops/methodData.hpp"
+  39 #include "oops/method.hpp"
+  40 #include "oops/oop.inline.hpp"
+  41 #include "prims/nativeLookup.hpp"
+  42 #include "prims/whitebox.hpp"
+  43 #include "runtime/arguments.hpp"
+  44 #include "runtime/atomic.inline.hpp"
+  45 #include "runtime/compilationPolicy.hpp"
+  46 #include "runtime/init.hpp"
+  47 #include "runtime/interfaceSupport.hpp"
+  48 #include "runtime/javaCalls.hpp"
+
+</pre><hr></hr><pre>
+ 290   if (_last == NULL) {
+ 291     // The compile queue is empty.
+ 292     assert(_first == NULL, "queue is empty");
+ 293     _first = task;
+ 294     _last = task;
+ 295   } else {
+ 296     // Append the task to the queue.
+ 297     assert(_last-&gt;next() == NULL, "not last");
+ 298     _last-&gt;set_next(task);
+ 299     task-&gt;set_prev(_last);
+ 300     _last = task;
+ 301   }
+ 302   ++_size;
+ 303 
+ 304   // Mark the method as being in the compile queue.
+ 305   task-&gt;method()-&gt;set_queued_for_compilation();
+ 306 
+ 307   if (CIPrintCompileQueue) {
+ 308     print_tty();
+ 309   }
+<span class="new"> 310   if (PrintCompileQueueSize) {</span>
+<span class="new"> 311     tty-&gt;print_cr("%d - Size of %s: %d", (int) tty-&gt;time_stamp().milliseconds(), name(),_size);</span>
+<span class="new"> 312   }</span>
+ 313 
+ 314   if (LogCompilation &amp;&amp; xtty != NULL) {
+ 315     task-&gt;log_task_queued();
+ 316   }
+ 317 
+ 318   // Notify CompilerThreads that a task is available.
+ 319   MethodCompileQueue_lock-&gt;notify_all();
+ 320 }
+ 321 
+ 322 /**
+ 323  * Empties compilation queue by putting all compilation tasks onto
+ 324  * a freelist. Furthermore, the method wakes up all threads that are
+ 325  * waiting on a compilation task to finish. This can happen if background
+ 326  * compilation is disabled.
+ 327  */
+ 328 void CompileQueue::free_all() {
+ 329   MutexLocker mu(MethodCompileQueue_lock);
+ 330   CompileTask* next = _first;
+ 331 
+ 332   // Iterate over all tasks in the compile queue
+
+</pre><hr></hr><pre>
+ 380     MethodCompileQueue_lock-&gt;wait(!Mutex::_no_safepoint_check_flag, 5*1000);
+ 381   }
+ 382 
+ 383   if (CompileBroker::is_compilation_disabled_forever()) {
+ 384     return NULL;
+ 385   }
+ 386 
+ 387   CompileTask* task;
+ 388   {
+ 389     NoSafepointVerifier nsv;
+ 390     task = CompilationPolicy::policy()-&gt;select_task(this);
+ 391   }
+ 392 
+ 393   // Save method pointers across unlock safepoint.  The task is removed from
+ 394   // the compilation queue, which is walked during RedefineClasses.
+ 395   save_method = methodHandle(task-&gt;method());
+ 396   save_hot_method = methodHandle(task-&gt;hot_method());
+ 397 
+ 398   remove(task);
+ 399   purge_stale_tasks(); // may temporarily release MCQ lock
+<span class="new"> 400 </span>
+ 401   return task;
+ 402 }
+ 403 
+ 404 // Clean &amp; deallocate stale compile tasks.
+ 405 // Temporarily releases MethodCompileQueue lock.
+ 406 void CompileQueue::purge_stale_tasks() {
+ 407   assert(MethodCompileQueue_lock-&gt;owned_by_self(), "must own lock");
+ 408   if (_first_stale != NULL) {
+ 409     // Stale tasks are purged when MCQ lock is released,
+ 410     // but _first_stale updates are protected by MCQ lock.
+ 411     // Once task processing starts and MCQ lock is released,
+ 412     // other compiler threads can reuse _first_stale.
+ 413     CompileTask* head = _first_stale;
+ 414     _first_stale = NULL;
+ 415     {
+ 416       MutexUnlocker ul(MethodCompileQueue_lock);
+ 417       for (CompileTask* task = head; task != NULL; ) {
+ 418         CompileTask* next_task = task-&gt;next();
+ 419         CompileTaskWrapper ctw(task); // Frees the task
+ 420         task-&gt;set_failure_reason("stale task");
+
+</pre><hr></hr><pre>
+1022     // completed, and end up introducing a "duplicate" (redundant) task.
+1023     // In that case, the compiler thread should first check if a method
+1024     // has already been compiled before trying to compile it.
+1025     // NOTE: in the event that there are multiple compiler threads and
+1026     // there is de-optimization/recompilation, things will get hairy,
+1027     // and in that case it's best to protect both the testing (here) of
+1028     // these bits, and their updating (here and elsewhere) under a
+1029     // common lock.
+1030     task = create_compile_task(queue,
+1031                                compile_id, method,
+1032                                osr_bci, comp_level,
+1033                                hot_method, hot_count, comment,
+1034                                blocking);
+1035   }
+1036 
+1037   if (blocking) {
+1038     wait_for_completion(task);
+1039   }
+1040 }
+1041 
+
+1042 nmethod* CompileBroker::compile_method(const methodHandle&amp; method, int osr_bci,
+1043                                        int comp_level,
+1044                                        const methodHandle&amp; hot_method, int hot_count,
+1045                                        const char* comment, Thread* THREAD) {
+<span class="new">1046 </span>
+1047   // make sure arguments make sense
+1048   assert(method-&gt;method_holder()-&gt;is_instance_klass(), "not an instance method");
+1049   assert(osr_bci == InvocationEntryBci || (0 &lt;= osr_bci &amp;&amp; osr_bci &lt; method-&gt;code_size()), "bci out of range");
+1050   assert(!method-&gt;is_abstract() &amp;&amp; (osr_bci == InvocationEntryBci || !method-&gt;is_native()), "cannot compile abstract/native methods");
+1051   assert(!method-&gt;method_holder()-&gt;is_not_initialized(), "method holder must be initialized");
+1052   // allow any levels for WhiteBox
+1053   assert(WhiteBoxAPI || TieredCompilation || comp_level == CompLevel_highest_tier, "only CompLevel_highest_tier must be used in non-tiered");
+1054   // return quickly if possible
+1055 
+<span class="new">1056  // start by figuring out the new compile level in case the method is cached</span>
+<span class="new">1057  int cached_comp_level = 0;</span>
+<span class="new">1058  if(CacheProfiles &amp;&amp; ciCacheProfiles::is_initialized()) {</span>
+<span class="new">1059    // if it's set trigger replayCompilation in case it's a cached method</span>
+<span class="new">1060    cached_comp_level = ciCacheProfiles::is_cached(method());</span>
+<span class="new">1061    // we only use cached profiles for Level 3 or 4</span>
+<span class="new">1062    // because 1 and 2 are used in special cases (i.e. compile queue full)</span>
+<span class="new">1063    // and we don't want to mess with that</span>
+<span class="new">1064    // also check if decompile count is less than 10 since we don't want to</span>
+<span class="new">1065    // recompile a lot using a bad profile</span>
+<span class="new">1066    if(cached_comp_level &gt; CompLevel_limited_profile &amp;&amp; comp_level &gt; CompLevel_limited_profile</span>
+<span class="new">1067            &amp;&amp; (method-&gt;method_data() == NULL || (method-&gt;method_data() != NULL &amp;&amp; method-&gt;method_data()-&gt;decompile_count() &lt; 10)))</span>
+<span class="new">1068    {</span>
+<span class="new">1069          // now both compile level and cache level are always &gt;= 3</span>
+<span class="new">1070          //</span>
+<span class="new">1071          // if we're in cacheprofilemode 2 AND compile level 3 and have a cache level 4</span>
+<span class="new">1072          // always set compile level to 2 to remove profiling from C1</span>
+<span class="new">1073          if(CacheProfilesMode==2 &amp;&amp; (comp_level == CompLevel_full_profile &amp;&amp; cached_comp_level == CompLevel_full_optimization)) {</span>
+<span class="new">1074            comp_level = CompLevel_limited_profile;</span>
+<span class="new">1075            if(PrintCacheProfiles) {</span>
+<span class="new">1076                  tty-&gt;print("CacheProfiles: Force Compilationlevel to %d, Hotcount: %d, OSR_BCI: %d :: ", comp_level,hot_count,osr_bci);</span>
+<span class="new">1077                  method-&gt;print_name(tty);</span>
+<span class="new">1078                  tty-&gt;print_cr(" &lt;");</span>
+<span class="new">1079            }</span>
+<span class="new">1080          // as long as we're not in mode 2</span>
+<span class="new">1081          // OR in mode 2 and a level 3 (with no level 4 profile available) or level 4 compilation (with either profiles)</span>
+<span class="new">1082          } else {</span>
+<span class="new">1083            // fix compile level to the one of the cached profile</span>
+<span class="new">1084            // this can result in promotion of level 3 compilations to level 4</span>
+<span class="new">1085            // (not the other way around)</span>
+<span class="new">1086            if(comp_level &lt; cached_comp_level) {</span>
+<span class="new">1087                  if(PrintCacheProfiles) {</span>
+<span class="new">1088                    tty-&gt;print("CacheProfiles: Promote Compilationlevel from %d to %d, Hotcount: %d, OSR_BCI: %d :: ",comp_level, cached_comp_level, hot_count,osr_bci);</span>
+<span class="new">1089                    method-&gt;print_name(tty);</span>
+<span class="new">1090                    tty-&gt;print_cr(" &lt;");</span>
+<span class="new">1091                  }</span>
+<span class="new">1092                  comp_level = cached_comp_level;</span>
+<span class="new">1093            }</span>
+<span class="new">1094          }</span>
+<span class="new">1095    }</span>
+<span class="new">1096  }</span>
+<span class="new">1097 </span>
+1098   // lock, make sure that the compilation
+1099   // isn't prohibited in a straightforward way.
+1100   AbstractCompiler *comp = CompileBroker::compiler(comp_level);
+1101   if (comp == NULL || !comp-&gt;can_compile_method(method) ||
+1102       compilation_is_prohibited(method, osr_bci, comp_level)) {
+1103     return NULL;
+1104   }
+1105 
+1106   if (osr_bci == InvocationEntryBci) {
+1107     // standard compilation
+1108     nmethod* method_code = method-&gt;code();
+1109     if (method_code != NULL) {
+1110       if (compilation_is_complete(method, osr_bci, comp_level)) {
+1111         return method_code;
+1112       }
+1113     }
+1114     if (method-&gt;is_not_compilable(comp_level)) {
+1115       return NULL;
+1116     }
+1117   } else {
+
+</pre><hr></hr><pre>
+1190             method-&gt;intrinsic_id() == vmIntrinsics::_doubleToRawLongBits))) {
+1191         return NULL;
+1192       }
+1193 
+1194       // To properly handle the appendix argument for out-of-line calls we are using a small trampoline that
+1195       // pops off the appendix argument and jumps to the target (see gen_special_dispatch in SharedRuntime).
+1196       //
+1197       // Since normal compiled-to-compiled calls are not able to handle such a thing we MUST generate an adapter
+1198       // in this case.  If we can't generate one and use it we can not execute the out-of-line method handle calls.
+1199       AdapterHandlerLibrary::create_native_wrapper(method);
+1200     } else {
+1201       return NULL;
+1202     }
+1203   } else {
+1204     // If the compiler is shut off due to code cache getting full
+1205     // fail out now so blocking compiles dont hang the java thread
+1206     if (!should_compile_new_jobs()) {
+1207       CompilationPolicy::policy()-&gt;delay_compilation(method());
+1208       return NULL;
+1209     }
+<span class="new">1210  // first, check whether the CacheProfiles flag is set, if not continue as usual</span>
+<span class="new">1211  if(CacheProfiles &amp;&amp; ciCacheProfiles::is_initialized()) {</span>
+<span class="new">1212    // if it's set trigger replayCompilation in case it's a cached method</span>
+<span class="new">1213    // continue if method is cached and of level 3 or 4</span>
+<span class="new">1214    // AND our compile level actually matches cache level (we can not use a LVL3 profile for LVL4 compilations)</span>
+<span class="new">1215    // AND finally check if method has not been compiled more than 10 time already (using the cached profile)</span>
+<span class="new">1216    // Note: this is independent of the cacheprofilesmode since it will lower the level to 2 if it</span>
+<span class="new">1217    //       does not want to use cached profiles</span>
+<span class="new">1218    if(cached_comp_level &gt; CompLevel_limited_profile &amp;&amp;  comp_level &gt; CompLevel_limited_profile</span>
+<span class="new">1219            &amp;&amp; comp_level == cached_comp_level</span>
+<span class="new">1220            &amp;&amp; (method-&gt;method_data() == NULL || (method-&gt;method_data() != NULL &amp;&amp; method-&gt;method_data()-&gt;decompile_count() &lt; 10)))</span>
+<span class="new">1221    {</span>
+<span class="new">1222          if(PrintCacheProfiles) {</span>
+<span class="new">1223            tty-&gt;print("CacheProfiles: Use level %d profile for level %d compilation, Hotcount: %d, OSR_BCI: %d :: ",cached_comp_level, comp_level, hot_count,osr_bci);</span>
+<span class="new">1224            method-&gt;print_name(tty);</span>
+<span class="new">1225            tty-&gt;print_cr(" &lt;");</span>
+<span class="new">1226          }</span>
+<span class="new">1227          ciCacheProfiles::replay(THREAD,method(),osr_bci,false);</span>
+<span class="new">1228          return osr_bci  == InvocationEntryBci ? method-&gt;code() : method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);</span>
+<span class="new">1229    }</span>
+<span class="new">1230  }</span>
+<span class="new">1231  // if it's not in the cache or if we're using CacheProfileMode=2, just compile method base</span>
+<span class="new">1232  if(PrintCacheProfiles) {</span>
+<span class="new">1233    //tty-&gt;print("CacheProfiles: Not use profile for level %d compilation, Hotcount: %d, OSR_BCI: %d :: ",comp_level, hot_count,osr_bci);</span>
+<span class="new">1234    //method-&gt;print_name(tty);</span>
+<span class="new">1235    //tty-&gt;print_cr(" &lt;");</span>
+<span class="new">1236  }</span>
+<span class="new">1237     //bool is_blocking = !directive-&gt;BackgroundCompilationOption || CompileTheWorld || ReplayCompiles;</span>
+1238     compile_method_base(method, osr_bci, comp_level, hot_method, hot_count, comment, THREAD);
+1239   }
+1240 
+1241   // return requested nmethod
+1242   // We accept a higher level osr method
+1243   if (osr_bci == InvocationEntryBci) {
+1244     return method-&gt;code();
+1245   }
+1246   return method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);
+1247 }
+1248 
+1249 
+1250 // ------------------------------------------------------------------
+1251 // CompileBroker::compilation_is_complete
+1252 //
+1253 // See if compilation of this method is already complete.
+1254 bool CompileBroker::compilation_is_complete(const methodHandle&amp; method,
+1255                                             int                 osr_bci,
+1256                                             int                 comp_level) {
+1257   bool is_osr = (osr_bci != standard_entry_bci);
+
+</pre><hr></hr><pre>
+1370 #endif
+1371 }
+1372 
+1373 // ------------------------------------------------------------------
+1374 // CompileBroker::assign_compile_id_unlocked
+1375 //
+1376 // Public wrapper for assign_compile_id that acquires the needed locks
+1377 uint CompileBroker::assign_compile_id_unlocked(Thread* thread, const methodHandle&amp; method, int osr_bci) {
+1378   MutexLocker locker(MethodCompileQueue_lock, thread);
+1379   return assign_compile_id(method, osr_bci);
+1380 }
+1381 
+1382 /**
+1383  * Should the current thread block until this compilation request
+1384  * has been fulfilled?
+1385  */
+1386 bool CompileBroker::is_compile_blocking() {
+1387   assert(!InstanceRefKlass::owns_pending_list_lock(JavaThread::current()), "possible deadlock");
+1388   return !BackgroundCompilation;
+1389 }
+
+1390 
+1391 // ------------------------------------------------------------------
+1392 // CompileBroker::preload_classes
+1393 void CompileBroker::preload_classes(const methodHandle&amp; method, TRAPS) {
+1394   // Move this code over from c1_Compiler.cpp
+1395   ShouldNotReachHere();
+1396 }
+1397 
+1398 
+1399 // ------------------------------------------------------------------
+1400 // CompileBroker::create_compile_task
+1401 //
+1402 // Create a CompileTask object representing the current request for
+1403 // compilation.  Add this task to the queue.
+1404 CompileTask* CompileBroker::create_compile_task(CompileQueue*       queue,
+1405                                                 int                 compile_id,
+1406                                                 const methodHandle&amp; method,
+1407                                                 int                 osr_bci,
+1408                                                 int                 comp_level,
+1409                                                 const methodHandle&amp; hot_method,
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/ci/ciMethodData.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/compiler/compileBroker.hpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

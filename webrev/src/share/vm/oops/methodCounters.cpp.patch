@@ -1,0 +1,34 @@
+--- old/src/share/vm/oops/methodCounters.cpp	2016-08-15 12:19:49.037019658 +0200
++++ new/src/share/vm/oops/methodCounters.cpp	2016-08-15 12:19:48.869019658 +0200
+@@ -24,6 +24,7 @@
+ #include "precompiled.hpp"
+ #include "oops/methodCounters.hpp"
+ #include "runtime/handles.inline.hpp"
++#include "ci/ciCacheProfiles.hpp"
+ 
+ MethodCounters* MethodCounters::allocate(methodHandle mh, TRAPS) {
+   ClassLoaderData* loader_data = mh->method_holder()->class_loader_data();
+@@ -45,6 +46,18 @@
+ }
+ 
+ 
++bool MethodCounters::scale_if_cached(methodHandle mh, double& scale) {
++   // in case the CacheProfile functionality is used:
++   // in mode0, check if method is cached and lower threshold automatically
++    if(CacheProfiles && ciCacheProfiles::is_initialized()) {
++      if(CacheProfilesMode==0 && ciCacheProfiles::is_cached(mh)) {
++        scale = CacheProfilesMode0ThresholdScaling;
++        return true;
++      }
++    }
++    return false;
++}
++
+ int MethodCounters::highest_comp_level() const {
+ #ifdef TIERED
+   return _highest_comp_level;
+@@ -72,4 +85,3 @@
+   _highest_osr_comp_level = level;
+ #endif
+ }
+-

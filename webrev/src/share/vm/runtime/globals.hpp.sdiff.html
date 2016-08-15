@@ -1,0 +1,257 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/runtime </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/runtime/deoptimization.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/java.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/runtime/globals.hpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+3543                                                                             \
+3544   product(ccstrlist, CompileOnly, "",                                       \
+3545           "List of methods (pkg/class.name) to restrict compilation to")    \
+3546                                                                             \
+3547   product(ccstr, CompileCommandFile, NULL,                                  \
+3548           "Read compiler commands from this file [.hotspot_compiler]")      \
+3549                                                                             \
+3550   diagnostic(ccstr, CompilerDirectivesFile, NULL,                           \
+3551           "Read compiler directives from this file")                        \
+3552                                                                             \
+3553   product(ccstrlist, CompileCommand, "",                                    \
+3554           "Prepend to .hotspot_compiler; e.g. log,java/lang/String.&lt;init&gt;") \
+3555                                                                             \
+3556   develop(bool, ReplayCompiles, false,                                      \
+3557           "Enable replay of compilations from ReplayDataFile")              \
+3558                                                                             \
+3559   product(ccstr, ReplayDataFile, NULL,                                      \
+3560           "File containing compilation replay information"                  \
+3561           "[default: ./replay_pid%p.log] (%p replaced with pid)")           \
+3562                                                                             \
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3563    product(ccstr, InlineDataFile, NULL,                                     \
+3564           "File containing inlining replay information"                     \
+3565           "[default: ./inline_pid%p.log] (%p replaced with pid)")           \
+3566                                                                             \
+3567   develop(intx, ReplaySuppressInitializers, 2,                              \
+3568           "Control handling of class initialization during replay: "        \
+3569           "0 - don't do anything special; "                                 \
+3570           "1 - treat all class initializers as empty; "                     \
+3571           "2 - treat class initializers for application classes as empty; " \
+3572           "3 - allow all class initializers to run during bootstrap but "   \
+3573           "    pretend they are empty after starting replay")               \
+3574           range(0, 3)                                                       \
+3575                                                                             \
+3576   develop(bool, ReplayIgnoreInitErrors, false,                              \
+3577           "Ignore exceptions thrown during initialization for replay")      \
+3578                                                                             \
+3579   product(bool, DumpReplayDataOnError, true,                                \
+3580           "Record replay data for crashing compiler threads")               \
+3581                                                                             \
+3582   product(bool, CICompilerCountPerCPU, false,                               \
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+3543                                                                             \
+3544   product(ccstrlist, CompileOnly, "",                                       \
+3545           "List of methods (pkg/class.name) to restrict compilation to")    \
+3546                                                                             \
+3547   product(ccstr, CompileCommandFile, NULL,                                  \
+3548           "Read compiler commands from this file [.hotspot_compiler]")      \
+3549                                                                             \
+3550   diagnostic(ccstr, CompilerDirectivesFile, NULL,                           \
+3551           "Read compiler directives from this file")                        \
+3552                                                                             \
+3553   product(ccstrlist, CompileCommand, "",                                    \
+3554           "Prepend to .hotspot_compiler; e.g. log,java/lang/String.&lt;init&gt;") \
+3555                                                                             \
+3556   develop(bool, ReplayCompiles, false,                                      \
+3557           "Enable replay of compilations from ReplayDataFile")              \
+3558                                                                             \
+3559   product(ccstr, ReplayDataFile, NULL,                                      \
+3560           "File containing compilation replay information"                  \
+3561           "[default: ./replay_pid%p.log] (%p replaced with pid)")           \
+3562                                                                             \
+<span class="new">3563   experimental(bool, DumpProfiles, false,                                   \</span>
+<span class="new">3564           "Cache profiling information for future VM runs")                 \</span>
+<span class="new">3565                                                                             \</span>
+<span class="new">3566   experimental(intx, DumpProfilesMinTier, 3,                                \</span>
+<span class="new">3567           "Specifies the minimum compilation tier that dumps"               \</span>
+<span class="new">3568           "method profiles. Use 3 or 4"                                     \</span>
+<span class="new">3569           "since methods lvl&lt;3 do not get dumped anyway")                   \</span>
+<span class="new">3570                                                                             \</span>
+<span class="new">3571   experimental(bool, CacheProfiles, false,                                  \</span>
+<span class="new">3572           "Use profiling information")                                      \</span>
+<span class="new">3573                                                                             \</span>
+<span class="new">3574   experimental(intx, CacheProfilesMode, 2,                                  \</span>
+<span class="new">3575           "Mode in which CacheProfiling is operating: "                     \</span>
+<span class="new">3576           "0 - lower threshold and compile to C2 directly; "                \</span>
+<span class="new">3577           "1 - do not lower thresholds and"                                 \</span>
+<span class="new">3578           "    compile to highest profile directly; "                       \</span>
+<span class="new">3579           "2 - skip C1 profiling phase and"                                 \</span>
+<span class="new">3580           "    keep everything else as standard; ")                         \</span>
+<span class="new">3581                                                                             \</span>
+<span class="new">3582   experimental(double, CacheProfilesMode0ThresholdScaling, 0.01,            \</span>
+<span class="new">3583           "CompileThresholdScaling in case of mode0")                       \</span>
+<span class="new">3584                                                                             \</span>
+<span class="new">3585   experimental(ccstr, CacheProfilesFile, NULL,                              \</span>
+<span class="new">3586           "File containing cached profiles"                                 \</span>
+<span class="new">3587           "[default: ./profiles_pid%p.log] (%p replaced with pid)")         \</span>
+<span class="new">3588                                                                             \</span>
+<span class="new">3589   experimental(bool, PrintCacheProfiles, false,                             \</span>
+<span class="new">3590            "Prints cache profiling information")                            \</span>
+<span class="new">3591                                                                             \</span>
+<span class="new">3592   experimental(bool, PrintDeoptimizationCount, false,                       \</span>
+<span class="new">3593            "Prints count of deoptimizations at JVM shutdown")               \</span>
+<span class="new">3594                                                                             \</span>
+<span class="new">3595   experimental(bool, PrintDeoptimizationCountVerbose, false,                \</span>
+<span class="new">3596            "Prints count of deoptimizations after each deopt")              \</span>
+<span class="new">3597                                                                             \</span>
+<span class="new">3598   experimental(bool, PrintCompileQueueSize, false,                          \</span>
+<span class="new">3599            "Prints size of compile queue after each add")                   \</span>
+<span class="new">3600                                                                             \</span>
+3601   product(ccstr, InlineDataFile, NULL,                                      \
+3602           "File containing inlining replay information"                     \
+3603           "[default: ./inline_pid%p.log] (%p replaced with pid)")           \
+3604                                                                             \
+3605   develop(intx, ReplaySuppressInitializers, 2,                              \
+3606           "Control handling of class initialization during replay: "        \
+3607           "0 - don't do anything special; "                                 \
+3608           "1 - treat all class initializers as empty; "                     \
+3609           "2 - treat class initializers for application classes as empty; " \
+3610           "3 - allow all class initializers to run during bootstrap but "   \
+3611           "    pretend they are empty after starting replay")               \
+3612           range(0, 3)                                                       \
+3613                                                                             \
+3614   develop(bool, ReplayIgnoreInitErrors, false,                              \
+3615           "Ignore exceptions thrown during initialization for replay")      \
+3616                                                                             \
+3617   product(bool, DumpReplayDataOnError, true,                                \
+3618           "Record replay data for crashing compiler threads")               \
+3619                                                                             \
+3620   product(bool, CICompilerCountPerCPU, false,                               \
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/runtime/deoptimization.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/java.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

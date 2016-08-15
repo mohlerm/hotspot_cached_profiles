@@ -1,0 +1,409 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/ci </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/ci/ciClassList.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciEnv.hpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/ci/ciEnv.cpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "ci/ciConstant.hpp"
+  27 #include "ci/ciEnv.hpp"
+  28 #include "ci/ciField.hpp"
+  29 #include "ci/ciInstance.hpp"
+  30 #include "ci/ciInstanceKlass.hpp"
+  31 #include "ci/ciMethod.hpp"
+  32 #include "ci/ciNullObject.hpp"
+  33 #include "ci/ciReplay.hpp"
+
+  34 #include "ci/ciUtilities.hpp"
+  35 #include "classfile/systemDictionary.hpp"
+  36 #include "classfile/vmSymbols.hpp"
+  37 #include "code/codeCache.hpp"
+  38 #include "code/scopeDesc.hpp"
+  39 #include "compiler/compileBroker.hpp"
+  40 #include "compiler/compileLog.hpp"
+  41 #include "compiler/disassembler.hpp"
+  42 #include "gc/shared/collectedHeap.inline.hpp"
+  43 #include "interpreter/linkResolver.hpp"
+  44 #include "memory/allocation.inline.hpp"
+  45 #include "memory/oopFactory.hpp"
+  46 #include "memory/universe.inline.hpp"
+  47 #include "oops/methodData.hpp"
+  48 #include "oops/objArrayKlass.hpp"
+  49 #include "oops/objArrayOop.inline.hpp"
+  50 #include "oops/oop.inline.hpp"
+  51 #include "prims/jvmtiExport.hpp"
+  52 #include "runtime/init.hpp"
+  53 #include "runtime/reflection.hpp"
+
+</pre><hr></hr><pre>
+1227 #endif // INCLUDE_JVMTI
+1228 
+1229   GrowableArray&lt;ciMetadata*&gt;* objects = _factory-&gt;get_ci_metadata();
+1230   out-&gt;print_cr("# %d ciObject found", objects-&gt;length());
+1231   for (int i = 0; i &lt; objects-&gt;length(); i++) {
+1232     objects-&gt;at(i)-&gt;dump_replay_data(out);
+1233   }
+1234   dump_compile_data(out);
+1235   out-&gt;flush();
+1236 }
+1237 
+1238 void ciEnv::dump_replay_data(outputStream* out) {
+1239   GUARDED_VM_ENTRY(
+1240     MutexLocker ml(Compile_lock);
+1241     dump_replay_data_unsafe(out);
+1242   )
+1243 }
+1244 
+1245 void ciEnv::dump_replay_data(int compile_id) {
+1246   static char buffer[O_BUFLEN];
+<span class="changed">1247   int ret = jio_snprintf(buffer, O_BUFLEN, "replay_pid%p_compid%d.log", os::current_process_id(), compile_id);</span>
+1248   if (ret &gt; 0) {
+1249     int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
+1250     if (fd != -1) {
+1251       FILE* replay_data_file = os::open(fd, "w");
+1252       if (replay_data_file != NULL) {
+1253         fileStream replay_data_stream(replay_data_file, /*need_close=*/true);
+1254         dump_replay_data(&amp;replay_data_stream);
+1255         tty-&gt;print_cr("# Compiler replay data is saved as: %s", buffer);
+1256       } else {
+1257         tty-&gt;print_cr("# Can't open file to dump replay data.");
+1258       }
+1259     }
+1260   }
+1261 }
+1262 
+
+1263 void ciEnv::dump_inline_data(int compile_id) {
+1264   static char buffer[O_BUFLEN];
+<span class="changed">1265   int ret = jio_snprintf(buffer, O_BUFLEN, "inline_pid%p_compid%d.log", os::current_process_id(), compile_id);</span>
+1266   if (ret &gt; 0) {
+1267     int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
+1268     if (fd != -1) {
+1269       FILE* inline_data_file = os::open(fd, "w");
+1270       if (inline_data_file != NULL) {
+1271         fileStream replay_data_stream(inline_data_file, /*need_close=*/true);
+1272         GUARDED_VM_ENTRY(
+1273           MutexLocker ml(Compile_lock);
+1274           dump_compile_data(&amp;replay_data_stream);
+1275         )
+1276         replay_data_stream.flush();
+1277         tty-&gt;print("# Compiler inline data is saved as: ");
+1278         tty-&gt;print_cr("%s", buffer);
+1279       } else {
+1280         tty-&gt;print_cr("# Can't open file to dump inline data.");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1281       }
+1282     }
+1283   }
+1284 }
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "ci/ciConstant.hpp"
+  27 #include "ci/ciEnv.hpp"
+  28 #include "ci/ciField.hpp"
+  29 #include "ci/ciInstance.hpp"
+  30 #include "ci/ciInstanceKlass.hpp"
+  31 #include "ci/ciMethod.hpp"
+  32 #include "ci/ciNullObject.hpp"
+  33 #include "ci/ciReplay.hpp"
+<span class="new">  34 #include "ci/ciCacheReplay.hpp"</span>
+  35 #include "ci/ciUtilities.hpp"
+  36 #include "classfile/systemDictionary.hpp"
+  37 #include "classfile/vmSymbols.hpp"
+  38 #include "code/codeCache.hpp"
+  39 #include "code/scopeDesc.hpp"
+  40 #include "compiler/compileBroker.hpp"
+  41 #include "compiler/compileLog.hpp"
+  42 #include "compiler/disassembler.hpp"
+  43 #include "gc/shared/collectedHeap.inline.hpp"
+  44 #include "interpreter/linkResolver.hpp"
+  45 #include "memory/allocation.inline.hpp"
+  46 #include "memory/oopFactory.hpp"
+  47 #include "memory/universe.inline.hpp"
+  48 #include "oops/methodData.hpp"
+  49 #include "oops/objArrayKlass.hpp"
+  50 #include "oops/objArrayOop.inline.hpp"
+  51 #include "oops/oop.inline.hpp"
+  52 #include "prims/jvmtiExport.hpp"
+  53 #include "runtime/init.hpp"
+  54 #include "runtime/reflection.hpp"
+
+</pre><hr></hr><pre>
+1228 #endif // INCLUDE_JVMTI
+1229 
+1230   GrowableArray&lt;ciMetadata*&gt;* objects = _factory-&gt;get_ci_metadata();
+1231   out-&gt;print_cr("# %d ciObject found", objects-&gt;length());
+1232   for (int i = 0; i &lt; objects-&gt;length(); i++) {
+1233     objects-&gt;at(i)-&gt;dump_replay_data(out);
+1234   }
+1235   dump_compile_data(out);
+1236   out-&gt;flush();
+1237 }
+1238 
+1239 void ciEnv::dump_replay_data(outputStream* out) {
+1240   GUARDED_VM_ENTRY(
+1241     MutexLocker ml(Compile_lock);
+1242     dump_replay_data_unsafe(out);
+1243   )
+1244 }
+1245 
+1246 void ciEnv::dump_replay_data(int compile_id) {
+1247   static char buffer[O_BUFLEN];
+<span class="changed">1248   int ret = jio_snprintf(buffer, O_BUFLEN, "replay_pid%d_compid%d.log", os::current_process_id(), compile_id);</span>
+1249   if (ret &gt; 0) {
+1250     int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
+1251     if (fd != -1) {
+1252       FILE* replay_data_file = os::open(fd, "w");
+1253       if (replay_data_file != NULL) {
+1254         fileStream replay_data_stream(replay_data_file, /*need_close=*/true);
+1255         dump_replay_data(&amp;replay_data_stream);
+1256         tty-&gt;print_cr("# Compiler replay data is saved as: %s", buffer);
+1257       } else {
+1258         tty-&gt;print_cr("# Can't open file to dump replay data.");
+1259       }
+1260     }
+1261   }
+1262 }
+1263 
+<span class="new">1264 </span>
+1265 void ciEnv::dump_inline_data(int compile_id) {
+1266   static char buffer[O_BUFLEN];
+<span class="changed">1267   int ret = jio_snprintf(buffer, O_BUFLEN, "inline_pid%d_compid%d.log", os::current_process_id(), compile_id);</span>
+1268   if (ret &gt; 0) {
+1269     int fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);
+1270     if (fd != -1) {
+1271       FILE* inline_data_file = os::open(fd, "w");
+1272       if (inline_data_file != NULL) {
+1273         fileStream replay_data_stream(inline_data_file, /*need_close=*/true);
+1274         GUARDED_VM_ENTRY(
+1275           MutexLocker ml(Compile_lock);
+1276           dump_compile_data(&amp;replay_data_stream);
+1277         )
+1278         replay_data_stream.flush();
+1279         tty-&gt;print("# Compiler inline data is saved as: ");
+1280         tty-&gt;print_cr("%s", buffer);
+1281       } else {
+1282         tty-&gt;print_cr("# Can't open file to dump inline data.");
+<span class="new">1283       }</span>
+<span class="new">1284     }</span>
+<span class="new">1285   }</span>
+<span class="new">1286 }</span>
+<span class="new">1287 </span>
+<span class="new">1288 void ciEnv::dump_cache_profiles_unsafe(outputStream* out) {</span>
+<span class="new">1289   ResourceMark rm;</span>
+<span class="new">1290 #if INCLUDE_JVMTI</span>
+<span class="new">1291   out-&gt;print_cr("JvmtiExport can_access_local_variables %d",     _jvmti_can_access_local_variables);</span>
+<span class="new">1292   out-&gt;print_cr("JvmtiExport can_hotswap_or_post_breakpoint %d", _jvmti_can_hotswap_or_post_breakpoint);</span>
+<span class="new">1293   out-&gt;print_cr("JvmtiExport can_post_on_exceptions %d",         _jvmti_can_post_on_exceptions);</span>
+<span class="new">1294 #endif // INCLUDE_JVMTI</span>
+<span class="new">1295 </span>
+<span class="new">1296   GrowableArray&lt;ciMetadata*&gt;* objects = _factory-&gt;get_ci_metadata();</span>
+<span class="new">1297   out-&gt;print_cr("# %d ciObject found", objects-&gt;length());</span>
+<span class="new">1298   for (int i = 0; i &lt; objects-&gt;length(); i++) {</span>
+<span class="new">1299     if(objects-&gt;at(i)-&gt;is_method() || objects-&gt;at(i)-&gt;is_method_data()) {</span>
+<span class="new">1300       objects-&gt;at(i)-&gt;dump_replay_data(out);</span>
+<span class="new">1301     }</span>
+<span class="new">1302   }</span>
+<span class="new">1303   dump_compile_data(out);</span>
+<span class="new">1304   out-&gt;flush();</span>
+<span class="new">1305 }</span>
+<span class="new">1306 </span>
+<span class="new">1307 void ciEnv::dump_cache_profiles(outputStream* out) {</span>
+<span class="new">1308   GUARDED_VM_ENTRY(</span>
+<span class="new">1309     MutexLocker ml(Compile_lock);</span>
+<span class="new">1310     dump_cache_profiles_unsafe(out);</span>
+<span class="new">1311   )</span>
+<span class="new">1312 }</span>
+<span class="new">1313 </span>
+<span class="new">1314 bool ciEnv::first_dump = true;</span>
+<span class="new">1315 </span>
+<span class="new">1316 void ciEnv::dump_cache_profiles(int compile_id, const char* methodName) {</span>
+<span class="new">1317   static char buffer[O_BUFLEN];</span>
+<span class="new">1318   //int ret = jio_snprintf(buffer, O_BUFLEN, "profiles_pid%d_compid%d.dat", os::current_process_id(), compile_id);</span>
+<span class="new">1319   //int ret = jio_snprintf(buffer, O_BUFLEN, "cached_profiles_%s.dat", methodName);</span>
+<span class="new">1320   int ret = jio_snprintf(buffer, O_BUFLEN, "cached_profiles.dat");</span>
+<span class="new">1321   if (ret &gt; 0) {</span>
+<span class="new">1322     int fd = -1;</span>
+<span class="new">1323     if(first_dump) {</span>
+<span class="new">1324       fd = open(buffer, O_RDWR | O_CREAT | O_TRUNC, 0666);</span>
+<span class="new">1325       first_dump = false;</span>
+<span class="new">1326     } else {</span>
+<span class="new">1327       fd = open(buffer, O_RDWR | O_CREAT | O_APPEND, 0666);</span>
+<span class="new">1328     }</span>
+<span class="new">1329     if (fd != -1) {</span>
+<span class="new">1330       FILE* replay_data_file = os::open(fd, "w");</span>
+<span class="new">1331       if (replay_data_file != NULL) {</span>
+<span class="new">1332         fileStream replay_data_stream(replay_data_file, /*need_close=*/true);</span>
+<span class="new">1333         dump_cache_profiles(&amp;replay_data_stream);</span>
+<span class="new">1334         if(PrintCacheProfiles) tty-&gt;print_cr("# Compiler cached profile is saved as: %s", buffer);</span>
+<span class="new">1335       } else {</span>
+<span class="new">1336         if(PrintCacheProfiles) tty-&gt;print_cr("# Can't open file to dump cached profile.");</span>
+1337       }
+1338     }
+1339   }
+1340 }
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/ci/ciClassList.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/ci/ciEnv.hpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

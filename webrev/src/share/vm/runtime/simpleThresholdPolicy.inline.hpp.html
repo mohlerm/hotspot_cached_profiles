@@ -1,0 +1,222 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>New src/share/vm/runtime/simpleThresholdPolicy.inline.hpp</title>
+<body id="SUNWwebrev">
+<pre>
+   1 /*
+   2  * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
+   3  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+   4  *
+   5  * This code is free software; you can redistribute it and/or modify it
+   6  * under the terms of the GNU General Public License version 2 only, as
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #ifndef SHARE_VM_RUNTIME_SIMPLETHRESHOLDPOLICY_INLINE_HPP
+  26 #define SHARE_VM_RUNTIME_SIMPLETHRESHOLDPOLICY_INLINE_HPP
+  27 
+  28 #include &lt;ci/ciCacheProfiles.hpp&gt;
+  29 #include "compiler/compilerOracle.hpp"
+  30 
+  31 template&lt;CompLevel level&gt;
+  32 bool SimpleThresholdPolicy::call_predicate_helper(int i, int b, double scale, Method* method) {
+  33   double threshold_scaling = 1.0;
+  34 
+  35   if(CacheProfiles &amp;&amp; ciCacheProfiles::is_initialized()) {
+  36     if(CacheProfilesMode==0) {
+  37       switch(level) {
+  38       case CompLevel_none:
+  39       case CompLevel_limited_profile:
+  40         // if the compilation is Level 0 or 2 and therefore a Level 3
+  41         // compilation is next
+  42         // -&gt; lower the Tier3 thresholds in case the method is cached
+  43         if(ciCacheProfiles::is_cached(method) &gt;= CompLevel_full_profile) {
+  44           threshold_scaling = CacheProfilesMode0ThresholdScaling;
+  45           scale *= threshold_scaling;
+  46         }
+  47         break;
+  48       case CompLevel_full_profile:
+  49         // the Level 4 tresholds only get lowered if the profile is from C2
+  50         if(ciCacheProfiles::is_cached(method) == CompLevel_full_optimization) {
+  51           threshold_scaling = CacheProfilesMode0ThresholdScaling;
+  52           scale *= threshold_scaling;
+  53         }
+  54         break;
+  55       }
+  56     }
+  57   }
+  58   if (CompilerOracle::has_option_value(method, "CompileThresholdScaling", threshold_scaling)) {
+  59     scale *= threshold_scaling;
+  60   }
+  61   switch(level) {
+  62   case CompLevel_none:
+  63   case CompLevel_limited_profile:
+  64     return (i &gt;= Tier3InvocationThreshold * scale) ||
+  65            (i &gt;= Tier3MinInvocationThreshold * scale &amp;&amp; i + b &gt;= Tier3CompileThreshold * scale);
+  66   case CompLevel_full_profile:
+  67    return (i &gt;= Tier4InvocationThreshold * scale) ||
+  68           (i &gt;= Tier4MinInvocationThreshold * scale &amp;&amp; i + b &gt;= Tier4CompileThreshold * scale);
+  69   }
+  70   return true;
+  71 }
+  72 
+  73 template&lt;CompLevel level&gt;
+  74 bool SimpleThresholdPolicy::loop_predicate_helper(int i, int b, double scale, Method* method) {
+  75   double threshold_scaling = 1.0;
+  76 
+  77   if(CacheProfiles &amp;&amp; ciCacheProfiles::is_initialized()) {
+  78     if(CacheProfilesMode==0) {
+  79       switch(level) {
+  80       case CompLevel_none:
+  81       case CompLevel_limited_profile:
+  82         // if the compilation is Level 0 or 2 and therefore a Level 3
+  83         // compilation is next
+  84         // -&gt; lower the Tier3 thresholds in case the method is cached
+  85         if(ciCacheProfiles::is_cached(method) &gt;= CompLevel_full_profile) {
+  86           threshold_scaling = CacheProfilesMode0ThresholdScaling;
+  87           scale *= threshold_scaling;
+  88         }
+  89         break;
+  90       case CompLevel_full_profile:
+  91         // the Level 4 tresholds only get lowered if the profile is from C2
+  92         if(ciCacheProfiles::is_cached(method) == CompLevel_full_optimization) {
+  93           threshold_scaling = CacheProfilesMode0ThresholdScaling;
+  94           scale *= threshold_scaling;
+  95         }
+  96         break;
+  97       }
+  98     }
+  99   }
+ 100   if (CompilerOracle::has_option_value(method, "CompileThresholdScaling", threshold_scaling)) {
+ 101     scale *= threshold_scaling;
+ 102   }
+ 103   switch(level) {
+ 104   case CompLevel_none:
+ 105   case CompLevel_limited_profile:
+ 106     return b &gt;= Tier3BackEdgeThreshold * scale;
+ 107   case CompLevel_full_profile:
+ 108     return b &gt;= Tier4BackEdgeThreshold * scale;
+ 109   }
+ 110   return true;
+ 111 }
+ 112 
+ 113 // Simple methods are as good being compiled with C1 as C2.
+ 114 // Determine if a given method is such a case.
+ 115 bool SimpleThresholdPolicy::is_trivial(Method* method) {
+ 116   if (method-&gt;is_accessor() ||
+ 117       method-&gt;is_constant_getter()) {
+ 118     return true;
+ 119   }
+ 120 #if INCLUDE_JVMCI
+ 121   if (UseJVMCICompiler) {
+ 122     if (TieredCompilation &amp;&amp; CompileBroker::compiler(CompLevel_full_optimization) != NULL &amp;&amp;
+ 123         CompileBroker::compiler(CompLevel_full_optimization)-&gt;is_trivial(method)) {
+ 124       return true;
+ 125     }
+ 126   }
+ 127 #endif
+ 128   if (method-&gt;has_loops() || method-&gt;code_size() &gt;= 15) {
+ 129     return false;
+ 130   }
+ 131   MethodData* mdo = method-&gt;method_data();
+ 132   if (mdo != NULL &amp;&amp; !mdo-&gt;would_profile() &amp;&amp;
+ 133       (method-&gt;code_size() &lt; 5  || (mdo-&gt;num_blocks() &lt; 4))) {
+ 134     return true;
+ 135   }
+ 136   return false;
+ 137 }
+ 138 
+ 139 #endif // SHARE_VM_RUNTIME_SIMPLETHRESHOLDPOLICY_INLINE_HPP
+</pre></body></html>

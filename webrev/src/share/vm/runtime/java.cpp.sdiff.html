@@ -1,0 +1,281 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/runtime </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/runtime/globals.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/simpleThresholdPolicy.inline.hpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/runtime/java.cpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+ 295     GenerateOopMap::print_time();
+ 296   }
+ 297   if (ProfilerCheckIntervals) {
+ 298     PeriodicTask::print_intervals();
+ 299   }
+ 300   if (PrintSymbolTableSizeHistogram) {
+ 301     SymbolTable::print_histogram();
+ 302   }
+ 303   if (CountBytecodes || TraceBytecodes || StopInterpreterAt) {
+ 304     BytecodeCounter::print();
+ 305   }
+ 306   if (PrintBytecodePairHistogram) {
+ 307     BytecodePairHistogram::print();
+ 308   }
+ 309 
+ 310   if (PrintCodeCache) {
+ 311     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+ 312     CodeCache::print();
+ 313   }
+ 314 
+
+
+
+
+ 315   if (PrintMethodFlushingStatistics) {
+ 316     NMethodSweeper::print();
+ 317   }
+ 318 
+ 319   if (PrintCodeCache2) {
+ 320     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+ 321     CodeCache::print_internals();
+ 322   }
+ 323 
+ 324   if (PrintVtableStats) {
+ 325     klassVtable::print_statistics();
+ 326     klassItable::print_statistics();
+ 327   }
+ 328   if (VerifyOops) {
+ 329     tty-&gt;print_cr("+VerifyOops count: %d", StubRoutines::verify_oop_count());
+ 330   }
+ 331 
+ 332   print_bytecode_count();
+ 333   if (PrintMallocStatistics) {
+ 334     tty-&gt;print("allocation stats: ");
+
+</pre><hr></hr><pre>
+ 352   if (PrintNMTStatistics) {
+ 353     MemTracker::final_report(tty);
+ 354   }
+ 355 }
+ 356 
+ 357 #else // PRODUCT MODE STATISTICS
+ 358 
+ 359 void print_statistics() {
+ 360 
+ 361   if (PrintMethodData) {
+ 362     print_method_profiling_data();
+ 363   }
+ 364 
+ 365   if (CITime) {
+ 366     CompileBroker::print_times();
+ 367   }
+ 368 
+ 369   if (PrintCodeCache) {
+ 370     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+ 371     CodeCache::print();
+
+
+
+
+ 372   }
+ 373 
+ 374   if (PrintMethodFlushingStatistics) {
+ 375     NMethodSweeper::print();
+ 376   }
+ 377 
+ 378 #ifdef COMPILER2
+ 379   if (PrintPreciseBiasedLockingStatistics || PrintPreciseRTMLockingStatistics) {
+ 380     OptoRuntime::print_named_counters();
+ 381   }
+ 382 #endif
+ 383   if (PrintBiasedLockingStatistics) {
+ 384     BiasedLocking::print_counters();
+ 385   }
+ 386 
+ 387   // Native memory tracking data
+ 388   if (PrintNMTStatistics) {
+ 389     MemTracker::final_report(tty);
+ 390   }
+ 391 
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+ 295     GenerateOopMap::print_time();
+ 296   }
+ 297   if (ProfilerCheckIntervals) {
+ 298     PeriodicTask::print_intervals();
+ 299   }
+ 300   if (PrintSymbolTableSizeHistogram) {
+ 301     SymbolTable::print_histogram();
+ 302   }
+ 303   if (CountBytecodes || TraceBytecodes || StopInterpreterAt) {
+ 304     BytecodeCounter::print();
+ 305   }
+ 306   if (PrintBytecodePairHistogram) {
+ 307     BytecodePairHistogram::print();
+ 308   }
+ 309 
+ 310   if (PrintCodeCache) {
+ 311     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+ 312     CodeCache::print();
+ 313   }
+ 314 
+<span class="new"> 315   if (PrintDeoptimizationCount) {</span>
+<span class="new"> 316     Deoptimization::print_deoptimization_count();</span>
+<span class="new"> 317   }</span>
+<span class="new"> 318 </span>
+ 319   if (PrintMethodFlushingStatistics) {
+ 320     NMethodSweeper::print();
+ 321   }
+ 322 
+ 323   if (PrintCodeCache2) {
+ 324     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+ 325     CodeCache::print_internals();
+ 326   }
+ 327 
+ 328   if (PrintVtableStats) {
+ 329     klassVtable::print_statistics();
+ 330     klassItable::print_statistics();
+ 331   }
+ 332   if (VerifyOops) {
+ 333     tty-&gt;print_cr("+VerifyOops count: %d", StubRoutines::verify_oop_count());
+ 334   }
+ 335 
+ 336   print_bytecode_count();
+ 337   if (PrintMallocStatistics) {
+ 338     tty-&gt;print("allocation stats: ");
+
+</pre><hr></hr><pre>
+ 356   if (PrintNMTStatistics) {
+ 357     MemTracker::final_report(tty);
+ 358   }
+ 359 }
+ 360 
+ 361 #else // PRODUCT MODE STATISTICS
+ 362 
+ 363 void print_statistics() {
+ 364 
+ 365   if (PrintMethodData) {
+ 366     print_method_profiling_data();
+ 367   }
+ 368 
+ 369   if (CITime) {
+ 370     CompileBroker::print_times();
+ 371   }
+ 372 
+ 373   if (PrintCodeCache) {
+ 374     MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+ 375     CodeCache::print();
+<span class="new"> 376   }</span>
+<span class="new"> 377 </span>
+<span class="new"> 378   if (PrintDeoptimizationCount) {</span>
+<span class="new"> 379     Deoptimization::print_deoptimization_count();</span>
+ 380   }
+ 381 
+ 382   if (PrintMethodFlushingStatistics) {
+ 383     NMethodSweeper::print();
+ 384   }
+ 385 
+ 386 #ifdef COMPILER2
+ 387   if (PrintPreciseBiasedLockingStatistics || PrintPreciseRTMLockingStatistics) {
+ 388     OptoRuntime::print_named_counters();
+ 389   }
+ 390 #endif
+ 391   if (PrintBiasedLockingStatistics) {
+ 392     BiasedLocking::print_counters();
+ 393   }
+ 394 
+ 395   // Native memory tracking data
+ 396   if (PrintNMTStatistics) {
+ 397     MemTracker::final_report(tty);
+ 398   }
+ 399 
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/runtime/globals.hpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/runtime/simpleThresholdPolicy.inline.hpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

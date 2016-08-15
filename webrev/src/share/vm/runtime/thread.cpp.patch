@@ -1,0 +1,21 @@
+--- old/src/share/vm/runtime/thread.cpp	2016-08-15 12:19:56.769019658 +0200
++++ new/src/share/vm/runtime/thread.cpp	2016-08-15 12:19:56.541019658 +0200
+@@ -27,6 +27,7 @@
+ #include "classfile/javaClasses.hpp"
+ #include "classfile/systemDictionary.hpp"
+ #include "classfile/vmSymbols.hpp"
++#include "ci/ciCacheProfiles.hpp"
+ #include "code/codeCache.hpp"
+ #include "code/codeCacheExtensions.hpp"
+ #include "code/scopeDesc.hpp"
+@@ -3708,6 +3709,10 @@
+   // initialize compiler(s)
+ #if defined(COMPILER1) || defined(COMPILER2) || defined(SHARK) || INCLUDE_JVMCI
+   CompileBroker::compilation_init(CHECK_JNI_ERR);
++  // if used, invoke initialization of CacheProfiles
++  if(CacheProfiles && !ciCacheProfiles::is_initialized()) {
++    ciCacheProfiles::initialize(THREAD);
++  }
+ #endif
+ 
+   // Pre-initialize some JSR292 core classes to avoid deadlock during class loading.
