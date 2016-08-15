@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+	<storageModule moduleId="org.eclipse.cdt.core.settings">
+		<cconfiguration id="cdt.managedbuild.toolchain.gnu.base.1525172336">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.base.1525172336" moduleId="org.eclipse.cdt.core.settings" name="Default">
+				<externalSettings>
+					<externalSetting>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="includePath" name="/jdk9-dev"/>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="libraryPath" name="/jdk9-dev/Default"/>
+						<entry flags="RESOLVED" kind="libraryFile" name="jvm" srcPrefixMapping="" srcRootPath=""/>
+					</externalSetting>
+				</externalSettings>
+				<extensions>
+					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactExtension="so" artifactName="jvm" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.sharedLib" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.sharedLib" description="" id="cdt.managedbuild.toolchain.gnu.base.1525172336" name="Default" parent="org.eclipse.cdt.build.core.emptycfg">
+					<folderInfo id="cdt.managedbuild.toolchain.gnu.base.1525172336.1901515111" name="/" resourcePath="">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.base.1460198151" name="cdt.managedbuild.toolchain.gnu.base" superClass="cdt.managedbuild.toolchain.gnu.base">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.target.gnu.platform.base.1953575095" name="Debug Platform" osList="linux,hpux,aix,qnx" superClass="cdt.managedbuild.target.gnu.platform.base"/>
+							<builder buildPath="${workspace_loc:/jdk9-dev}/Default" id="cdt.managedbuild.target.gnu.builder.base.1598722958" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="cdt.managedbuild.target.gnu.builder.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1451499003" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1850788174" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
+								<option id="gnu.cpp.compiler.option.include.paths.1127138555" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/share/vm/prims}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/share/vm/prims}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/share/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/share/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/share/vm/precompiled}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/cpu/x86/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/cpu/x86/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/os_cpu/linux_x86/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/os/linux/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/os/posix/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/os/posix/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/build/linux/linux_amd64_compiler2/generated}&quot;"/>
+								</option>
+								<option id="gnu.cpp.compiler.option.preprocessor.def.1696364490" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="COMPILER1"/>
+									<listOptionValue builtIn="false" value="COMPILER2"/>
+									<listOptionValue builtIn="false" value="ASSERT"/>
+									<listOptionValue builtIn="false" value="DEBUG"/>
+									<listOptionValue builtIn="false" value="TARGET_ARCH_x86"/>
+									<listOptionValue builtIn="false" value="TARGET_ARCH_MODEL_x86_64"/>
+									<listOptionValue builtIn="false" value="AMD64"/>
+									<listOptionValue builtIn="false" value="TARGET_COMPILER_gcc"/>
+									<listOptionValue builtIn="false" value="TARGET_OS_FAMILY_linux"/>
+									<listOptionValue builtIn="false" value="TARGET_OS_ARCH_linux_x86"/>
+									<listOptionValue builtIn="false" value="LINUX"/>
+									<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
+									<listOptionValue builtIn="false" value="_REENTRANT"/>
+									<listOptionValue builtIn="false" value="TARGET_OS_ARCH_MODEL_linux_x86_64"/>
+									<listOptionValue builtIn="false" value="INCLUDE_TRACE"/>
+									<listOptionValue builtIn="false" value="VM_LITTLE_ENDIAN"/>
+									<listOptionValue builtIn="false" value="_LP64=1"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_VM_DISTRO='&quot;HotSpot&quot;'"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_RELEASE_VERSION='&quot;25.0-b29-internal&quot;'"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_BUILD_TARGET='&quot;jvmg&quot;'"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_BUILD_USER='&quot;mikael&quot;'"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_LIB_ARCH='&quot;amd64&quot;'"/>
+									<listOptionValue builtIn="false" value="JRE_RELEASE_VERSION='&quot;1.8.0&quot;'"/>
+								</option>
+								<option id="gnu.cpp.compiler.option.warnings.allwarn.553504641" name="All warnings (-Wall)" superClass="gnu.cpp.compiler.option.warnings.allwarn" value="false" valueType="boolean"/>
+								<option id="gnu.cpp.compiler.option.optimization.level.555608854" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.other.pic.977341901" name="Position Independent Code (-fPIC)" superClass="gnu.cpp.compiler.option.other.pic" value="true" valueType="boolean"/>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1191252728" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.base.2089365852" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.base">
+								<option id="gnu.c.compiler.option.include.paths.103183769" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/share/vm/prims}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/share/vm/prims}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/share/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/share/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/share/vm/precompiled}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/cpu/x86/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/cpu/x86/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/os_cpu/linux_x86/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/os/linux/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/os/posix/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/os/posix/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/build/linux/linux_amd64_compiler2/generated}&quot;"/>
+								</option>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1166100304" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="COMPILER1"/>
+									<listOptionValue builtIn="false" value="COMPILER2"/>
+									<listOptionValue builtIn="false" value="ASSERT"/>
+									<listOptionValue builtIn="false" value="DEBUG"/>
+									<listOptionValue builtIn="false" value="TARGET_ARCH_x86"/>
+									<listOptionValue builtIn="false" value="TARGET_ARCH_MODEL_x86_64"/>
+									<listOptionValue builtIn="false" value="AMD64"/>
+									<listOptionValue builtIn="false" value="TARGET_COMPILER_gcc"/>
+									<listOptionValue builtIn="false" value="TARGET_OS_FAMILY_linux"/>
+									<listOptionValue builtIn="false" value="TARGET_OS_ARCH_linux_x86"/>
+									<listOptionValue builtIn="false" value="LINUX"/>
+									<listOptionValue builtIn="false" value="_GNU_SOURCE"/>
+									<listOptionValue builtIn="false" value="_REENTRANT"/>
+									<listOptionValue builtIn="false" value="TARGET_OS_ARCH_MODEL_linux_x86_64"/>
+									<listOptionValue builtIn="false" value="INCLUDE_TRACE"/>
+									<listOptionValue builtIn="false" value="VM_LITTLE_ENDIAN"/>
+									<listOptionValue builtIn="false" value="_LP64=1"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_VM_DISTRO='&quot;HotSpot&quot;'"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_RELEASE_VERSION='&quot;25.0-b29-internal&quot;'"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_BUILD_TARGET='&quot;jvmg&quot;'"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_BUILD_USER='&quot;mikael&quot;'"/>
+									<listOptionValue builtIn="false" value="HOTSPOT_LIB_ARCH='&quot;amd64&quot;'"/>
+									<listOptionValue builtIn="false" value="JRE_RELEASE_VERSION='&quot;1.8.0&quot;'"/>
+								</option>
+								<option id="gnu.c.compiler.option.warnings.allwarn.590877647" name="All warnings (-Wall)" superClass="gnu.c.compiler.option.warnings.allwarn" value="false" valueType="boolean"/>
+								<option id="gnu.c.compiler.option.optimization.level.155259414" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" value="gnu.c.optimization.level.none" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.misc.pic.320672789" name="Position Independent Code (-fPIC)" superClass="gnu.c.compiler.option.misc.pic" value="true" valueType="boolean"/>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1340121222" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.linker.base.145866550" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.base">
+								<option defaultValue="true" id="gnu.c.link.option.shared.680063171" name="Shared (-shared)" superClass="gnu.c.link.option.shared" valueType="boolean"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.base.740570351" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.base">
+								<option defaultValue="true" id="gnu.cpp.link.option.shared.1484367987" name="Shared (-shared)" superClass="gnu.cpp.link.option.shared" valueType="boolean"/>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1171002459" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.base.1414270296" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.base">
+								<option id="gnu.both.asm.option.include.paths.422371295" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/share/vm/prims}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/share/vm/prims}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/share/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/share/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/share/vm/precompiled}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/cpu/x86/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/cpu/x86/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/os_cpu/linux_x86/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/os/linux/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/closed/os/posix/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/src/os/posix/vm}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/jdk9-dev/build/linux/linux_amd64_compiler2/generated}&quot;"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1191821821" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry excluding="build/linux/linux_amd64_compiler2/generated/jvmtifiles/jvmtiEnvRecommended.cpp|src/os/linux/vm/jsig.c|.jcheck/|.settings/|agent/|webrevs|Debug/|make/|src/closed/.hg/|src/closed/.jcheck/|src/closed/agent/|src/closed/cpu/arm/|src/closed/cpu/ppc/|src/closed/cpu/sparc/|src/closed/os/windows/|src/closed/os_cpu/|test/|src/cpu/sparc/|src/cpu/zero/|src/os/bsd/|src/os/posix/launcher/|src/os/solaris/|src/os/windows/|src/os_cpu/bsd_x86/|src/os_cpu/bsd_zero/|src/os_cpu/linux_sparc/|src/os_cpu/linux_zero/|src/os_cpu/solaris_sparc/|src/os_cpu/solaris_x86/|src/os_cpu/windows_x86/|src/share/tools/|**/*x86_32*|src/share/vm/utilities/errorReporter.cpp|src/share/vm/adlc/|src/share/vm/shark/|build/linux/linux_amd64_compiler2/debug/|build/linux/linux_amd64_compiler2/fastdebug/|build/linux/linux_amd64_compiler2/generated/dependencies/|build/linux/linux_amd64_compiler2/generated/saclasses/|build/linux/linux_amd64_compiler2/generated/adjust-mflags|build/linux/linux_amd64_compiler2/generated/agent.classes.list|build/linux/linux_amd64_compiler2/generated/cstdintf.h|build/linux/linux_amd64_compiler2/generated/platform.current|build/linux/linux_amd64_compiler2/generated/sa-jdi.jar|build/linux/linux_amd64_compiler2/generated/stdintf.h|build/linux/linux_amd64_compiler2/generated/sun_jvm_hotspot_asm_Disassembler.h|build/linux/linux_amd64_compiler2/generated/sun_jvm_hotspot_debugger_amd64_AMD64ThreadContext.h|build/linux/linux_amd64_compiler2/generated/sun_jvm_hotspot_debugger_arm_ARMThreadContext.h|build/linux/linux_amd64_compiler2/generated/sun_jvm_hotspot_debugger_ppc_PPCThreadContext.h|build/linux/linux_amd64_compiler2/generated/sun_jvm_hotspot_debugger_sparc_SPARCThreadContext.h|build/linux/linux_amd64_compiler2/generated/sun_jvm_hotspot_debugger_x86_X86ThreadContext.h|build/linux/linux_amd64_compiler2/jvmg/|build/linux/linux_amd64_compiler2/optimized/|build/linux/linux_amd64_compiler2/product/|build/linux/linux_amd64_compiler2/profiled/|build/linux/linux_amd64_compiler2/shared_dirs.lst|build/linux/linux_amd64_compiler2/generated/jvmtifiles/jvmtiEnvStub.cpp" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
+		</cconfiguration>
+	</storageModule>
+	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+		<project id="protnone.null.1819428212" name="protnone"/>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Default">
+			<resource resourceType="PROJECT" workspacePath="/jdk9-dev"/>
+		</configuration>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.make.core.buildtargets"/>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.1051502047;cdt.managedbuild.toolchain.gnu.base.1051502047.300222377;cdt.managedbuild.tool.gnu.c.compiler.base.1707008914;cdt.managedbuild.tool.gnu.c.compiler.input.1015406079">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.1051502047;cdt.managedbuild.toolchain.gnu.base.1051502047.300222377;cdt.managedbuild.tool.gnu.c.compiler.base.207451166;cdt.managedbuild.tool.gnu.c.compiler.input.1503609720">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.1525172336;cdt.managedbuild.toolchain.gnu.base.1525172336.1901515111;cdt.managedbuild.tool.gnu.cpp.compiler.base.1850788174;cdt.managedbuild.tool.gnu.cpp.compiler.input.1191252728">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.1051502047;cdt.managedbuild.toolchain.gnu.base.1051502047.300222377;cdt.managedbuild.tool.gnu.cpp.compiler.base.173236840;cdt.managedbuild.tool.gnu.cpp.compiler.input.1002461027">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.1525172336;cdt.managedbuild.toolchain.gnu.base.1525172336.1901515111;cdt.managedbuild.tool.gnu.c.compiler.base.2089365852;cdt.managedbuild.tool.gnu.c.compiler.input.1340121222">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.toolchain.gnu.base.1051502047;cdt.managedbuild.toolchain.gnu.base.1051502047.300222377;cdt.managedbuild.tool.gnu.cpp.compiler.base.1110014299;cdt.managedbuild.tool.gnu.cpp.compiler.input.1140456205">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+	</storageModule>
+</cproject>
