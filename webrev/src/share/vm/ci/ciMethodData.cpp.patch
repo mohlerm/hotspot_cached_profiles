@@ -1,5 +1,5 @@
---- old/src/share/vm/ci/ciMethodData.cpp	2016-08-15 12:19:44.413019658 +0200
-+++ new/src/share/vm/ci/ciMethodData.cpp	2016-08-15 12:19:44.221019658 +0200
+--- old/src/share/vm/ci/ciMethodData.cpp	2016-08-15 12:26:10.805019658 +0200
++++ new/src/share/vm/ci/ciMethodData.cpp	2016-08-15 12:26:10.597019658 +0200
 @@ -26,6 +26,7 @@
  #include "ci/ciMetadata.hpp"
  #include "ci/ciMethodData.hpp"

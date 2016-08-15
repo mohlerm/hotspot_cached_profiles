@@ -1,5 +1,5 @@
---- old/src/share/vm/ci/ciMethod.hpp	2016-08-15 12:19:43.777019658 +0200
-+++ new/src/share/vm/ci/ciMethod.hpp	2016-08-15 12:19:43.593019658 +0200
+--- old/src/share/vm/ci/ciMethod.hpp	2016-08-15 12:26:10.129019658 +0200
++++ new/src/share/vm/ci/ciMethod.hpp	2016-08-15 12:26:09.893019658 +0200
 @@ -53,6 +53,7 @@
    friend class ciBytecodeStream;
    friend class ciMethodHandle;

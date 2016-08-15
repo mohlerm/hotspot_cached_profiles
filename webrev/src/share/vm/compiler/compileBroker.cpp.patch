@@ -1,5 +1,5 @@
---- old/src/share/vm/compiler/compileBroker.cpp	2016-08-15 12:19:45.797019658 +0200
-+++ new/src/share/vm/compiler/compileBroker.cpp	2016-08-15 12:19:45.625019658 +0200
+--- old/src/share/vm/compiler/compileBroker.cpp	2016-08-15 12:26:12.177019658 +0200
++++ new/src/share/vm/compiler/compileBroker.cpp	2016-08-15 12:26:11.965019658 +0200
 @@ -25,6 +25,7 @@
  #include "precompiled.hpp"
  #include "classfile/symbolTable.hpp"

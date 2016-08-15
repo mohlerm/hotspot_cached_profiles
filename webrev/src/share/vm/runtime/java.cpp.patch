@@ -1,5 +1,5 @@
---- old/src/share/vm/runtime/java.cpp	2016-08-15 12:19:55.445019658 +0200
-+++ new/src/share/vm/runtime/java.cpp	2016-08-15 12:19:55.229019658 +0200
+--- old/src/share/vm/runtime/java.cpp	2016-08-15 12:26:21.813019658 +0200
++++ new/src/share/vm/runtime/java.cpp	2016-08-15 12:26:21.621019658 +0200
 @@ -312,6 +312,10 @@
      CodeCache::print();
    }

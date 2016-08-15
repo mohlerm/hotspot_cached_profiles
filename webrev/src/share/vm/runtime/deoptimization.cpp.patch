@@ -1,5 +1,5 @@
---- old/src/share/vm/runtime/deoptimization.cpp	2016-08-15 12:19:53.485019658 +0200
-+++ new/src/share/vm/runtime/deoptimization.cpp	2016-08-15 12:19:53.313019658 +0200
+--- old/src/share/vm/runtime/deoptimization.cpp	2016-08-15 12:26:19.997019658 +0200
++++ new/src/share/vm/runtime/deoptimization.cpp	2016-08-15 12:26:19.805019658 +0200
 @@ -774,6 +774,10 @@
    return bt;
  JRT_END

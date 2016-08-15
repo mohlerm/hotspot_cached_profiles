@@ -1,5 +1,5 @@
---- old/src/share/vm/ci/ciEnv.hpp	2016-08-15 12:19:42.493019658 +0200
-+++ new/src/share/vm/ci/ciEnv.hpp	2016-08-15 12:19:42.313019658 +0200
+--- old/src/share/vm/ci/ciEnv.hpp	2016-08-15 12:26:08.617019658 +0200
++++ new/src/share/vm/ci/ciEnv.hpp	2016-08-15 12:26:08.473019658 +0200
 @@ -459,11 +459,16 @@
    void metadata_do(void f(Metadata*)) { _factory->metadata_do(f); }
  

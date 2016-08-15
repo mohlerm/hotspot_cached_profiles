@@ -1,5 +1,5 @@
---- old/src/share/vm/oops/methodCounters.hpp	2016-08-15 12:19:49.601019658 +0200
-+++ new/src/share/vm/oops/methodCounters.hpp	2016-08-15 12:19:49.445019658 +0200
+--- old/src/share/vm/oops/methodCounters.hpp	2016-08-15 12:26:16.217019658 +0200
++++ new/src/share/vm/oops/methodCounters.hpp	2016-08-15 12:26:16.093019658 +0200
 @@ -80,6 +80,8 @@
  
      // Set per-method thresholds.

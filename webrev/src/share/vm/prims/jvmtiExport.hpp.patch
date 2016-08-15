@@ -1,5 +1,5 @@
---- old/src/share/vm/prims/jvmtiExport.hpp	2016-08-15 12:19:52.205019658 +0200
-+++ new/src/share/vm/prims/jvmtiExport.hpp	2016-08-15 12:19:52.037019658 +0200
+--- old/src/share/vm/prims/jvmtiExport.hpp	2016-08-15 12:26:19.009019658 +0200
++++ new/src/share/vm/prims/jvmtiExport.hpp	2016-08-15 12:26:18.873019658 +0200
 @@ -66,6 +66,7 @@
  class JvmtiExport : public AllStatic {
    friend class VMStructs;

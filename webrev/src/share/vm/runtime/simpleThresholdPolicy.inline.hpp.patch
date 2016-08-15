@@ -1,5 +1,5 @@
---- old/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 12:19:56.053019658 +0200
-+++ new/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 12:19:55.897019658 +0200
+--- old/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 12:26:22.405019658 +0200
++++ new/src/share/vm/runtime/simpleThresholdPolicy.inline.hpp	2016-08-15 12:26:22.273019658 +0200
 @@ -25,11 +25,36 @@
  #ifndef SHARE_VM_RUNTIME_SIMPLETHRESHOLDPOLICY_INLINE_HPP
  #define SHARE_VM_RUNTIME_SIMPLETHRESHOLDPOLICY_INLINE_HPP

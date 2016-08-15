@@ -1,5 +1,5 @@
---- old/src/share/vm/interpreter/invocationCounter.hpp	2016-08-15 12:19:47.061019658 +0200
-+++ new/src/share/vm/interpreter/invocationCounter.hpp	2016-08-15 12:19:46.913019658 +0200
+--- old/src/share/vm/interpreter/invocationCounter.hpp	2016-08-15 12:26:13.589019658 +0200
++++ new/src/share/vm/interpreter/invocationCounter.hpp	2016-08-15 12:26:13.381019658 +0200
 @@ -41,6 +41,7 @@
  class InvocationCounter VALUE_OBJ_CLASS_SPEC {
    friend class VMStructs;

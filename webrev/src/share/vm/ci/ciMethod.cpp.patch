@@ -1,5 +1,5 @@
---- old/src/share/vm/ci/ciMethod.cpp	2016-08-15 12:19:43.181019658 +0200
-+++ new/src/share/vm/ci/ciMethod.cpp	2016-08-15 12:19:42.953019658 +0200
+--- old/src/share/vm/ci/ciMethod.cpp	2016-08-15 12:26:09.341019658 +0200
++++ new/src/share/vm/ci/ciMethod.cpp	2016-08-15 12:26:09.153019658 +0200
 @@ -32,6 +32,7 @@
  #include "ci/ciStreams.hpp"
  #include "ci/ciSymbol.hpp"

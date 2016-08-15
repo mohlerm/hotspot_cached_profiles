@@ -14,6 +14,7 @@ src/share/vm/oops/klass.hpp
 src/share/vm/oops/methodCounters.cpp
 src/share/vm/oops/methodCounters.hpp
 src/share/vm/oops/methodData.cpp
+src/share/vm/opto/bytecodeInfo.cpp
 src/share/vm/opto/compile.cpp
 src/share/vm/opto/library_call.cpp
 src/share/vm/prims/jvmtiExport.hpp

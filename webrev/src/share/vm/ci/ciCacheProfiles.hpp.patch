@@ -1,5 +1,5 @@
 --- /dev/null	2016-08-11 14:11:23.983906000 +0200
-+++ new/src/share/vm/ci/ciCacheProfiles.hpp	2016-08-15 12:19:57.845019658 +0200
++++ new/src/share/vm/ci/ciCacheProfiles.hpp	2016-08-15 12:26:23.981019658 +0200
 @@ -0,0 +1,153 @@
 +/*
 +ciCacheProfiles.cpp * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.

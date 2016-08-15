@@ -1,0 +1,505 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head><meta charset="utf-8">
+<meta http-equiv="cache-control" content="no-cache" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="-1" />
+<!--
+   Note to customizers: the body of the webrev is IDed as SUNWwebrev
+   to allow easy overriding by users of webrev via the userContent.css
+   mechanism available in some browsers.
+
+   For example, to have all "removed" information be red instead of
+   brown, set a rule in your userContent.css file like:
+
+       body#SUNWwebrev span.removed { color: red ! important; }
+-->
+<style type="text/css" media="screen">
+body {
+    background-color: #eeeeee;
+}
+hr {
+    border: none 0;
+    border-top: 1px solid #aaa;
+    height: 1px;
+}
+div.summary {
+    font-size: .8em;
+    border-bottom: 1px solid #aaa;
+    padding-left: 1em;
+    padding-right: 1em;
+}
+div.summary h2 {
+    margin-bottom: 0.3em;
+}
+div.summary table th {
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+span.lineschanged {
+    font-size: 0.7em;
+}
+span.oldmarker {
+    color: red;
+    font-size: large;
+    font-weight: bold;
+}
+span.newmarker {
+    color: green;
+    font-size: large;
+    font-weight: bold;
+}
+span.removed {
+    color: brown;
+}
+span.changed {
+    color: blue;
+}
+span.new {
+    color: blue;
+    font-weight: bold;
+}
+a.print { font-size: x-small; }
+
+</style>
+
+<style type="text/css" media="print">
+pre { font-size: 0.8em; font-family: courier, monospace; }
+span.removed { color: #444; font-style: italic }
+span.changed { font-weight: bold; }
+span.new { font-weight: bold; }
+span.newmarker { font-size: 1.2em; font-weight: bold; }
+span.oldmarker { font-size: 1.2em; font-weight: bold; }
+a.print {display: none}
+hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
+</style>
+
+<title>hotspot Sdiff src/share/vm/opto </title>
+</head><body id="SUNWwebrev">
+<center><a href='../../../../src/share/vm/oops/methodData.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/opto/compile.cpp.sdiff.html' target='_top'>next &gt</a></center>
+<h2>src/share/vm/opto/bytecodeInfo.cpp</h2>
+<a class="print" href="javascript:print()">Print this page</a>
+<pre></pre>
+
+<table><tr valign="top">
+<td><pre>
+
+</pre><hr></hr><pre>
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "ci/ciReplay.hpp"
+
+
+  27 #include "classfile/systemDictionary.hpp"
+  28 #include "classfile/vmSymbols.hpp"
+  29 #include "compiler/compileBroker.hpp"
+  30 #include "compiler/compileLog.hpp"
+  31 #include "interpreter/linkResolver.hpp"
+  32 #include "oops/objArrayKlass.hpp"
+  33 #include "opto/callGenerator.hpp"
+  34 #include "opto/parse.hpp"
+  35 #include "runtime/handles.inline.hpp"
+  36 #include "utilities/events.hpp"
+  37 
+  38 //=============================================================================
+  39 //------------------------------InlineTree-------------------------------------
+  40 InlineTree::InlineTree(Compile* c,
+  41                        const InlineTree *caller_tree, ciMethod* callee,
+  42                        JVMState* caller_jvms, int caller_bci,
+  43                        float site_invoke_ratio, int max_inline_level) :
+  44   C(c),
+  45   _caller_jvms(caller_jvms),
+  46   _caller_tree((InlineTree*) caller_tree),
+
+</pre><hr></hr><pre>
+ 107 bool InlineTree::should_inline(ciMethod* callee_method, ciMethod* caller_method,
+ 108                                int caller_bci, ciCallProfile&amp; profile,
+ 109                                WarmCallInfo* wci_result) {
+ 110   // Allows targeted inlining
+ 111   if (C-&gt;directive()-&gt;should_inline(callee_method)) {
+ 112     *wci_result = *(WarmCallInfo::always_hot());
+ 113     if (C-&gt;print_inlining() &amp;&amp; Verbose) {
+ 114       CompileTask::print_inline_indent(inline_level());
+ 115       tty-&gt;print_cr("Inlined method is hot: ");
+ 116     }
+ 117     set_msg("force inline by CompileCommand");
+ 118     _forced_inline = true;
+ 119     return true;
+ 120   }
+ 121 
+ 122   if (callee_method-&gt;force_inline()) {
+ 123       set_msg("force inline by annotation");
+ 124       _forced_inline = true;
+ 125       return true;
+ 126   }
+<span class="removed"> 127 </span>
+<span class="removed"> 128 #ifndef PRODUCT</span>
+ 129   int inline_depth = inline_level()+1;
+
+
+
+
+
+
+ 130   if (ciReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+ 131     set_msg("force inline by ciReplay");
+ 132     _forced_inline = true;
+ 133     return true;
+ 134   }
+ 135 #endif
+ 136 
+ 137   int size = callee_method-&gt;code_size_for_inlining();
+ 138 
+ 139   // Check for too many throws (and not too huge)
+ 140   if(callee_method-&gt;interpreter_throwout_count() &gt; InlineThrowCount &amp;&amp;
+ 141      size &lt; InlineThrowMaxSize ) {
+ 142     wci_result-&gt;set_profit(wci_result-&gt;profit() * 100);
+ 143     if (C-&gt;print_inlining() &amp;&amp; Verbose) {
+ 144       CompileTask::print_inline_indent(inline_level());
+ 145       tty-&gt;print_cr("Inlined method with many throws (throws=%d):", callee_method-&gt;interpreter_throwout_count());
+ 146     }
+ 147     set_msg("many throws");
+ 148     return true;
+ 149   }
+
+</pre><hr></hr><pre>
+ 159   int freq = call_site_count / invoke_count;
+ 160 
+ 161   // bump the max size if the call is frequent
+ 162   if ((freq &gt;= InlineFrequencyRatio) ||
+ 163       (call_site_count &gt;= InlineFrequencyCount) ||
+ 164       is_unboxing_method(callee_method, C) ||
+ 165       is_init_with_ea(callee_method, caller_method, C)) {
+ 166 
+ 167     max_inline_size = C-&gt;freq_inline_size();
+ 168     if (size &lt;= max_inline_size &amp;&amp; TraceFrequencyInlining) {
+ 169       CompileTask::print_inline_indent(inline_level());
+ 170       tty-&gt;print_cr("Inlined frequent method (freq=%d count=%d):", freq, call_site_count);
+ 171       CompileTask::print_inline_indent(inline_level());
+ 172       callee_method-&gt;print();
+ 173       tty-&gt;cr();
+ 174     }
+ 175   } else {
+ 176     // Not hot.  Check for medium-sized pre-existing nmethod at cold sites.
+ 177     if (callee_method-&gt;has_compiled_code() &amp;&amp;
+ 178         callee_method-&gt;instructions_size() &gt; inline_small_code_size) {
+
+
+
+
+
+
+ 179       set_msg("already compiled into a medium method");
+ 180       return false;
+ 181     }
+ 182   }
+ 183   if (size &gt; max_inline_size) {
+ 184     if (max_inline_size &gt; default_max_inline_size) {
+ 185       set_msg("hot method too big");
+ 186     } else {
+ 187       set_msg("too big");
+ 188     }
+ 189     return false;
+ 190   }
+ 191   return true;
+ 192 }
+ 193 
+ 194 
+ 195 // negative filter: should callee NOT be inlined?
+ 196 bool InlineTree::should_not_inline(ciMethod *callee_method,
+ 197                                    ciMethod* caller_method,
+ 198                                    JVMState* jvms,
+
+</pre><hr></hr><pre>
+ 214   // one more inlining restriction
+ 215   if (fail_msg == NULL &amp;&amp; callee_method-&gt;has_unloaded_classes_in_signature()) {
+ 216     fail_msg = "unloaded signature classes";
+ 217   }
+ 218 
+ 219   if (fail_msg != NULL) {
+ 220     set_msg(fail_msg);
+ 221     return true;
+ 222   }
+ 223 
+ 224   // ignore heuristic controls on inlining
+ 225   if (C-&gt;directive()-&gt;should_inline(callee_method)) {
+ 226     set_msg("force inline by CompileCommand");
+ 227     return false;
+ 228   }
+ 229 
+ 230   if (C-&gt;directive()-&gt;should_not_inline(callee_method)) {
+ 231     set_msg("disallowed by CompileCommand");
+ 232     return true;
+ 233   }
+<span class="removed"> 234 </span>
+<span class="removed"> 235 #ifndef PRODUCT</span>
+ 236   int caller_bci = jvms-&gt;bci();
+ 237   int inline_depth = inline_level()+1;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 238   if (ciReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+ 239     set_msg("force inline by ciReplay");
+ 240     return false;
+ 241   }
+ 242 
+ 243   if (ciReplay::should_not_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+ 244     set_msg("disallowed by ciReplay");
+ 245     return true;
+ 246   }
+ 247 
+ 248   if (ciReplay::should_not_inline(callee_method)) {
+ 249     set_msg("disallowed by ciReplay");
+ 250     return true;
+ 251   }
+ 252 #endif
+ 253 
+ 254   if (callee_method-&gt;force_inline()) {
+ 255     set_msg("force inline by annotation");
+ 256     return false;
+ 257   }
+
+</pre><hr></hr>
+</pre></td><td><pre>
+
+</pre><hr></hr><pre>
+   7  * published by the Free Software Foundation.
+   8  *
+   9  * This code is distributed in the hope that it will be useful, but WITHOUT
+  10  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+  11  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+  12  * version 2 for more details (a copy is included in the LICENSE file that
+  13  * accompanied this code).
+  14  *
+  15  * You should have received a copy of the GNU General Public License version
+  16  * 2 along with this work; if not, write to the Free Software Foundation,
+  17  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+  18  *
+  19  * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+  20  * or visit www.oracle.com if you need additional information or have any
+  21  * questions.
+  22  *
+  23  */
+  24 
+  25 #include "precompiled.hpp"
+  26 #include "ci/ciReplay.hpp"
+<span class="new">  27 #include "ci/ciCacheReplay.hpp"</span>
+<span class="new">  28 #include "ci/ciCacheProfiles.hpp"</span>
+  29 #include "classfile/systemDictionary.hpp"
+  30 #include "classfile/vmSymbols.hpp"
+  31 #include "compiler/compileBroker.hpp"
+  32 #include "compiler/compileLog.hpp"
+  33 #include "interpreter/linkResolver.hpp"
+  34 #include "oops/objArrayKlass.hpp"
+  35 #include "opto/callGenerator.hpp"
+  36 #include "opto/parse.hpp"
+  37 #include "runtime/handles.inline.hpp"
+  38 #include "utilities/events.hpp"
+  39 
+  40 //=============================================================================
+  41 //------------------------------InlineTree-------------------------------------
+  42 InlineTree::InlineTree(Compile* c,
+  43                        const InlineTree *caller_tree, ciMethod* callee,
+  44                        JVMState* caller_jvms, int caller_bci,
+  45                        float site_invoke_ratio, int max_inline_level) :
+  46   C(c),
+  47   _caller_jvms(caller_jvms),
+  48   _caller_tree((InlineTree*) caller_tree),
+
+</pre><hr></hr><pre>
+ 109 bool InlineTree::should_inline(ciMethod* callee_method, ciMethod* caller_method,
+ 110                                int caller_bci, ciCallProfile&amp; profile,
+ 111                                WarmCallInfo* wci_result) {
+ 112   // Allows targeted inlining
+ 113   if (C-&gt;directive()-&gt;should_inline(callee_method)) {
+ 114     *wci_result = *(WarmCallInfo::always_hot());
+ 115     if (C-&gt;print_inlining() &amp;&amp; Verbose) {
+ 116       CompileTask::print_inline_indent(inline_level());
+ 117       tty-&gt;print_cr("Inlined method is hot: ");
+ 118     }
+ 119     set_msg("force inline by CompileCommand");
+ 120     _forced_inline = true;
+ 121     return true;
+ 122   }
+ 123 
+ 124   if (callee_method-&gt;force_inline()) {
+ 125       set_msg("force inline by annotation");
+ 126       _forced_inline = true;
+ 127       return true;
+ 128   }
+
+
+ 129   int inline_depth = inline_level()+1;
+<span class="new"> 130   if (ciCacheReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
+<span class="new"> 131     set_msg("force inline by ciCacheReplay");</span>
+<span class="new"> 132     _forced_inline = true;</span>
+<span class="new"> 133     return true;</span>
+<span class="new"> 134   }</span>
+<span class="new"> 135 #ifndef PRODUCT</span>
+ 136   if (ciReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+ 137     set_msg("force inline by ciReplay");
+ 138     _forced_inline = true;
+ 139     return true;
+ 140   }
+ 141 #endif
+ 142 
+ 143   int size = callee_method-&gt;code_size_for_inlining();
+ 144 
+ 145   // Check for too many throws (and not too huge)
+ 146   if(callee_method-&gt;interpreter_throwout_count() &gt; InlineThrowCount &amp;&amp;
+ 147      size &lt; InlineThrowMaxSize ) {
+ 148     wci_result-&gt;set_profit(wci_result-&gt;profit() * 100);
+ 149     if (C-&gt;print_inlining() &amp;&amp; Verbose) {
+ 150       CompileTask::print_inline_indent(inline_level());
+ 151       tty-&gt;print_cr("Inlined method with many throws (throws=%d):", callee_method-&gt;interpreter_throwout_count());
+ 152     }
+ 153     set_msg("many throws");
+ 154     return true;
+ 155   }
+
+</pre><hr></hr><pre>
+ 165   int freq = call_site_count / invoke_count;
+ 166 
+ 167   // bump the max size if the call is frequent
+ 168   if ((freq &gt;= InlineFrequencyRatio) ||
+ 169       (call_site_count &gt;= InlineFrequencyCount) ||
+ 170       is_unboxing_method(callee_method, C) ||
+ 171       is_init_with_ea(callee_method, caller_method, C)) {
+ 172 
+ 173     max_inline_size = C-&gt;freq_inline_size();
+ 174     if (size &lt;= max_inline_size &amp;&amp; TraceFrequencyInlining) {
+ 175       CompileTask::print_inline_indent(inline_level());
+ 176       tty-&gt;print_cr("Inlined frequent method (freq=%d count=%d):", freq, call_site_count);
+ 177       CompileTask::print_inline_indent(inline_level());
+ 178       callee_method-&gt;print();
+ 179       tty-&gt;cr();
+ 180     }
+ 181   } else {
+ 182     // Not hot.  Check for medium-sized pre-existing nmethod at cold sites.
+ 183     if (callee_method-&gt;has_compiled_code() &amp;&amp;
+ 184         callee_method-&gt;instructions_size() &gt; inline_small_code_size) {
+<span class="new"> 185           // we force inlining when the caller is cached (to make sure that we replay correctly)</span>
+<span class="new"> 186           if (ciCacheProfiles::is_cached(caller_method-&gt;get_Method())) {</span>
+<span class="new"> 187                 set_msg("force inline by ciCacheProfiles (over compiled into medium method)");</span>
+<span class="new"> 188                 _forced_inline = true;</span>
+<span class="new"> 189                 return true;</span>
+<span class="new"> 190           }</span>
+ 191       set_msg("already compiled into a medium method");
+ 192       return false;
+ 193     }
+ 194   }
+ 195   if (size &gt; max_inline_size) {
+ 196     if (max_inline_size &gt; default_max_inline_size) {
+ 197       set_msg("hot method too big");
+ 198     } else {
+ 199       set_msg("too big");
+ 200     }
+ 201     return false;
+ 202   }
+ 203   return true;
+ 204 }
+ 205 
+ 206 
+ 207 // negative filter: should callee NOT be inlined?
+ 208 bool InlineTree::should_not_inline(ciMethod *callee_method,
+ 209                                    ciMethod* caller_method,
+ 210                                    JVMState* jvms,
+
+</pre><hr></hr><pre>
+ 226   // one more inlining restriction
+ 227   if (fail_msg == NULL &amp;&amp; callee_method-&gt;has_unloaded_classes_in_signature()) {
+ 228     fail_msg = "unloaded signature classes";
+ 229   }
+ 230 
+ 231   if (fail_msg != NULL) {
+ 232     set_msg(fail_msg);
+ 233     return true;
+ 234   }
+ 235 
+ 236   // ignore heuristic controls on inlining
+ 237   if (C-&gt;directive()-&gt;should_inline(callee_method)) {
+ 238     set_msg("force inline by CompileCommand");
+ 239     return false;
+ 240   }
+ 241 
+ 242   if (C-&gt;directive()-&gt;should_not_inline(callee_method)) {
+ 243     set_msg("disallowed by CompileCommand");
+ 244     return true;
+ 245   }
+
+
+ 246   int caller_bci = jvms-&gt;bci();
+ 247   int inline_depth = inline_level()+1;
+<span class="new"> 248   if (ciCacheReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
+<span class="new"> 249     set_msg("force inline by ciCacheReplay");</span>
+<span class="new"> 250     return false;</span>
+<span class="new"> 251   }</span>
+<span class="new"> 252 </span>
+<span class="new"> 253   if (ciCacheReplay::should_not_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
+<span class="new"> 254     set_msg("disallowed by ciCacheReplay");</span>
+<span class="new"> 255     return true;</span>
+<span class="new"> 256   }</span>
+<span class="new"> 257 </span>
+<span class="new"> 258   if (ciCacheReplay::should_not_inline(callee_method)) {</span>
+<span class="new"> 259     set_msg("disallowed by ciCacheReplay");</span>
+<span class="new"> 260     return true;</span>
+<span class="new"> 261   }</span>
+<span class="new"> 262 #ifndef PRODUCT</span>
+ 263   if (ciReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+ 264     set_msg("force inline by ciReplay");
+ 265     return false;
+ 266   }
+ 267 
+ 268   if (ciReplay::should_not_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+ 269     set_msg("disallowed by ciReplay");
+ 270     return true;
+ 271   }
+ 272 
+ 273   if (ciReplay::should_not_inline(callee_method)) {
+ 274     set_msg("disallowed by ciReplay");
+ 275     return true;
+ 276   }
+ 277 #endif
+ 278 
+ 279   if (callee_method-&gt;force_inline()) {
+ 280     set_msg("force inline by annotation");
+ 281     return false;
+ 282   }
+
+</pre><hr></hr>
+</pre></td>
+</tr></table>
+<center><a href='../../../../src/share/vm/oops/methodData.cpp.sdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/opto/compile.cpp.sdiff.html' target='_top'>next &gt</a></center>
+</body></html>

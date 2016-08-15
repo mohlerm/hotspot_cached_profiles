@@ -1,5 +1,5 @@
---- old/src/share/vm/oops/instanceKlass.hpp	2016-08-15 12:19:47.657019658 +0200
-+++ new/src/share/vm/oops/instanceKlass.hpp	2016-08-15 12:19:47.489019658 +0200
+--- old/src/share/vm/oops/instanceKlass.hpp	2016-08-15 12:26:14.313019658 +0200
++++ new/src/share/vm/oops/instanceKlass.hpp	2016-08-15 12:26:14.125019658 +0200
 @@ -113,6 +113,7 @@
    friend class JVMCIVMStructs;
    friend class ClassFileParser;

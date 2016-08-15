@@ -24,8 +24,6 @@
 
 #include "precompiled.hpp"
 #include "ci/ciReplay.hpp"
-#include "ci/ciCacheReplay.hpp"
-#include "ci/ciCacheProfiles.hpp"
 #include "classfile/systemDictionary.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "compiler/compileBroker.hpp"
@@ -126,13 +124,9 @@ bool InlineTree::should_inline(ciMethod* callee_method, ciMethod* caller_method,
       _forced_inline = true;
       return true;
   }
-  int inline_depth = inline_level()+1;
-  if (ciCacheReplay::should_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
-    set_msg("force inline by ciCacheReplay");
-    _forced_inline = true;
-    return true;
-  }
+
 #ifndef PRODUCT
+  int inline_depth = inline_level()+1;
   if (ciReplay::should_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
     set_msg("force inline by ciReplay");
     _forced_inline = true;
@@ -182,12 +176,6 @@ bool InlineTree::should_inline(ciMethod* callee_method, ciMethod* caller_method,
     // Not hot.  Check for medium-sized pre-existing nmethod at cold sites.
     if (callee_method->has_compiled_code() &&
         callee_method->instructions_size() > inline_small_code_size) {
-	  // we force inlining when the caller is cached (to make sure that we replay correctly)
-	  if (ciCacheProfiles::is_cached(caller_method->get_Method())) {
-		set_msg("force inline by ciCacheProfiles (over compiled into medium method)");
-		_forced_inline = true;
-		return true;
-	  }
       set_msg("already compiled into a medium method");
       return false;
     }
@@ -243,23 +231,10 @@ bool InlineTree::should_not_inline(ciMethod *callee_method,
     set_msg("disallowed by CompileCommand");
     return true;
   }
+
+#ifndef PRODUCT
   int caller_bci = jvms->bci();
   int inline_depth = inline_level()+1;
-  if (ciCacheReplay::should_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
-    set_msg("force inline by ciCacheReplay");
-    return false;
-  }
-
-  if (ciCacheReplay::should_not_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
-    set_msg("disallowed by ciCacheReplay");
-    return true;
-  }
-
-  if (ciCacheReplay::should_not_inline(callee_method)) {
-    set_msg("disallowed by ciCacheReplay");
-    return true;
-  }
-#ifndef PRODUCT
   if (ciReplay::should_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
     set_msg("force inline by ciReplay");
     return false;

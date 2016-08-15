@@ -1,5 +1,5 @@
---- old/src/share/vm/ci/ciClassList.hpp	2016-08-15 12:19:41.185019658 +0200
-+++ new/src/share/vm/ci/ciClassList.hpp	2016-08-15 12:19:41.001019658 +0200
+--- old/src/share/vm/ci/ciClassList.hpp	2016-08-15 12:26:07.705019658 +0200
++++ new/src/share/vm/ci/ciClassList.hpp	2016-08-15 12:26:07.525019658 +0200
 @@ -109,6 +109,8 @@
  friend class ciObjArray;               \
  friend class ciMetadata;               \

@@ -1,5 +1,5 @@
---- old/src/share/vm/runtime/deoptimization.hpp	2016-08-15 12:19:53.981019658 +0200
-+++ new/src/share/vm/runtime/deoptimization.hpp	2016-08-15 12:19:53.869019658 +0200
+--- old/src/share/vm/runtime/deoptimization.hpp	2016-08-15 12:26:20.601019658 +0200
++++ new/src/share/vm/runtime/deoptimization.hpp	2016-08-15 12:26:20.433019658 +0200
 @@ -135,7 +135,14 @@
    static void deoptimize(JavaThread* thread, frame fr, RegisterMap *reg_map);
    static void deoptimize(JavaThread* thread, frame fr, RegisterMap *reg_map, DeoptReason reason);
