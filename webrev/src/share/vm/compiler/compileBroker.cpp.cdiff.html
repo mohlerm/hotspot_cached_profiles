@@ -219,7 +219,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
     if (comp == NULL || !comp-&gt;can_compile_method(method) ||
         compilation_is_prohibited(method, osr_bci, comp_level)) {
 <hr /><span class="oldmarker">*** 1158,1167 ****</span>
-<span class="newmarker">--- 1205,1242 ----</span>
+<span class="newmarker">--- 1205,1246 ----</span>
       // fail out now so blocking compiles dont hang the java thread
       if (!should_compile_new_jobs()) {
         CompilationPolicy::policy()-&gt;delay_compilation(method());
@@ -242,8 +242,12 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 <span class="new">+            method-&gt;print_name(tty);</span>
 <span class="new">+            tty-&gt;print_cr(" &lt;");</span>
 <span class="new">+          }</span>
-<span class="new">+          ciCacheProfiles::replay(THREAD,method(),osr_bci,false);</span>
-<span class="new">+          return osr_bci  == InvocationEntryBci ? method-&gt;code() : method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);</span>
+<span class="new">+          int exit_code = ciCacheProfiles::replay(THREAD,method(),osr_bci,false);</span>
+<span class="new">+          if(exit_code == 0) {</span>
+<span class="new">+            return osr_bci  == InvocationEntryBci ? method-&gt;code() : method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);</span>
+<span class="new">+          } // else continue and remove profile (and compile normally)</span>
+<span class="new">+          tty-&gt;print_cr("Bailed out of compilation for %s", method()-&gt;name()-&gt;as_utf8());</span>
+<span class="new">+          ciCacheProfiles::clear_cache(method());</span>
 <span class="new">+    }</span>
 <span class="new">+  }</span>
 <span class="new">+  // if it's not in the cache or if we're using CacheProfileMode=2, just compile method base</span>
@@ -270,7 +274,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
   void CompileBroker::preload_classes(const methodHandle&amp; method, TRAPS) {
     // Move this code over from c1_Compiler.cpp
     ShouldNotReachHere();
-<span class="newmarker">--- 1386,1395 ----</span>
+<span class="newmarker">--- 1390,1399 ----</span>
 </pre>
 <center><a href='../../../../src/share/vm/ci/ciMethodData.hpp.cdiff.html' target='_top'>&lt prev</a> <a href='../../../../index.html' target='_top'>index</a> <a href='../../../../src/share/vm/compiler/compileBroker.hpp.cdiff.html' target='_top'>next &gt</a></center>
 </body></html>

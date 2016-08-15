@@ -1,5 +1,5 @@
---- old/src/share/vm/runtime/thread.cpp	2016-08-15 12:26:22.833019658 +0200
-+++ new/src/share/vm/runtime/thread.cpp	2016-08-15 12:26:22.693019658 +0200
+--- old/src/share/vm/runtime/thread.cpp	2016-08-15 16:43:37.060545495 +0200
++++ new/src/share/vm/runtime/thread.cpp	2016-08-15 16:43:36.964545495 +0200
 @@ -27,6 +27,7 @@
  #include "classfile/javaClasses.hpp"
  #include "classfile/systemDictionary.hpp"

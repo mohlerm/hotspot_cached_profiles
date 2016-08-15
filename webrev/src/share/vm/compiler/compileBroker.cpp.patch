@@ -1,5 +1,5 @@
---- old/src/share/vm/compiler/compileBroker.cpp	2016-08-15 12:26:12.177019658 +0200
-+++ new/src/share/vm/compiler/compileBroker.cpp	2016-08-15 12:26:11.965019658 +0200
+--- old/src/share/vm/compiler/compileBroker.cpp	2016-08-15 16:43:30.940545495 +0200
++++ new/src/share/vm/compiler/compileBroker.cpp	2016-08-15 16:43:30.840545495 +0200
 @@ -25,6 +25,7 @@
  #include "precompiled.hpp"
  #include "classfile/symbolTable.hpp"
@@ -88,7 +88,7 @@
    // lock, make sure that the compilation
    // isn't prohibited in a straightforward way.
    AbstractCompiler *comp = CompileBroker::compiler(comp_level);
-@@ -1160,6 +1207,34 @@
+@@ -1160,6 +1207,38 @@
        CompilationPolicy::policy()->delay_compilation(method());
        return NULL;
      }
@@ -109,8 +109,12 @@
 +	   method->print_name(tty);
 +	   tty->print_cr(" <");
 +	 }
-+	 ciCacheProfiles::replay(THREAD,method(),osr_bci,false);
-+	 return osr_bci  == InvocationEntryBci ? method->code() : method->lookup_osr_nmethod_for(osr_bci, comp_level, false);
++	 int exit_code = ciCacheProfiles::replay(THREAD,method(),osr_bci,false);
++	 if(exit_code == 0) {
++	   return osr_bci  == InvocationEntryBci ? method->code() : method->lookup_osr_nmethod_for(osr_bci, comp_level, false);
++	 } // else continue and remove profile (and compile normally)
++	 tty->print_cr("Bailed out of compilation for %s", method()->name()->as_utf8());
++	 ciCacheProfiles::clear_cache(method());
 +   }
 + }
 + // if it's not in the cache or if we're using CacheProfileMode=2, just compile method base
@@ -123,7 +127,7 @@
      compile_method_base(method, osr_bci, comp_level, hot_method, hot_count, comment, THREAD);
    }
  
-@@ -1313,7 +1388,6 @@
+@@ -1313,7 +1392,6 @@
    return !BackgroundCompilation;
  }
  

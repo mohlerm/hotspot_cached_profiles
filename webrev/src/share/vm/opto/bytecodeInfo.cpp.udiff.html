@@ -108,7 +108,7 @@ span.new {
  #include "compiler/compileLog.hpp"
  #include "interpreter/linkResolver.hpp"
 </pre><hr /><pre>
-<span class="newmarker">@@ -122,13 +124,17 @@</span>
+<span class="newmarker">@@ -122,13 +124,18 @@</span>
    if (callee_method-&gt;force_inline()) {
        set_msg("force inline by annotation");
        _forced_inline = true;
@@ -118,6 +118,7 @@ span.new {
 <span class="removed">-#ifndef PRODUCT</span>
    int inline_depth = inline_level()+1;
 <span class="new">+  if (ciCacheReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
+<span class="new">+        //tty-&gt;print_cr("force inline by ciCacheReplay");</span>
 <span class="new">+    set_msg("force inline by ciCacheReplay");</span>
 <span class="new">+    _forced_inline = true;</span>
 <span class="new">+    return true;</span>
@@ -129,25 +130,25 @@ span.new {
      return true;
    }
 </pre><hr /><pre>
-<span class="newmarker">@@ -174,10 +180,16 @@</span>
+<span class="newmarker">@@ -174,10 +181,16 @@</span>
      }
    } else {
      // Not hot.  Check for medium-sized pre-existing nmethod at cold sites.
      if (callee_method-&gt;has_compiled_code() &amp;&amp;
          callee_method-&gt;instructions_size() &gt; inline_small_code_size) {
 <span class="new">+          // we force inlining when the caller is cached (to make sure that we replay correctly)</span>
-<span class="new">+          if (ciCacheProfiles::is_cached(caller_method-&gt;get_Method())) {</span>
-<span class="new">+                set_msg("force inline by ciCacheProfiles (over compiled into medium method)");</span>
-<span class="new">+                _forced_inline = true;</span>
-<span class="new">+                return true;</span>
-<span class="new">+          }</span>
+<span class="new">+//        if (ciCacheProfiles::is_cached(caller_method-&gt;get_Method())) {</span>
+<span class="new">+//              set_msg("force inline by ciCacheProfiles (over compiled into medium method)");</span>
+<span class="new">+//              _forced_inline = true;</span>
+<span class="new">+//              return true;</span>
+<span class="new">+//        }</span>
        set_msg("already compiled into a medium method");
        return false;
      }
    }
    if (size &gt; max_inline_size) {
 </pre><hr /><pre>
-<span class="newmarker">@@ -229,14 +241,27 @@</span>
+<span class="newmarker">@@ -229,14 +242,27 @@</span>
  
    if (C-&gt;directive()-&gt;should_not_inline(callee_method)) {
      set_msg("disallowed by CompileCommand");

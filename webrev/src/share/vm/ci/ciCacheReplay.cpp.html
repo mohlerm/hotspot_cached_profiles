@@ -1233,7 +1233,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 1151   return rec != NULL;
 1152 }
 1153 
-1154 void ciCacheReplay::replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked) {
+1154 int ciCacheReplay::replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked) {
 1155           HandleMark hm;
 1156           ResourceMark rm;
 1157 
@@ -1273,8 +1273,8 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 1191             tty-&gt;print_cr("Parsing failed on %s", rp.error_message());
 1192             exit_code = 1;
 1193           }
-1194           // TODO: maybe do something with exit code?
-1195           //return exit_code;
+1194           // TODO: maybe do something with exit code? ~return it
+1195           return exit_code;
 1196 }
 1197 
 1198 //#endif // PRODUCT

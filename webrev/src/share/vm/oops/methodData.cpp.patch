@@ -1,5 +1,5 @@
---- old/src/share/vm/oops/methodData.cpp	2016-08-15 12:26:16.821019658 +0200
-+++ new/src/share/vm/oops/methodData.cpp	2016-08-15 12:26:16.665019658 +0200
+--- old/src/share/vm/oops/methodData.cpp	2016-08-15 16:43:33.220545495 +0200
++++ new/src/share/vm/oops/methodData.cpp	2016-08-15 16:43:33.116545495 +0200
 @@ -37,6 +37,7 @@
  #include "runtime/handles.inline.hpp"
  #include "runtime/orderAccess.inline.hpp"

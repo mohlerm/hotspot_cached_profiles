@@ -1,5 +1,5 @@
---- old/src/share/vm/opto/compile.cpp	2016-08-15 12:26:17.733019658 +0200
-+++ new/src/share/vm/opto/compile.cpp	2016-08-15 12:26:17.609019658 +0200
+--- old/src/share/vm/opto/compile.cpp	2016-08-15 16:43:33.880545495 +0200
++++ new/src/share/vm/opto/compile.cpp	2016-08-15 16:43:33.776545495 +0200
 @@ -26,6 +26,8 @@
  #include "asm/macroAssembler.hpp"
  #include "asm/macroAssembler.inline.hpp"

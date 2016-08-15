@@ -113,7 +113,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
       _forced_inline = true;
       return true;
     }
-<span class="newmarker">--- 124,140 ----</span>
+<span class="newmarker">--- 124,141 ----</span>
     if (callee_method-&gt;force_inline()) {
         set_msg("force inline by annotation");
         _forced_inline = true;
@@ -121,6 +121,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
     }
     int inline_depth = inline_level()+1;
 <span class="new">+   if (ciCacheReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
+<span class="new">+         //tty-&gt;print_cr("force inline by ciCacheReplay");</span>
 <span class="new">+     set_msg("force inline by ciCacheReplay");</span>
 <span class="new">+     _forced_inline = true;</span>
 <span class="new">+     return true;</span>
@@ -132,18 +133,18 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
       return true;
     }
 <hr /><span class="oldmarker">*** 174,183 ****</span>
-<span class="newmarker">--- 180,195 ----</span>
+<span class="newmarker">--- 181,196 ----</span>
       }
     } else {
       // Not hot.  Check for medium-sized pre-existing nmethod at cold sites.
       if (callee_method-&gt;has_compiled_code() &amp;&amp;
           callee_method-&gt;instructions_size() &gt; inline_small_code_size) {
 <span class="new">+           // we force inlining when the caller is cached (to make sure that we replay correctly)</span>
-<span class="new">+           if (ciCacheProfiles::is_cached(caller_method-&gt;get_Method())) {</span>
-<span class="new">+                 set_msg("force inline by ciCacheProfiles (over compiled into medium method)");</span>
-<span class="new">+                 _forced_inline = true;</span>
-<span class="new">+                 return true;</span>
-<span class="new">+           }</span>
+<span class="new">+ //        if (ciCacheProfiles::is_cached(caller_method-&gt;get_Method())) {</span>
+<span class="new">+ //              set_msg("force inline by ciCacheProfiles (over compiled into medium method)");</span>
+<span class="new">+ //              _forced_inline = true;</span>
+<span class="new">+ //              return true;</span>
+<span class="new">+ //        }</span>
         set_msg("already compiled into a medium method");
         return false;
       }
@@ -164,7 +165,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
       return false;
     }
   
-<span class="newmarker">--- 241,267 ----</span>
+<span class="newmarker">--- 242,268 ----</span>
   
     if (C-&gt;directive()-&gt;should_not_inline(callee_method)) {
       set_msg("disallowed by CompileCommand");

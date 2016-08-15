@@ -50,7 +50,7 @@ int   ciCacheProfiles::_buffer_pos = 0;
 Dict* ciCacheProfiles::_compile_records_dictionary = NULL;
 Dict* ciCacheProfiles::_compile_records  = NULL;
 
-bool ciCacheProfiles::CacheIgnoreInitErrors = true;
+bool ciCacheProfiles::CacheIgnoreInitErrors = false;
 bool ciCacheProfiles::_initialized = false;
 
 bool ciCacheProfiles::had_error() {
@@ -209,9 +209,10 @@ const char* ciCacheProfiles::error_message() {
   return _error_message;
 }
 
-void ciCacheProfiles::replay(TRAPS, Method* method, int osr_bci, bool blocked) {
+int ciCacheProfiles::replay(TRAPS, Method* method, int osr_bci, bool blocked) {
   _thread = THREAD;
   int exit_code = replay_impl(THREAD, method, osr_bci, blocked);
+  return exit_code;
 }
 
 int ciCacheProfiles::replay_impl(TRAPS, Method* method, int osr_bci, bool blocked) {
@@ -220,7 +221,7 @@ int ciCacheProfiles::replay_impl(TRAPS, Method* method, int osr_bci, bool blocke
 
   int exit_code = 0;
   if (can_replay()) {
-    replay_method(THREAD, method, osr_bci, blocked);
+    exit_code = replay_method(THREAD, method, osr_bci, blocked);
   } else {
     exit_code = 1;
     return exit_code;
@@ -243,14 +244,15 @@ int ciCacheProfiles::replay_impl(TRAPS, Method* method, int osr_bci, bool blocke
   return exit_code;
 }
 
-void ciCacheProfiles::replay_method(TRAPS, Method* method, int osr_bci, bool blocked) {
+int ciCacheProfiles::replay_method(TRAPS, Method* method, int osr_bci, bool blocked) {
 	char* key = get_key(method);
 	char* rec = (char*) (*_compile_records_dictionary)[key];
 	if(rec!=NULL) {
 		if(PrintCacheProfiles) tty->print_cr("Found method %s in dictionary", key);
-		ciCacheReplay::replay_cached(THREAD, rec, osr_bci, blocked);
+		return ciCacheReplay::replay_cached(THREAD, rec, osr_bci, blocked);
 	}  else {
 	    if(PrintCacheProfiles) tty->print_cr("Could not find method %s in dictionary.", key);
+	    return 1;
 	}
 }
 
@@ -383,6 +385,12 @@ int ciCacheProfiles::is_cached(char* key) {
 	} else {
 		return atoi(rec);
 	}
+}
+// removes a cached profile
+void ciCacheProfiles::clear_cache(Method* method) {
+	char* key = get_key(method);
+	_compile_records->Delete(key);
+	_compile_records_dictionary->Delete(key);
 }
 // Process each line of the replay file and store in hashmap
 void ciCacheProfiles::process_file(TRAPS) {

@@ -1224,8 +1224,12 @@ nmethod* CompileBroker::compile_method(const methodHandle& method, int osr_bci,
 	   method->print_name(tty);
 	   tty->print_cr(" <");
 	 }
-	 ciCacheProfiles::replay(THREAD,method(),osr_bci,false);
-	 return osr_bci  == InvocationEntryBci ? method->code() : method->lookup_osr_nmethod_for(osr_bci, comp_level, false);
+	 int exit_code = ciCacheProfiles::replay(THREAD,method(),osr_bci,false);
+	 if(exit_code == 0) {
+	   return osr_bci  == InvocationEntryBci ? method->code() : method->lookup_osr_nmethod_for(osr_bci, comp_level, false);
+	 } // else continue and remove profile (and compile normally)
+	 tty->print_cr("Bailed out of compilation for %s", method()->name()->as_utf8());
+	 ciCacheProfiles::clear_cache(method());
    }
  }
  // if it's not in the cache or if we're using CacheProfileMode=2, just compile method base

@@ -1151,7 +1151,7 @@ bool ciCacheReplay::is_loaded(Method* method) {
   return rec != NULL;
 }
 
-void ciCacheReplay::replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked) {
+int ciCacheReplay::replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked) {
 	  HandleMark hm;
 	  ResourceMark rm;
 
@@ -1191,8 +1191,8 @@ void ciCacheReplay::replay_cached(TRAPS, char* replay_data, int osr_bci, bool bl
 	    tty->print_cr("Parsing failed on %s", rp.error_message());
 	    exit_code = 1;
 	  }
-	  // TODO: maybe do something with exit code?
-	  //return exit_code;
+	  // TODO: maybe do something with exit code? ~return it
+	  return exit_code;
 }
 
 //#endif // PRODUCT

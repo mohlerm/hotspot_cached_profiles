@@ -104,7 +104,7 @@ class ciCacheReplay {
 
  public:
   // Replay specified cached compilation and do NOT exit VM.
-  static void replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked);
+  static int replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked);
   // Load inlining decisions from file and use them
   // during compilation of specified method.
   static void* load_inline_data(ciMethod* method, int entry_bci, int comp_level);

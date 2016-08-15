@@ -204,7 +204,7 @@ span.new {
    if (comp == NULL || !comp-&gt;can_compile_method(method) ||
        compilation_is_prohibited(method, osr_bci, comp_level)) {
 </pre><hr /><pre>
-<span class="newmarker">@@ -1158,10 +1205,38 @@</span>
+<span class="newmarker">@@ -1158,10 +1205,42 @@</span>
      // fail out now so blocking compiles dont hang the java thread
      if (!should_compile_new_jobs()) {
        CompilationPolicy::policy()-&gt;delay_compilation(method());
@@ -227,8 +227,12 @@ span.new {
 <span class="new">+           method-&gt;print_name(tty);</span>
 <span class="new">+           tty-&gt;print_cr(" &lt;");</span>
 <span class="new">+         }</span>
-<span class="new">+         ciCacheProfiles::replay(THREAD,method(),osr_bci,false);</span>
-<span class="new">+         return osr_bci  == InvocationEntryBci ? method-&gt;code() : method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);</span>
+<span class="new">+         int exit_code = ciCacheProfiles::replay(THREAD,method(),osr_bci,false);</span>
+<span class="new">+         if(exit_code == 0) {</span>
+<span class="new">+           return osr_bci  == InvocationEntryBci ? method-&gt;code() : method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);</span>
+<span class="new">+         } // else continue and remove profile (and compile normally)</span>
+<span class="new">+         tty-&gt;print_cr("Bailed out of compilation for %s", method()-&gt;name()-&gt;as_utf8());</span>
+<span class="new">+         ciCacheProfiles::clear_cache(method());</span>
 <span class="new">+   }</span>
 <span class="new">+ }</span>
 <span class="new">+ // if it's not in the cache or if we're using CacheProfileMode=2, just compile method base</span>
@@ -244,7 +248,7 @@ span.new {
    // return requested nmethod
    // We accept a higher level osr method
 </pre><hr /><pre>
-<span class="newmarker">@@ -1311,11 +1386,10 @@</span>
+<span class="newmarker">@@ -1311,11 +1390,10 @@</span>
  bool CompileBroker::is_compile_blocking() {
    assert(!InstanceRefKlass::owns_pending_list_lock(JavaThread::current()), "possible deadlock");
    return !BackgroundCompilation;

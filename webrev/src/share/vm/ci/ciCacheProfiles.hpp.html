@@ -193,7 +193,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
  111   static const char* error_message();
  112 
  113   static int replay_impl(TRAPS, Method* method, int osr_bci, bool blocked);
- 114   static void replay_method(TRAPS, Method* method, int osr_bci, bool blocked);
+ 114   static int replay_method(TRAPS, Method* method, int osr_bci, bool blocked);
  115 
  116   static void process_file(TRAPS);
  117 
@@ -221,7 +221,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
  139 
  140 public:
  141   // Replay specified compilation
- 142   static void replay(TRAPS, Method* method, int osr_bci, bool blocked);
+ 142   static int replay(TRAPS, Method* method, int osr_bci, bool blocked);
  143 
  144   static void initialize(TRAPS);
  145 
@@ -230,7 +230,9 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
  148 
  149   static int is_cached(methodHandle method);
  150   static int is_cached(Method* method);
- 151 };
- 152 
- 153 #endif // SHARE_VM_CI_CICACHEPROFILES_HPP
+ 151 
+ 152   static void clear_cache(Method* method);
+ 153 };
+ 154 
+ 155 #endif // SHARE_VM_CI_CICACHEPROFILES_HPP
 </pre></body></html>

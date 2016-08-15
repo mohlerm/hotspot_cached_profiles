@@ -1,5 +1,5 @@
---- old/src/share/vm/ci/ciMethodData.hpp	2016-08-15 12:26:11.565019658 +0200
-+++ new/src/share/vm/ci/ciMethodData.hpp	2016-08-15 12:26:11.353019658 +0200
+--- old/src/share/vm/ci/ciMethodData.hpp	2016-08-15 16:43:30.608545495 +0200
++++ new/src/share/vm/ci/ciMethodData.hpp	2016-08-15 16:43:30.516545495 +0200
 @@ -370,6 +370,7 @@
  class ciMethodData : public ciMetadata {
    CI_PACKAGE_ACCESS

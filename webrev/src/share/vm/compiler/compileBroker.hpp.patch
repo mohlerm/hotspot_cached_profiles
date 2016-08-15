@@ -1,5 +1,5 @@
---- old/src/share/vm/compiler/compileBroker.hpp	2016-08-15 12:26:12.837019658 +0200
-+++ new/src/share/vm/compiler/compileBroker.hpp	2016-08-15 12:26:12.693019658 +0200
+--- old/src/share/vm/compiler/compileBroker.hpp	2016-08-15 16:43:31.268545495 +0200
++++ new/src/share/vm/compiler/compileBroker.hpp	2016-08-15 16:43:31.176545495 +0200
 @@ -140,6 +140,7 @@
  class CompileBroker: AllStatic {
   friend class Threads;

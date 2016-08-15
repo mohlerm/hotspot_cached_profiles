@@ -161,6 +161,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 
 
 
+
  130   if (ciReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
  131     set_msg("force inline by ciReplay");
  132     _forced_inline = true;
@@ -363,140 +364,141 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 
  129   int inline_depth = inline_level()+1;
 <span class="new"> 130   if (ciCacheReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
-<span class="new"> 131     set_msg("force inline by ciCacheReplay");</span>
-<span class="new"> 132     _forced_inline = true;</span>
-<span class="new"> 133     return true;</span>
-<span class="new"> 134   }</span>
-<span class="new"> 135 #ifndef PRODUCT</span>
- 136   if (ciReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
- 137     set_msg("force inline by ciReplay");
- 138     _forced_inline = true;
- 139     return true;
- 140   }
- 141 #endif
- 142 
- 143   int size = callee_method-&gt;code_size_for_inlining();
- 144 
- 145   // Check for too many throws (and not too huge)
- 146   if(callee_method-&gt;interpreter_throwout_count() &gt; InlineThrowCount &amp;&amp;
- 147      size &lt; InlineThrowMaxSize ) {
- 148     wci_result-&gt;set_profit(wci_result-&gt;profit() * 100);
- 149     if (C-&gt;print_inlining() &amp;&amp; Verbose) {
- 150       CompileTask::print_inline_indent(inline_level());
- 151       tty-&gt;print_cr("Inlined method with many throws (throws=%d):", callee_method-&gt;interpreter_throwout_count());
- 152     }
- 153     set_msg("many throws");
- 154     return true;
- 155   }
+<span class="new"> 131         //tty-&gt;print_cr("force inline by ciCacheReplay");</span>
+<span class="new"> 132     set_msg("force inline by ciCacheReplay");</span>
+<span class="new"> 133     _forced_inline = true;</span>
+<span class="new"> 134     return true;</span>
+<span class="new"> 135   }</span>
+<span class="new"> 136 #ifndef PRODUCT</span>
+ 137   if (ciReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+ 138     set_msg("force inline by ciReplay");
+ 139     _forced_inline = true;
+ 140     return true;
+ 141   }
+ 142 #endif
+ 143 
+ 144   int size = callee_method-&gt;code_size_for_inlining();
+ 145 
+ 146   // Check for too many throws (and not too huge)
+ 147   if(callee_method-&gt;interpreter_throwout_count() &gt; InlineThrowCount &amp;&amp;
+ 148      size &lt; InlineThrowMaxSize ) {
+ 149     wci_result-&gt;set_profit(wci_result-&gt;profit() * 100);
+ 150     if (C-&gt;print_inlining() &amp;&amp; Verbose) {
+ 151       CompileTask::print_inline_indent(inline_level());
+ 152       tty-&gt;print_cr("Inlined method with many throws (throws=%d):", callee_method-&gt;interpreter_throwout_count());
+ 153     }
+ 154     set_msg("many throws");
+ 155     return true;
+ 156   }
 
 </pre><hr></hr><pre>
- 165   int freq = call_site_count / invoke_count;
- 166 
- 167   // bump the max size if the call is frequent
- 168   if ((freq &gt;= InlineFrequencyRatio) ||
- 169       (call_site_count &gt;= InlineFrequencyCount) ||
- 170       is_unboxing_method(callee_method, C) ||
- 171       is_init_with_ea(callee_method, caller_method, C)) {
- 172 
- 173     max_inline_size = C-&gt;freq_inline_size();
- 174     if (size &lt;= max_inline_size &amp;&amp; TraceFrequencyInlining) {
- 175       CompileTask::print_inline_indent(inline_level());
- 176       tty-&gt;print_cr("Inlined frequent method (freq=%d count=%d):", freq, call_site_count);
- 177       CompileTask::print_inline_indent(inline_level());
- 178       callee_method-&gt;print();
- 179       tty-&gt;cr();
- 180     }
- 181   } else {
- 182     // Not hot.  Check for medium-sized pre-existing nmethod at cold sites.
- 183     if (callee_method-&gt;has_compiled_code() &amp;&amp;
- 184         callee_method-&gt;instructions_size() &gt; inline_small_code_size) {
-<span class="new"> 185           // we force inlining when the caller is cached (to make sure that we replay correctly)</span>
-<span class="new"> 186           if (ciCacheProfiles::is_cached(caller_method-&gt;get_Method())) {</span>
-<span class="new"> 187                 set_msg("force inline by ciCacheProfiles (over compiled into medium method)");</span>
-<span class="new"> 188                 _forced_inline = true;</span>
-<span class="new"> 189                 return true;</span>
-<span class="new"> 190           }</span>
- 191       set_msg("already compiled into a medium method");
- 192       return false;
- 193     }
- 194   }
- 195   if (size &gt; max_inline_size) {
- 196     if (max_inline_size &gt; default_max_inline_size) {
- 197       set_msg("hot method too big");
- 198     } else {
- 199       set_msg("too big");
- 200     }
- 201     return false;
- 202   }
- 203   return true;
- 204 }
- 205 
+ 166   int freq = call_site_count / invoke_count;
+ 167 
+ 168   // bump the max size if the call is frequent
+ 169   if ((freq &gt;= InlineFrequencyRatio) ||
+ 170       (call_site_count &gt;= InlineFrequencyCount) ||
+ 171       is_unboxing_method(callee_method, C) ||
+ 172       is_init_with_ea(callee_method, caller_method, C)) {
+ 173 
+ 174     max_inline_size = C-&gt;freq_inline_size();
+ 175     if (size &lt;= max_inline_size &amp;&amp; TraceFrequencyInlining) {
+ 176       CompileTask::print_inline_indent(inline_level());
+ 177       tty-&gt;print_cr("Inlined frequent method (freq=%d count=%d):", freq, call_site_count);
+ 178       CompileTask::print_inline_indent(inline_level());
+ 179       callee_method-&gt;print();
+ 180       tty-&gt;cr();
+ 181     }
+ 182   } else {
+ 183     // Not hot.  Check for medium-sized pre-existing nmethod at cold sites.
+ 184     if (callee_method-&gt;has_compiled_code() &amp;&amp;
+ 185         callee_method-&gt;instructions_size() &gt; inline_small_code_size) {
+<span class="new"> 186           // we force inlining when the caller is cached (to make sure that we replay correctly)</span>
+<span class="new"> 187 //        if (ciCacheProfiles::is_cached(caller_method-&gt;get_Method())) {</span>
+<span class="new"> 188 //              set_msg("force inline by ciCacheProfiles (over compiled into medium method)");</span>
+<span class="new"> 189 //              _forced_inline = true;</span>
+<span class="new"> 190 //              return true;</span>
+<span class="new"> 191 //        }</span>
+ 192       set_msg("already compiled into a medium method");
+ 193       return false;
+ 194     }
+ 195   }
+ 196   if (size &gt; max_inline_size) {
+ 197     if (max_inline_size &gt; default_max_inline_size) {
+ 198       set_msg("hot method too big");
+ 199     } else {
+ 200       set_msg("too big");
+ 201     }
+ 202     return false;
+ 203   }
+ 204   return true;
+ 205 }
  206 
- 207 // negative filter: should callee NOT be inlined?
- 208 bool InlineTree::should_not_inline(ciMethod *callee_method,
- 209                                    ciMethod* caller_method,
- 210                                    JVMState* jvms,
+ 207 
+ 208 // negative filter: should callee NOT be inlined?
+ 209 bool InlineTree::should_not_inline(ciMethod *callee_method,
+ 210                                    ciMethod* caller_method,
+ 211                                    JVMState* jvms,
 
 </pre><hr></hr><pre>
- 226   // one more inlining restriction
- 227   if (fail_msg == NULL &amp;&amp; callee_method-&gt;has_unloaded_classes_in_signature()) {
- 228     fail_msg = "unloaded signature classes";
- 229   }
- 230 
- 231   if (fail_msg != NULL) {
- 232     set_msg(fail_msg);
- 233     return true;
- 234   }
- 235 
- 236   // ignore heuristic controls on inlining
- 237   if (C-&gt;directive()-&gt;should_inline(callee_method)) {
- 238     set_msg("force inline by CompileCommand");
- 239     return false;
- 240   }
- 241 
- 242   if (C-&gt;directive()-&gt;should_not_inline(callee_method)) {
- 243     set_msg("disallowed by CompileCommand");
- 244     return true;
- 245   }
+ 227   // one more inlining restriction
+ 228   if (fail_msg == NULL &amp;&amp; callee_method-&gt;has_unloaded_classes_in_signature()) {
+ 229     fail_msg = "unloaded signature classes";
+ 230   }
+ 231 
+ 232   if (fail_msg != NULL) {
+ 233     set_msg(fail_msg);
+ 234     return true;
+ 235   }
+ 236 
+ 237   // ignore heuristic controls on inlining
+ 238   if (C-&gt;directive()-&gt;should_inline(callee_method)) {
+ 239     set_msg("force inline by CompileCommand");
+ 240     return false;
+ 241   }
+ 242 
+ 243   if (C-&gt;directive()-&gt;should_not_inline(callee_method)) {
+ 244     set_msg("disallowed by CompileCommand");
+ 245     return true;
+ 246   }
 
 
- 246   int caller_bci = jvms-&gt;bci();
- 247   int inline_depth = inline_level()+1;
-<span class="new"> 248   if (ciCacheReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
-<span class="new"> 249     set_msg("force inline by ciCacheReplay");</span>
-<span class="new"> 250     return false;</span>
-<span class="new"> 251   }</span>
-<span class="new"> 252 </span>
-<span class="new"> 253   if (ciCacheReplay::should_not_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
-<span class="new"> 254     set_msg("disallowed by ciCacheReplay");</span>
-<span class="new"> 255     return true;</span>
-<span class="new"> 256   }</span>
-<span class="new"> 257 </span>
-<span class="new"> 258   if (ciCacheReplay::should_not_inline(callee_method)) {</span>
-<span class="new"> 259     set_msg("disallowed by ciCacheReplay");</span>
-<span class="new"> 260     return true;</span>
-<span class="new"> 261   }</span>
-<span class="new"> 262 #ifndef PRODUCT</span>
- 263   if (ciReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
- 264     set_msg("force inline by ciReplay");
- 265     return false;
- 266   }
- 267 
- 268   if (ciReplay::should_not_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
- 269     set_msg("disallowed by ciReplay");
- 270     return true;
- 271   }
- 272 
- 273   if (ciReplay::should_not_inline(callee_method)) {
- 274     set_msg("disallowed by ciReplay");
- 275     return true;
- 276   }
- 277 #endif
- 278 
- 279   if (callee_method-&gt;force_inline()) {
- 280     set_msg("force inline by annotation");
- 281     return false;
- 282   }
+ 247   int caller_bci = jvms-&gt;bci();
+ 248   int inline_depth = inline_level()+1;
+<span class="new"> 249   if (ciCacheReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
+<span class="new"> 250     set_msg("force inline by ciCacheReplay");</span>
+<span class="new"> 251     return false;</span>
+<span class="new"> 252   }</span>
+<span class="new"> 253 </span>
+<span class="new"> 254   if (ciCacheReplay::should_not_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {</span>
+<span class="new"> 255     set_msg("disallowed by ciCacheReplay");</span>
+<span class="new"> 256     return true;</span>
+<span class="new"> 257   }</span>
+<span class="new"> 258 </span>
+<span class="new"> 259   if (ciCacheReplay::should_not_inline(callee_method)) {</span>
+<span class="new"> 260     set_msg("disallowed by ciCacheReplay");</span>
+<span class="new"> 261     return true;</span>
+<span class="new"> 262   }</span>
+<span class="new"> 263 #ifndef PRODUCT</span>
+ 264   if (ciReplay::should_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+ 265     set_msg("force inline by ciReplay");
+ 266     return false;
+ 267   }
+ 268 
+ 269   if (ciReplay::should_not_inline(C-&gt;replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+ 270     set_msg("disallowed by ciReplay");
+ 271     return true;
+ 272   }
+ 273 
+ 274   if (ciReplay::should_not_inline(callee_method)) {
+ 275     set_msg("disallowed by ciReplay");
+ 276     return true;
+ 277   }
+ 278 #endif
+ 279 
+ 280   if (callee_method-&gt;force_inline()) {
+ 281     set_msg("force inline by annotation");
+ 282     return false;
+ 283   }
 
 </pre><hr></hr>
 </pre></td>

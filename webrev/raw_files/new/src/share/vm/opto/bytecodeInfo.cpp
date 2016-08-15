@@ -128,6 +128,7 @@ bool InlineTree::should_inline(ciMethod* callee_method, ciMethod* caller_method,
   }
   int inline_depth = inline_level()+1;
   if (ciCacheReplay::should_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+	//tty->print_cr("force inline by ciCacheReplay");
     set_msg("force inline by ciCacheReplay");
     _forced_inline = true;
     return true;
@@ -183,11 +184,11 @@ bool InlineTree::should_inline(ciMethod* callee_method, ciMethod* caller_method,
     if (callee_method->has_compiled_code() &&
         callee_method->instructions_size() > inline_small_code_size) {
 	  // we force inlining when the caller is cached (to make sure that we replay correctly)
-	  if (ciCacheProfiles::is_cached(caller_method->get_Method())) {
-		set_msg("force inline by ciCacheProfiles (over compiled into medium method)");
-		_forced_inline = true;
-		return true;
-	  }
+//	  if (ciCacheProfiles::is_cached(caller_method->get_Method())) {
+//		set_msg("force inline by ciCacheProfiles (over compiled into medium method)");
+//		_forced_inline = true;
+//		return true;
+//	  }
       set_msg("already compiled into a medium method");
       return false;
     }

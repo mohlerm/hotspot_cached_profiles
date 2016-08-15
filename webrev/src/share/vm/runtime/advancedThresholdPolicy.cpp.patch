@@ -1,5 +1,5 @@
---- old/src/share/vm/runtime/advancedThresholdPolicy.cpp	2016-08-15 12:26:19.493019658 +0200
-+++ new/src/share/vm/runtime/advancedThresholdPolicy.cpp	2016-08-15 12:26:19.337019658 +0200
+--- old/src/share/vm/runtime/advancedThresholdPolicy.cpp	2016-08-15 16:43:34.988545495 +0200
++++ new/src/share/vm/runtime/advancedThresholdPolicy.cpp	2016-08-15 16:43:34.896545495 +0200
 @@ -408,6 +408,11 @@
        if (is_method_profiled(method)) {
          // Special case: we got here because this method was fully profiled in the interpreter.

@@ -366,6 +366,10 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 
 
 
+
+
+
+
 1163     compile_method_base(method, osr_bci, comp_level, hot_method, hot_count, comment, THREAD);
 1164   }
 1165 
@@ -701,80 +705,84 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
 <span class="new">1224            method-&gt;print_name(tty);</span>
 <span class="new">1225            tty-&gt;print_cr(" &lt;");</span>
 <span class="new">1226          }</span>
-<span class="new">1227          ciCacheProfiles::replay(THREAD,method(),osr_bci,false);</span>
-<span class="new">1228          return osr_bci  == InvocationEntryBci ? method-&gt;code() : method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);</span>
-<span class="new">1229    }</span>
-<span class="new">1230  }</span>
-<span class="new">1231  // if it's not in the cache or if we're using CacheProfileMode=2, just compile method base</span>
-<span class="new">1232  if(PrintCacheProfiles) {</span>
-<span class="new">1233    //tty-&gt;print("CacheProfiles: Not use profile for level %d compilation, Hotcount: %d, OSR_BCI: %d :: ",comp_level, hot_count,osr_bci);</span>
-<span class="new">1234    //method-&gt;print_name(tty);</span>
-<span class="new">1235    //tty-&gt;print_cr(" &lt;");</span>
-<span class="new">1236  }</span>
-<span class="new">1237     //bool is_blocking = !directive-&gt;BackgroundCompilationOption || CompileTheWorld || ReplayCompiles;</span>
-1238     compile_method_base(method, osr_bci, comp_level, hot_method, hot_count, comment, THREAD);
-1239   }
-1240 
-1241   // return requested nmethod
-1242   // We accept a higher level osr method
-1243   if (osr_bci == InvocationEntryBci) {
-1244     return method-&gt;code();
-1245   }
-1246   return method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);
-1247 }
-1248 
-1249 
-1250 // ------------------------------------------------------------------
-1251 // CompileBroker::compilation_is_complete
-1252 //
-1253 // See if compilation of this method is already complete.
-1254 bool CompileBroker::compilation_is_complete(const methodHandle&amp; method,
-1255                                             int                 osr_bci,
-1256                                             int                 comp_level) {
-1257   bool is_osr = (osr_bci != standard_entry_bci);
+<span class="new">1227          int exit_code = ciCacheProfiles::replay(THREAD,method(),osr_bci,false);</span>
+<span class="new">1228          if(exit_code == 0) {</span>
+<span class="new">1229            return osr_bci  == InvocationEntryBci ? method-&gt;code() : method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);</span>
+<span class="new">1230          } // else continue and remove profile (and compile normally)</span>
+<span class="new">1231          tty-&gt;print_cr("Bailed out of compilation for %s", method()-&gt;name()-&gt;as_utf8());</span>
+<span class="new">1232          ciCacheProfiles::clear_cache(method());</span>
+<span class="new">1233    }</span>
+<span class="new">1234  }</span>
+<span class="new">1235  // if it's not in the cache or if we're using CacheProfileMode=2, just compile method base</span>
+<span class="new">1236  if(PrintCacheProfiles) {</span>
+<span class="new">1237    //tty-&gt;print("CacheProfiles: Not use profile for level %d compilation, Hotcount: %d, OSR_BCI: %d :: ",comp_level, hot_count,osr_bci);</span>
+<span class="new">1238    //method-&gt;print_name(tty);</span>
+<span class="new">1239    //tty-&gt;print_cr(" &lt;");</span>
+<span class="new">1240  }</span>
+<span class="new">1241     //bool is_blocking = !directive-&gt;BackgroundCompilationOption || CompileTheWorld || ReplayCompiles;</span>
+1242     compile_method_base(method, osr_bci, comp_level, hot_method, hot_count, comment, THREAD);
+1243   }
+1244 
+1245   // return requested nmethod
+1246   // We accept a higher level osr method
+1247   if (osr_bci == InvocationEntryBci) {
+1248     return method-&gt;code();
+1249   }
+1250   return method-&gt;lookup_osr_nmethod_for(osr_bci, comp_level, false);
+1251 }
+1252 
+1253 
+1254 // ------------------------------------------------------------------
+1255 // CompileBroker::compilation_is_complete
+1256 //
+1257 // See if compilation of this method is already complete.
+1258 bool CompileBroker::compilation_is_complete(const methodHandle&amp; method,
+1259                                             int                 osr_bci,
+1260                                             int                 comp_level) {
+1261   bool is_osr = (osr_bci != standard_entry_bci);
 
 </pre><hr></hr><pre>
-1370 #endif
-1371 }
-1372 
-1373 // ------------------------------------------------------------------
-1374 // CompileBroker::assign_compile_id_unlocked
-1375 //
-1376 // Public wrapper for assign_compile_id that acquires the needed locks
-1377 uint CompileBroker::assign_compile_id_unlocked(Thread* thread, const methodHandle&amp; method, int osr_bci) {
-1378   MutexLocker locker(MethodCompileQueue_lock, thread);
-1379   return assign_compile_id(method, osr_bci);
-1380 }
-1381 
-1382 /**
-1383  * Should the current thread block until this compilation request
-1384  * has been fulfilled?
-1385  */
-1386 bool CompileBroker::is_compile_blocking() {
-1387   assert(!InstanceRefKlass::owns_pending_list_lock(JavaThread::current()), "possible deadlock");
-1388   return !BackgroundCompilation;
-1389 }
+1374 #endif
+1375 }
+1376 
+1377 // ------------------------------------------------------------------
+1378 // CompileBroker::assign_compile_id_unlocked
+1379 //
+1380 // Public wrapper for assign_compile_id that acquires the needed locks
+1381 uint CompileBroker::assign_compile_id_unlocked(Thread* thread, const methodHandle&amp; method, int osr_bci) {
+1382   MutexLocker locker(MethodCompileQueue_lock, thread);
+1383   return assign_compile_id(method, osr_bci);
+1384 }
+1385 
+1386 /**
+1387  * Should the current thread block until this compilation request
+1388  * has been fulfilled?
+1389  */
+1390 bool CompileBroker::is_compile_blocking() {
+1391   assert(!InstanceRefKlass::owns_pending_list_lock(JavaThread::current()), "possible deadlock");
+1392   return !BackgroundCompilation;
+1393 }
 
-1390 
-1391 // ------------------------------------------------------------------
-1392 // CompileBroker::preload_classes
-1393 void CompileBroker::preload_classes(const methodHandle&amp; method, TRAPS) {
-1394   // Move this code over from c1_Compiler.cpp
-1395   ShouldNotReachHere();
-1396 }
-1397 
-1398 
-1399 // ------------------------------------------------------------------
-1400 // CompileBroker::create_compile_task
-1401 //
-1402 // Create a CompileTask object representing the current request for
-1403 // compilation.  Add this task to the queue.
-1404 CompileTask* CompileBroker::create_compile_task(CompileQueue*       queue,
-1405                                                 int                 compile_id,
-1406                                                 const methodHandle&amp; method,
-1407                                                 int                 osr_bci,
-1408                                                 int                 comp_level,
-1409                                                 const methodHandle&amp; hot_method,
+1394 
+1395 // ------------------------------------------------------------------
+1396 // CompileBroker::preload_classes
+1397 void CompileBroker::preload_classes(const methodHandle&amp; method, TRAPS) {
+1398   // Move this code over from c1_Compiler.cpp
+1399   ShouldNotReachHere();
+1400 }
+1401 
+1402 
+1403 // ------------------------------------------------------------------
+1404 // CompileBroker::create_compile_task
+1405 //
+1406 // Create a CompileTask object representing the current request for
+1407 // compilation.  Add this task to the queue.
+1408 CompileTask* CompileBroker::create_compile_task(CompileQueue*       queue,
+1409                                                 int                 compile_id,
+1410                                                 const methodHandle&amp; method,
+1411                                                 int                 osr_bci,
+1412                                                 int                 comp_level,
+1413                                                 const methodHandle&amp; hot_method,
 
 </pre><hr></hr>
 </pre></td>

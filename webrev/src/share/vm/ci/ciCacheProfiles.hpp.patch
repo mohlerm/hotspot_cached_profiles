@@ -1,6 +1,6 @@
 --- /dev/null	2016-08-11 14:11:23.983906000 +0200
-+++ new/src/share/vm/ci/ciCacheProfiles.hpp	2016-08-15 12:26:23.981019658 +0200
-@@ -0,0 +1,153 @@
++++ new/src/share/vm/ci/ciCacheProfiles.hpp	2016-08-15 16:43:37.652545495 +0200
+@@ -0,0 +1,155 @@
 +/*
 +ciCacheProfiles.cpp * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
 + * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -114,7 +114,7 @@
 +  static const char* error_message();
 +
 +  static int replay_impl(TRAPS, Method* method, int osr_bci, bool blocked);
-+  static void replay_method(TRAPS, Method* method, int osr_bci, bool blocked);
++  static int replay_method(TRAPS, Method* method, int osr_bci, bool blocked);
 +
 +  static void process_file(TRAPS);
 +
@@ -142,7 +142,7 @@
 +
 +public:
 +  // Replay specified compilation
-+  static void replay(TRAPS, Method* method, int osr_bci, bool blocked);
++  static int replay(TRAPS, Method* method, int osr_bci, bool blocked);
 +
 +  static void initialize(TRAPS);
 +
@@ -151,6 +151,8 @@
 +
 +  static int is_cached(methodHandle method);
 +  static int is_cached(Method* method);
++
++  static void clear_cache(Method* method);
 +};
 +
 +#endif // SHARE_VM_CI_CICACHEPROFILES_HPP

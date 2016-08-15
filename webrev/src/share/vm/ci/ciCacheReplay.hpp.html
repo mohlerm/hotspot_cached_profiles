@@ -186,7 +186,7 @@ hr { border: none 0; border-top: 1px solid #aaa; height: 1px; }
  104 
  105  public:
  106   // Replay specified cached compilation and do NOT exit VM.
- 107   static void replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked);
+ 107   static int replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked);
  108   // Load inlining decisions from file and use them
  109   // during compilation of specified method.
  110   static void* load_inline_data(ciMethod* method, int entry_bci, int comp_level);
