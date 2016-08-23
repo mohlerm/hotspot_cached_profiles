@@ -82,7 +82,7 @@ typedef struct _ciInlineRecord {
 } ciInlineRecord;
 
 class  CacheCompileReplay;
-static CacheCompileReplay* replay_state;
+CacheCompileReplay* replay_state;
 
 class CacheCompileReplay : public StackObj {
  private:
@@ -479,6 +479,8 @@ class CacheCompileReplay : public StackObj {
 
   // compile <klass> <name> <signature> <entry_bci> <comp_level> inline <count> <depth> <bci> <klass> <name> <signature> ...
   void process_compile(TRAPS) {
+//	    replay_state = NULL;
+//	    reset();
     Method* method = parse_method(CHECK);
     if (had_error()) return;
     int entry_bci = parse_int("entry_bci");
@@ -549,12 +551,12 @@ class CacheCompileReplay : public StackObj {
     }
     replay_state = this;
     // now use compile_method_base instead of compile_method to process further in the compilation
-    CompileBroker::compile_method_base(method, _osr_bci, comp_level,
-                                  methodHandle(), 0, "replay", THREAD);
+//    CompileBroker::compile_method_base(method, _osr_bci, comp_level,
+//                                  methodHandle(), 0, "replay", THREAD);
 //    CompileBroker::compile_method_base(method, _osr_bci, comp_level,
 //                                  methodHandle(), 0, "replay", _blocked, THREAD);
-    replay_state = NULL;
-    reset();
+//    replay_state = NULL;
+//    reset();
   }
 
   // ciMethod <klass> <name> <signature> <invocation_counter> <backedge_counter> <interpreter_invocation_count> <interpreter_throwout_count> <instructions_size>
@@ -940,7 +942,7 @@ class CacheCompileReplay : public StackObj {
     return NULL;
   }
 
-  static ciInlineRecord* find_ciInlineRecord(GrowableArray<ciInlineRecord*>*  records,
+  ciInlineRecord* find_ciInlineRecord(GrowableArray<ciInlineRecord*>*  records,
                                       Method* method, int bci, int depth) {
     if (records != NULL) {
       const char* klass_name  = method->method_holder()->name()->as_utf8();
@@ -1019,6 +1021,9 @@ class CacheCompileReplay : public StackObj {
   }
 };
 
+ciCacheReplay::ciCacheReplay() {
+	  replay_state = NULL;
+}
 
 void ciCacheReplay::initialize(ciMethodData* m) {
   if (replay_state == NULL) {
@@ -1081,27 +1086,19 @@ bool ciCacheReplay::should_not_inline(ciMethod* method) {
   return replay_state->find_ciMethodRecord(method->get_Method()) == NULL;
 }
 
-bool ciCacheReplay::should_inline(void* data, ciMethod* method, int bci, int inline_depth) {
-  if (data != NULL) {
-    GrowableArray<ciInlineRecord*>*  records = (GrowableArray<ciInlineRecord*>*)data;
+bool ciCacheReplay::should_inline(ciMethod* method, int bci, int inline_depth) {
+	tty->print_cr("should inline?");
+  if (replay_state != NULL) {
     VM_ENTRY_MARK;
     // Inline record are ordered by bci and depth.
-    return CacheCompileReplay::find_ciInlineRecord(records, method->get_Method(), bci, inline_depth) != NULL;
-  } else if (replay_state != NULL) {
-    VM_ENTRY_MARK;
-    // Inline record are ordered by bci and depth.
+    tty->print_cr("replay_state != null");
     return replay_state->find_ciInlineRecord(method->get_Method(), bci, inline_depth) != NULL;
   }
   return false;
 }
 
-bool ciCacheReplay::should_not_inline(void* data, ciMethod* method, int bci, int inline_depth) {
-  if (data != NULL) {
-    GrowableArray<ciInlineRecord*>*  records = (GrowableArray<ciInlineRecord*>*)data;
-    VM_ENTRY_MARK;
-    // Inline record are ordered by bci and depth.
-    return CacheCompileReplay::find_ciInlineRecord(records, method->get_Method(), bci, inline_depth) == NULL;
-  } else if (replay_state != NULL) {
+bool ciCacheReplay::should_not_inline(ciMethod* method, int bci, int inline_depth) {
+  if (replay_state != NULL) {
     VM_ENTRY_MARK;
     // Inline record are ordered by bci and depth.
     return replay_state->find_ciInlineRecord(method->get_Method(), bci, inline_depth) == NULL;

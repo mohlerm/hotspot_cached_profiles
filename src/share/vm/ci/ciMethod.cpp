@@ -156,7 +156,7 @@ ciMethod::ciMethod(methodHandle h_m, ciInstanceKlass* holder) :
   }
 #endif
   if (CacheProfiles) {
-    ciCacheReplay::initialize(this);
+    CompilerThread::current()->get_cache_replay()->initialize(this);
   }
 }
 

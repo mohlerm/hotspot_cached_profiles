@@ -184,7 +184,7 @@ void ciMethodData::load_data() {
   }
 #endif
   if (CacheProfiles) {
-    ciCacheReplay::initialize(this);
+    CompilerThread::current()->get_cache_replay()->initialize(this);
   }
 }
 

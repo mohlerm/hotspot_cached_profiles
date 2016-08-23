@@ -808,6 +808,9 @@ ciMethod* ciEnv::get_method_by_index_impl(const constantPoolHandle& cpool,
         m = NULL;
       }
 #endif
+      if (m != NULL && CacheProfiles && CompilerThread::current()->get_cache_replay()->is_loaded(m)) {
+        m = NULL;
+      }
       if (m != NULL) {
         // We found the method.
         return get_method(m);

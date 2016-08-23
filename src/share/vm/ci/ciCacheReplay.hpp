@@ -96,30 +96,31 @@
 // is performed during normal java program execution.
 //
 
-class ciCacheReplay {
+class ciCacheReplay : public ResourceObj {
   CI_PACKAGE_ACCESS
 
 //#ifndef PRODUCT
  private:
 
  public:
+  ciCacheReplay();
   // Replay specified cached compilation and do NOT exit VM.
-  static int replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked);
+  int replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked);
   // Load inlining decisions from file and use them
   // during compilation of specified method.
-  static void* load_inline_data(ciMethod* method, int entry_bci, int comp_level);
+  //void* load_inline_data(ciMethod* method, int entry_bci, int comp_level);
 
   // These are used by the CI to fill in the cached data from the
   // replay file when replaying compiles.
-  static void initialize(ciMethodData* method);
-  static void initialize(ciMethod* method);
+  void initialize(ciMethodData* method);
+  void initialize(ciMethod* method);
 
-  static bool is_loaded(Method* method);
-  static bool is_loaded(Klass* klass);
+  bool is_loaded(Method* method);
+  bool is_loaded(Klass* klass); // this is not used currently
 
-  static bool should_not_inline(ciMethod* method);
-  static bool should_inline(void* data, ciMethod* method, int bci, int inline_depth);
-  static bool should_not_inline(void* data, ciMethod* method, int bci, int inline_depth);
+  bool should_not_inline(ciMethod* method);
+  bool should_inline(ciMethod* method, int bci, int inline_depth);
+  bool should_not_inline(ciMethod* method, int bci, int inline_depth);
 
 //#endif
 };

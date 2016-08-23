@@ -88,6 +88,7 @@ class CompileTask : public CHeapObj<mtCompiler> {
   Method*      method() const                    { return _method; }
   Method*      hot_method() const                { return _hot_method; }
   int          osr_bci() const                   { return _osr_bci; }
+  const char*  comment() const                   { return _comment;}
   bool         is_complete() const               { return _is_complete; }
   bool         is_blocking() const               { return _is_blocking; }
   bool         is_success() const                { return _is_success; }

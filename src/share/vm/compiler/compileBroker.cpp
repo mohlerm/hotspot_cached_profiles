@@ -26,6 +26,7 @@
 #include "classfile/symbolTable.hpp"
 #include "classfile/systemDictionary.hpp"
 #include "ci/ciCacheProfiles.hpp"
+#include "ci/ciCacheReplay.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "code/codeCache.hpp"
 #include "code/dependencyContext.hpp"
@@ -1224,12 +1225,13 @@ nmethod* CompileBroker::compile_method(const methodHandle& method, int osr_bci,
 	   method->print_name(tty);
 	   tty->print_cr(" <");
 	 }
-	 int exit_code = ciCacheProfiles::replay(THREAD,method(),osr_bci,false);
-	 if(exit_code == 0) {
+	 //int exit_code = ciCacheProfiles::replay(THREAD,method(),osr_bci,comp_level,false);
+	 CompileBroker::compile_method_base(method, osr_bci, comp_level, hot_method, 0, "replay", THREAD);
+	 //if(exit_code == 0) {
 	   return osr_bci  == InvocationEntryBci ? method->code() : method->lookup_osr_nmethod_for(osr_bci, comp_level, false);
-	 } // else continue and remove profile (and compile normally)
-	 tty->print_cr("Bailed out of compilation for %s", method()->name()->as_utf8());
-	 ciCacheProfiles::clear_cache(method());
+	 //} // else continue and remove profile (and compile normally)
+	 //tty->print_cr("Bailed out of compilation for %s", method()->name()->as_utf8());
+	 //ciCacheProfiles::clear_cache(method());
    }
  }
  // if it's not in the cache or if we're using CacheProfileMode=2, just compile method base
@@ -1649,6 +1651,14 @@ void CompileBroker::compiler_thread_loop() {
     init_compiler_thread_log();
   }
   CompileLog* log = thread->log();
+
+  // create the cacheReplay object
+  if (CacheProfiles) {
+    CompilerThread* thread = CompilerThread::current();
+    ciCacheReplay* cache_replay = new(ResourceObj::C_HEAP, mtCompiler) ciCacheReplay();
+    thread->init_cache_replay(cache_replay);
+  }
+
   if (log != NULL) {
     log->begin_elem("start_compile_thread name='%s' thread='" UINTX_FORMAT "' process='%d'",
                     thread->name(),
@@ -1694,6 +1704,10 @@ void CompileBroker::compiler_thread_loop() {
     if (method()->number_of_breakpoints() == 0) {
       // Compile the method.
       if ((UseCompiler || AlwaysCompileLoopMethods) && CompileBroker::should_compile_new_jobs()) {
+        // if it's a replay make sure we replay
+    	if(CacheProfiles && strcmp(task->comment(), "replay")==0) {
+          ciCacheProfiles::replay(thread, thread->get_cache_replay(), method(), task->osr_bci(), task->comp_level(), false);
+    	}
         invoke_compiler_on_method(task);
       } else {
         // After compilation is disabled, remove remaining methods from queue

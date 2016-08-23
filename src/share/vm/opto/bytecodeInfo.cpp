@@ -127,7 +127,7 @@ bool InlineTree::should_inline(ciMethod* callee_method, ciMethod* caller_method,
       return true;
   }
   int inline_depth = inline_level()+1;
-  if (ciCacheReplay::should_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+  if (CacheProfiles && CompilerThread::current()->get_cache_replay()->should_inline(callee_method, caller_bci, inline_depth)) {
 	//tty->print_cr("force inline by ciCacheReplay");
     set_msg("force inline by ciCacheReplay");
     _forced_inline = true;
@@ -246,17 +246,17 @@ bool InlineTree::should_not_inline(ciMethod *callee_method,
   }
   int caller_bci = jvms->bci();
   int inline_depth = inline_level()+1;
-  if (ciCacheReplay::should_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+  if (CacheProfiles && CompilerThread::current()->get_cache_replay()->should_inline(callee_method, caller_bci, inline_depth)) {
     set_msg("force inline by ciCacheReplay");
     return false;
   }
 
-  if (ciCacheReplay::should_not_inline(C->replay_inline_data(), callee_method, caller_bci, inline_depth)) {
+  if (CacheProfiles && CompilerThread::current()->get_cache_replay()->should_not_inline(callee_method, caller_bci, inline_depth)) {
     set_msg("disallowed by ciCacheReplay");
     return true;
   }
 
-  if (ciCacheReplay::should_not_inline(callee_method)) {
+  if (CacheProfiles && CompilerThread::current()->get_cache_replay()->should_not_inline(callee_method)) {
     set_msg("disallowed by ciCacheReplay");
     return true;
   }

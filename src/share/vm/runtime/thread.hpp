@@ -47,6 +47,7 @@
 #include "utilities/exceptions.hpp"
 #include "utilities/macros.hpp"
 #include "utilities/top.hpp"
+
 #if INCLUDE_ALL_GCS
 #include "gc/g1/dirtyCardQueue.hpp"
 #include "gc/g1/satbMarkQueue.hpp"
@@ -72,6 +73,7 @@ class CompileTask;
 class CompileQueue;
 class CompilerCounters;
 class vframeArray;
+class ciCacheReplay;
 
 class DeoptResourceMark;
 class jvmtiDeferredLocalVariableSet;
@@ -2017,6 +2019,8 @@ class CompilerThread : public JavaThread {
 
   AbstractCompiler* _compiler;
 
+  ciCacheReplay*     _cache_replay;
+
  public:
 
   static CompilerThread* current();
@@ -2050,6 +2054,15 @@ class CompilerThread : public JavaThread {
     assert(_log == NULL, "set only once");
     _log = log;
   }
+
+  // Get/set the thread's cacheReplay data
+  ciCacheReplay*  get_cache_replay()                            { return _cache_replay; }
+  void          init_cache_replay(ciCacheReplay* cache_replay) {
+    // Set once, for good.
+    //assert(_cache_replay == NULL, "set only once");
+    _cache_replay = cache_replay;
+  }
+
 
 #ifndef PRODUCT
  private:
