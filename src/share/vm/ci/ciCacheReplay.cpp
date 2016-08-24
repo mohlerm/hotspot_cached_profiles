@@ -39,83 +39,10 @@
 //#ifndef PRODUCT
 
 // ciCacheReplay
+//class  CacheReplayState;
+//CacheReplayState* _replay_state;
 
-typedef struct _ciMethodDataRecord {
-  const char* _klass_name;
-  const char* _method_name;
-  const char* _signature;
-
-  int _state;
-  int _current_mileage;
-
-  intptr_t* _data;
-  char*     _orig_data;
-  Klass**   _classes;
-  Method**  _methods;
-  int*      _classes_offsets;
-  int*      _methods_offsets;
-  int       _data_length;
-  int       _orig_data_length;
-  int       _classes_length;
-  int       _methods_length;
-} ciMethodDataRecord;
-
-typedef struct _ciMethodRecord {
-  const char* _klass_name;
-  const char* _method_name;
-  const char* _signature;
-
-  int _instructions_size;
-  int _interpreter_invocation_count;
-  int _interpreter_throwout_count;
-  int _invocation_counter;
-  int _backedge_counter;
-} ciMethodRecord;
-
-typedef struct _ciInlineRecord {
-  const char* _klass_name;
-  const char* _method_name;
-  const char* _signature;
-
-  int _inline_depth;
-  int _inline_bci;
-} ciInlineRecord;
-
-class  CacheCompileReplay;
-CacheCompileReplay* replay_state;
-
-class CacheCompileReplay : public StackObj {
- private:
-  char*   _stream;
-  int     _stream_index;
-  Thread* _thread;
-  Handle  _protection_domain;
-  Handle  _loader;
-
-  GrowableArray<ciMethodRecord*>     _ci_method_records;
-  GrowableArray<ciMethodDataRecord*> _ci_method_data_records;
-
-  // Use pointer because we may need to return inline records
-  // without destroying them.
-  GrowableArray<ciInlineRecord*>*    _ci_inline_records;
-
-  const char* _error_message;
-
-  char* _bufptr;
-  char* _buffer;
-  int   _buffer_length;
-  int   _buffer_pos;
-
-  // "compile" data
-  ciKlass* _iklass;
-  Method*  _imethod;
-  int      _entry_bci;
-  int      _comp_level;
-  int      _osr_bci;
-  bool     _blocked;
-
- public:
-  CacheCompileReplay(char* unparsed_data, TRAPS, int osr_bci, bool blocked) {
+  CacheReplayState::CacheReplayState(char* unparsed_data, TRAPS, int osr_bci, bool blocked) {
     _thread = THREAD;
     _loader = Handle(_thread, SystemDictionary::java_system_loader());
     _protection_domain = Handle();
@@ -126,6 +53,8 @@ class CacheCompileReplay : public StackObj {
       fprintf(stderr, "ERROR: Can't open replay data\n");
     }
 
+    _ci_method_records =  new GrowableArray<ciMethodRecord*>;
+    _ci_method_data_records = new GrowableArray<ciMethodDataRecord*>;
     _ci_inline_records = NULL;
     _error_message = NULL;
 
@@ -143,22 +72,22 @@ class CacheCompileReplay : public StackObj {
     _osr_bci = osr_bci;
   }
 
-  ~CacheCompileReplay() {
+  CacheReplayState::~CacheReplayState() {
     if (_stream != NULL) {
     	//_stream_index = 0;
     	//free(_stream);
     }
   }
 
-  bool had_error() {
+  bool CacheReplayState::had_error() {
     return _error_message != NULL || _thread->has_pending_exception();
   }
 
-  bool can_replay() {
+  bool CacheReplayState::can_replay() {
     return !(_stream == NULL || had_error());
   }
 
-  void report_error(const char* msg) {
+  void CacheReplayState::report_error(const char* msg) {
     _error_message = msg;
     // Restore the _buffer contents for error reporting
     for (int i = 0; i < _buffer_pos; i++) {
@@ -166,7 +95,7 @@ class CacheCompileReplay : public StackObj {
     }
   }
 
-  int parse_int(const char* label) {
+  int CacheReplayState::parse_int(const char* label) {
     if (had_error()) {
       return 0;
     }
@@ -181,7 +110,7 @@ class CacheCompileReplay : public StackObj {
     return v;
   }
 
-  intptr_t parse_intptr_t(const char* label) {
+  intptr_t CacheReplayState::parse_intptr_t(const char* label) {
     if (had_error()) {
       return 0;
     }
@@ -196,7 +125,7 @@ class CacheCompileReplay : public StackObj {
     return v;
   }
 
-  void skip_ws() {
+  void CacheReplayState::skip_ws() {
     // Skip any leading whitespace
     while (*_bufptr == ' ' || *_bufptr == '\t') {
       _bufptr++;
@@ -204,7 +133,7 @@ class CacheCompileReplay : public StackObj {
   }
 
 
-  char* scan_and_terminate(char delim) {
+  char* CacheReplayState::scan_and_terminate(char delim) {
     char* str = _bufptr;
     while (*_bufptr != delim && *_bufptr != '\0') {
       _bufptr++;
@@ -219,14 +148,14 @@ class CacheCompileReplay : public StackObj {
     return str;
   }
 
-  char* parse_string() {
+  char* CacheReplayState::parse_string() {
     if (had_error()) return NULL;
 
     skip_ws();
     return scan_and_terminate(' ');
   }
 
-  char* parse_quoted_string() {
+  char* CacheReplayState::parse_quoted_string() {
     if (had_error()) return NULL;
 
     skip_ws();
@@ -239,7 +168,7 @@ class CacheCompileReplay : public StackObj {
     }
   }
 
-  const char* parse_escaped_string() {
+  const char* CacheReplayState::parse_escaped_string() {
     char* result = parse_quoted_string();
     if (result != NULL) {
       unescape_string(result);
@@ -248,7 +177,7 @@ class CacheCompileReplay : public StackObj {
   }
 
   // Look for the tag 'tag' followed by an
-  bool parse_tag_and_count(const char* tag, int& length) {
+  bool CacheReplayState::parse_tag_and_count(const char* tag, int& length) {
     const char* t = parse_string();
     if (t == NULL) {
       return false;
@@ -264,7 +193,7 @@ class CacheCompileReplay : public StackObj {
 
   // Parse a sequence of raw data encoded as bytes and return the
   // resulting data.
-  char* parse_data(const char* tag, int& length) {
+  char* CacheReplayState::parse_data(const char* tag, int& length) {
     if (!parse_tag_and_count(tag, length)) {
       return NULL;
     }
@@ -280,7 +209,7 @@ class CacheCompileReplay : public StackObj {
   // Parse a standard chunk of data emitted as:
   //   'tag' <length> # # ...
   // Where each # is an intptr_t item
-  intptr_t* parse_intptr_data(const char* tag, int& length) {
+  intptr_t* CacheReplayState::parse_intptr_data(const char* tag, int& length) {
     if (!parse_tag_and_count(tag, length)) {
       return NULL;
     }
@@ -295,7 +224,7 @@ class CacheCompileReplay : public StackObj {
   }
 
   // Parse a possibly quoted version of a symbol into a symbolOop
-  Symbol* parse_symbol(TRAPS) {
+  Symbol* CacheReplayState::parse_symbol(TRAPS) {
     const char* str = parse_escaped_string();
     if (str != NULL) {
       Symbol* sym = SymbolTable::lookup(str, (int)strlen(str), CHECK_NULL);
@@ -305,7 +234,7 @@ class CacheCompileReplay : public StackObj {
   }
 
   // Parse a valid klass name and look it up
-  Klass* parse_klass(TRAPS) {
+  Klass* CacheReplayState::parse_klass(TRAPS) {
     const char* str = parse_escaped_string();
     Symbol* klass_name = SymbolTable::lookup(str, (int)strlen(str), CHECK_NULL);
     if (klass_name != NULL) {
@@ -328,13 +257,13 @@ class CacheCompileReplay : public StackObj {
   }
 
   // Lookup a klass
-  Klass* resolve_klass(const char* klass, TRAPS) {
+  Klass* CacheReplayState::resolve_klass(const char* klass, TRAPS) {
     Symbol* klass_name = SymbolTable::lookup(klass, (int)strlen(klass), CHECK_NULL);
     return SystemDictionary::resolve_or_fail(klass_name, _loader, _protection_domain, true, THREAD);
   }
 
   // Parse the standard tuple of <klass> <name> <signature>
-  Method* parse_method(TRAPS) {
+  Method* CacheReplayState::parse_method(TRAPS) {
     InstanceKlass* k = (InstanceKlass*)parse_klass(CHECK_NULL);
     Symbol* method_name = parse_symbol(CHECK_NULL);
     Symbol* method_signature = parse_symbol(CHECK_NULL);
@@ -345,7 +274,7 @@ class CacheCompileReplay : public StackObj {
     return m;
   }
 
-  int get_line(int c) {
+  int CacheReplayState::get_line(int c) {
     while(c != EOF) {
       if (_buffer_pos + 1 >= _buffer_length) {
         int new_length = _buffer_length * 2;
@@ -372,7 +301,7 @@ class CacheCompileReplay : public StackObj {
 
   // Process each line of the replay file executing each command until
   // the file ends.
-  void process(TRAPS) {
+  void CacheReplayState::process(TRAPS) {
     int line_no = 1;
     int c = _stream[_stream_index++];
     while(c != EOF) {
@@ -391,7 +320,7 @@ class CacheCompileReplay : public StackObj {
     }
   }
 
-  void process_command(TRAPS) {
+  void CacheReplayState::process_command(TRAPS) {
     char* cmd = parse_string();
     if (cmd == NULL) {
       return;
@@ -421,7 +350,7 @@ class CacheCompileReplay : public StackObj {
   }
 
   // validation of comp_level
-  bool is_valid_comp_level(int comp_level) {
+  bool CacheReplayState::is_valid_comp_level(int comp_level) {
     const int msg_len = 256;
     char* msg = NULL;
     if (!is_compile(comp_level)) {
@@ -448,7 +377,7 @@ class CacheCompileReplay : public StackObj {
   }
 
   // compile <klass> <name> <signature> <entry_bci> <comp_level> inline <count> <depth> <bci> <klass> <name> <signature> ...
-  void* process_inline(ciMethod* imethod, Method* m, int entry_bci, int comp_level, TRAPS) {
+  void* CacheReplayState::process_inline(ciMethod* imethod, Method* m, int entry_bci, int comp_level, TRAPS) {
     _imethod    = m;
     _iklass     = imethod->holder();
     _entry_bci  = entry_bci;
@@ -478,9 +407,10 @@ class CacheCompileReplay : public StackObj {
   }
 
   // compile <klass> <name> <signature> <entry_bci> <comp_level> inline <count> <depth> <bci> <klass> <name> <signature> ...
-  void process_compile(TRAPS) {
+  void CacheReplayState::process_compile(TRAPS) {
 //	    replay_state = NULL;
 //	    reset();
+
     Method* method = parse_method(CHECK);
     if (had_error()) return;
     int entry_bci = parse_int("entry_bci");
@@ -549,7 +479,7 @@ class CacheCompileReplay : public StackObj {
     if (nm != NULL) {
       nm->make_not_entrant();
     }
-    replay_state = this;
+    // replay_state = this;
     // now use compile_method_base instead of compile_method to process further in the compilation
 //    CompileBroker::compile_method_base(method, _osr_bci, comp_level,
 //                                  methodHandle(), 0, "replay", THREAD);
@@ -562,10 +492,10 @@ class CacheCompileReplay : public StackObj {
   // ciMethod <klass> <name> <signature> <invocation_counter> <backedge_counter> <interpreter_invocation_count> <interpreter_throwout_count> <instructions_size>
   //
   //
-  void process_ciMethod(TRAPS) {
+  void CacheReplayState::process_ciMethod(TRAPS) {
     Method* method = parse_method(CHECK);
     if (had_error()) return;
-    ciMethodRecord* rec = new_ciMethod(method);
+    ciMethodRecord* rec = new_ciMethodRecord(method);
     rec->_invocation_counter = parse_int("invocation_counter");
     rec->_backedge_counter = parse_int("backedge_counter");
     rec->_interpreter_invocation_count = parse_int("interpreter_invocation_count");
@@ -574,7 +504,7 @@ class CacheCompileReplay : public StackObj {
   }
 
   // ciMethodData <klass> <name> <signature> <state> <current mileage> orig <length> # # ... data <length> # # ... oops <length> # ... methods <length>
-  void process_ciMethodData(TRAPS) {
+  void CacheReplayState::process_ciMethodData(TRAPS) {
     Method* method = parse_method(CHECK);
     if (had_error()) return;
     /* just copied from Method, to build interpret data*/
@@ -598,7 +528,7 @@ class CacheCompileReplay : public StackObj {
     }
 
     // collect and record all the needed information for later
-    ciMethodDataRecord* rec = new_ciMethodData(method);
+    ciMethodDataRecord* rec = new_ciMethodDataRecord(method);
     rec->_state = parse_int("state");
     rec->_current_mileage = parse_int("current_mileage");
 
@@ -645,7 +575,7 @@ class CacheCompileReplay : public StackObj {
   //
   // Loads and initializes the klass 'name'.  This can be used to
   // create particular class loading environments
-  void process_instanceKlass(TRAPS) {
+  void CacheReplayState::process_instanceKlass(TRAPS) {
     // just load the referenced class
     Klass* k = parse_klass(CHECK);
   }
@@ -655,7 +585,7 @@ class CacheCompileReplay : public StackObj {
   // Load the klass 'name' and link or initialize it.  Verify that the
   // constant pool is the same length as 'length' and make sure the
   // constant pool tags are in the same state.
-  void process_ciInstanceKlass(TRAPS) {
+  void CacheReplayState::process_ciInstanceKlass(TRAPS) {
     InstanceKlass* k = (InstanceKlass *)parse_klass(CHECK);
     int is_linked = parse_int("is_linked");
     int is_initialized = parse_int("is_initialized");
@@ -745,7 +675,7 @@ class CacheCompileReplay : public StackObj {
   // This is useful when the compile was dependent on the value of
   // static fields but it's impossible to properly rerun the static
   // initiailizer.
-  void process_staticfield(TRAPS) {
+  void CacheReplayState::process_staticfield(TRAPS) {
     InstanceKlass* k = (InstanceKlass *)parse_klass(CHECK);
 
     if (ReplaySuppressInitializers == 0 ||
@@ -855,7 +785,7 @@ class CacheCompileReplay : public StackObj {
   }
 
 #if INCLUDE_JVMTI
-  void process_JvmtiExport(TRAPS) {
+  void CacheReplayState::process_JvmtiExport(TRAPS) {
     const char* field = parse_string();
     bool value = parse_int("JvmtiExport flag") != 0;
     if (strcmp(field, "can_access_local_variables") == 0) {
@@ -871,22 +801,22 @@ class CacheCompileReplay : public StackObj {
 #endif // INCLUDE_JVMTI
 
   // Create and initialize a record for a ciMethod
-  ciMethodRecord* new_ciMethod(Method* method) {
+  ciMethodRecord* CacheReplayState::new_ciMethodRecord(Method* method) {
     ciMethodRecord* rec = NEW_RESOURCE_OBJ(ciMethodRecord);
     rec->_klass_name =  method->method_holder()->name()->as_utf8();
     rec->_method_name = method->name()->as_utf8();
     rec->_signature = method->signature()->as_utf8();
-    _ci_method_records.append(rec);
+    _ci_method_records->append(rec);
     return rec;
   }
 
   // Lookup data for a ciMethod
-  ciMethodRecord* find_ciMethodRecord(Method* method) {
+  ciMethodRecord* CacheReplayState::find_ciMethodRecord(Method* method) {
     const char* klass_name =  method->method_holder()->name()->as_utf8();
     const char* method_name = method->name()->as_utf8();
     const char* signature = method->signature()->as_utf8();
-    for (int i = 0; i < _ci_method_records.length(); i++) {
-      ciMethodRecord* rec = _ci_method_records.at(i);
+    for (int i = 0; i < _ci_method_records->length(); i++) {
+      ciMethodRecord* rec = _ci_method_records->at(i);
       if (strcmp(rec->_klass_name, klass_name) == 0 &&
           strcmp(rec->_method_name, method_name) == 0 &&
           strcmp(rec->_signature, signature) == 0) {
@@ -897,22 +827,22 @@ class CacheCompileReplay : public StackObj {
   }
 
   // Create and initialize a record for a ciMethodData
-  ciMethodDataRecord* new_ciMethodData(Method* method) {
+  ciMethodDataRecord* CacheReplayState::new_ciMethodDataRecord(Method* method) {
     ciMethodDataRecord* rec = NEW_RESOURCE_OBJ(ciMethodDataRecord);
     rec->_klass_name =  method->method_holder()->name()->as_utf8();
     rec->_method_name = method->name()->as_utf8();
     rec->_signature = method->signature()->as_utf8();
-    _ci_method_data_records.append(rec);
+    _ci_method_data_records->append(rec);
     return rec;
   }
 
   // Lookup data for a ciMethodData
-  ciMethodDataRecord* find_ciMethodDataRecord(Method* method) {
+  ciMethodDataRecord* CacheReplayState::find_ciMethodDataRecord(Method* method) {
     const char* klass_name =  method->method_holder()->name()->as_utf8();
     const char* method_name = method->name()->as_utf8();
     const char* signature = method->signature()->as_utf8();
-    for (int i = 0; i < _ci_method_data_records.length(); i++) {
-      ciMethodDataRecord* rec = _ci_method_data_records.at(i);
+    for (int i = 0; i < _ci_method_data_records->length(); i++) {
+      ciMethodDataRecord* rec = _ci_method_data_records->at(i);
       if (strcmp(rec->_klass_name, klass_name) == 0 &&
           strcmp(rec->_method_name, method_name) == 0 &&
           strcmp(rec->_signature, signature) == 0) {
@@ -923,7 +853,7 @@ class CacheCompileReplay : public StackObj {
   }
 
   // Create and initialize a record for a ciInlineRecord
-  ciInlineRecord* new_ciInlineRecord(Method* method, int bci, int depth) {
+  ciInlineRecord* CacheReplayState::new_ciInlineRecord(Method* method, int bci, int depth) {
     ciInlineRecord* rec = NEW_RESOURCE_OBJ(ciInlineRecord);
     rec->_klass_name =  method->method_holder()->name()->as_utf8();
     rec->_method_name = method->name()->as_utf8();
@@ -935,14 +865,14 @@ class CacheCompileReplay : public StackObj {
   }
 
   // Lookup inlining data for a ciMethod
-  ciInlineRecord* find_ciInlineRecord(Method* method, int bci, int depth) {
+  ciInlineRecord* CacheReplayState::find_ciInlineRecord(Method* method, int bci, int depth) {
     if (_ci_inline_records != NULL) {
       return find_ciInlineRecord(_ci_inline_records, method, bci, depth);
     }
     return NULL;
   }
 
-  ciInlineRecord* find_ciInlineRecord(GrowableArray<ciInlineRecord*>*  records,
+  ciInlineRecord* CacheReplayState::find_ciInlineRecord(GrowableArray<ciInlineRecord*>*  records,
                                       Method* method, int bci, int depth) {
     if (records != NULL) {
       const char* klass_name  = method->method_holder()->name()->as_utf8();
@@ -962,19 +892,19 @@ class CacheCompileReplay : public StackObj {
     return NULL;
   }
 
-  const char* error_message() {
+  const char* CacheReplayState::error_message() {
     return _error_message;
   }
 
-  void reset() {
+  void CacheReplayState::reset() {
     _error_message = NULL;
-    _ci_method_records.clear();
-    _ci_method_data_records.clear();
+    _ci_method_records->clear();
+    _ci_method_data_records->clear();
   }
 
   // Take an ascii string contain \u#### escapes and convert it to utf8
   // in place.
-  static void unescape_string(char* value) {
+  void CacheReplayState::unescape_string(char* value) {
     char* from = value;
     char* to = value;
     while (*from != '\0') {
@@ -1019,13 +949,9 @@ class CacheCompileReplay : public StackObj {
     }
     *from = *to;
   }
-};
 
-ciCacheReplay::ciCacheReplay() {
-	  replay_state = NULL;
-}
 
-void ciCacheReplay::initialize(ciMethodData* m) {
+void ciCacheReplay::initialize(CacheReplayState* replay_state, ciMethodData* m) {
   if (replay_state == NULL) {
     return;
   }
@@ -1077,7 +1003,7 @@ void ciCacheReplay::initialize(ciMethodData* m) {
 }
 
 
-bool ciCacheReplay::should_not_inline(ciMethod* method) {
+bool ciCacheReplay::should_not_inline(CacheReplayState* replay_state, ciMethod* method) {
   if (replay_state == NULL) {
     return false;
   }
@@ -1086,7 +1012,7 @@ bool ciCacheReplay::should_not_inline(ciMethod* method) {
   return replay_state->find_ciMethodRecord(method->get_Method()) == NULL;
 }
 
-bool ciCacheReplay::should_inline(ciMethod* method, int bci, int inline_depth) {
+bool ciCacheReplay::should_inline(CacheReplayState* replay_state, ciMethod* method, int bci, int inline_depth) {
 	tty->print_cr("should inline?");
   if (replay_state != NULL) {
     VM_ENTRY_MARK;
@@ -1097,7 +1023,7 @@ bool ciCacheReplay::should_inline(ciMethod* method, int bci, int inline_depth) {
   return false;
 }
 
-bool ciCacheReplay::should_not_inline(ciMethod* method, int bci, int inline_depth) {
+bool ciCacheReplay::should_not_inline(CacheReplayState* replay_state, ciMethod* method, int bci, int inline_depth) {
   if (replay_state != NULL) {
     VM_ENTRY_MARK;
     // Inline record are ordered by bci and depth.
@@ -1106,7 +1032,7 @@ bool ciCacheReplay::should_not_inline(ciMethod* method, int bci, int inline_dept
   return false;
 }
 
-void ciCacheReplay::initialize(ciMethod* m) {
+void ciCacheReplay::initialize(CacheReplayState* replay_state, ciMethod* m) {
   if (replay_state == NULL) {
     return;
   }
@@ -1136,7 +1062,7 @@ void ciCacheReplay::initialize(ciMethod* m) {
   }
 }
 
-bool ciCacheReplay::is_loaded(Method* method) {
+bool ciCacheReplay::is_loaded(CacheReplayState* replay_state, Method* method) {
   if (replay_state == NULL) {
     return true;
   }
@@ -1148,7 +1074,7 @@ bool ciCacheReplay::is_loaded(Method* method) {
   return rec != NULL;
 }
 
-int ciCacheReplay::replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked) {
+CacheReplayState* ciCacheReplay::replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked) {
 	  HandleMark hm;
 	  ResourceMark rm;
 
@@ -1161,19 +1087,20 @@ int ciCacheReplay::replay_cached(TRAPS, char* replay_data, int osr_bci, bool blo
 //	  }
 
 	  // Load and parse the replay data
-	  CacheCompileReplay rp(replay_data, THREAD, osr_bci, blocked);
-	  int exit_code = 0;
-	  if (rp.can_replay()) {
+	  CacheReplayState* rp = new CacheReplayState(replay_data, THREAD, osr_bci, blocked);
+	 // CacheReplayState rp(replay_data, THREAD, osr_bci, blocked);
+	  //int exit_code = 0;
+	  if (rp->can_replay()) {
 		if(PrintCacheProfiles) {
 			tty->print_cr("Started processing replay file...");
 		}
-	    rp.process(THREAD);
+	    rp->process(THREAD);
 	  } else {
-	    exit_code = 1;
+	    //exit_code = 1;
 		if(PrintCacheProfiles) {
 			tty->print_cr("Exit vm since we can not replay...");
 		}
-	    vm_exit(exit_code);
+	    vm_exit(1);
 	  }
 
 	  if (HAS_PENDING_EXCEPTION) {
@@ -1181,15 +1108,15 @@ int ciCacheReplay::replay_cached(TRAPS, char* replay_data, int osr_bci, bool blo
 	    CLEAR_PENDING_EXCEPTION;
 	    java_lang_Throwable::print_stack_trace(throwable, tty);
 	    tty->cr();
-	    exit_code = 2;
+	    rp = NULL;
 	  }
 
-	  if (rp.had_error()) {
-	    tty->print_cr("Parsing failed on %s", rp.error_message());
-	    exit_code = 1;
+	  if (rp->had_error()) {
+	    tty->print_cr("Parsing failed on %s", rp->error_message());
+	    rp = NULL;
 	  }
 	  // TODO: maybe do something with exit code? ~return it
-	  return exit_code;
+	  return rp;
 }
 
 //#endif // PRODUCT

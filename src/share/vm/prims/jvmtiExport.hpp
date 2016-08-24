@@ -66,7 +66,7 @@ class AttachOperation;
 class JvmtiExport : public AllStatic {
   friend class VMStructs;
   friend class CompileReplay;
-  friend class CacheCompileReplay;
+  friend class CacheReplayState;
 
  private:
 

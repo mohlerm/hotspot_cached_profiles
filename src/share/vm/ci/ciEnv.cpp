@@ -808,7 +808,7 @@ ciMethod* ciEnv::get_method_by_index_impl(const constantPoolHandle& cpool,
         m = NULL;
       }
 #endif
-      if (m != NULL && CacheProfiles && CompilerThread::current()->get_cache_replay()->is_loaded(m)) {
+      if (m != NULL && CacheProfiles && !ciCacheReplay::is_loaded(CompilerThread::current()->get_cache_replay_state(), m)) {
         m = NULL;
       }
       if (m != NULL) {

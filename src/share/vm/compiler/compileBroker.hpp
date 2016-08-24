@@ -140,7 +140,7 @@ public:
 class CompileBroker: AllStatic {
  friend class Threads;
  friend class CompileTaskWrapper;
- friend class CacheCompileReplay;
+ friend class CacheReplayState;
 
  public:
   enum {
@@ -235,7 +235,8 @@ class CompileBroker: AllStatic {
                                           const methodHandle& hot_method,
                                           int                 hot_count,
                                           const char*         comment,
-                                          bool                blocking);
+                                          bool                blocking,
+										  CacheReplayState*   replay_state);
   static void wait_for_completion(CompileTask* task);
 #if INCLUDE_JVMCI
   static bool wait_for_jvmci_completion(JVMCICompiler* comp, CompileTask* task, JavaThread* thread);
@@ -254,7 +255,8 @@ class CompileBroker: AllStatic {
                                   const methodHandle& hot_method,
                                   int hot_count,
                                   const char* comment,
-                                  Thread* thread);
+                                  Thread* thread,
+								  CacheReplayState* replay_state);
 
   static CompileQueue* compile_queue(int comp_level);
   static bool init_compiler_runtime();

@@ -209,22 +209,20 @@ const char* ciCacheProfiles::error_message() {
   return _error_message;
 }
 
-int ciCacheProfiles::replay(TRAPS, ciCacheReplay* cache_replay, Method* method, int osr_bci, int comp_level, bool blocked) {
+CacheReplayState* ciCacheProfiles::replay(TRAPS, Method* method, int osr_bci, int comp_level, bool blocked) {
   _thread = THREAD;
-  int exit_code = replay_impl(THREAD, cache_replay, method, osr_bci, comp_level, blocked);
-  return exit_code;
+  return replay_impl(THREAD, method, osr_bci, comp_level, blocked);
 }
 
-int ciCacheProfiles::replay_impl(TRAPS, ciCacheReplay* cache_replay, Method* method, int osr_bci, int comp_level, bool blocked) {
+CacheReplayState* ciCacheProfiles::replay_impl(TRAPS, Method* method, int osr_bci, int comp_level, bool blocked) {
   HandleMark hm;
   ResourceMark rm;
 
-  int exit_code = 0;
+  CacheReplayState* replay_state = NULL;
   if (can_replay()) {
-    exit_code = replay_method(THREAD, cache_replay, method, osr_bci, comp_level, blocked);
+	  replay_state = replay_method(THREAD, method, osr_bci, comp_level, blocked);
   } else {
-    exit_code = 1;
-    return exit_code;
+    return NULL;
   }
 
   if (HAS_PENDING_EXCEPTION) {
@@ -234,25 +232,25 @@ int ciCacheProfiles::replay_impl(TRAPS, ciCacheReplay* cache_replay, Method* met
     tty->cr();
     java_lang_Throwable::print_stack_trace(throwable, tty);
     tty->cr();
-    exit_code = 2;
+    replay_state = NULL;
   }
 
   if (had_error()) {
     tty->print_cr("Failed on %s", error_message());
-    exit_code = 1;
+    replay_state = NULL;
   }
-  return exit_code;
+  return replay_state;
 }
 
-int ciCacheProfiles::replay_method(TRAPS, ciCacheReplay* cache_replay, Method* method, int osr_bci, int comp_level, bool blocked) {
+CacheReplayState* ciCacheProfiles::replay_method(TRAPS, Method* method, int osr_bci, int comp_level, bool blocked) {
 	char* key = get_key(method);
 	char* rec = (char*) (*_compile_records_dictionary)[key];
 	if(rec!=NULL) {
 		if(PrintCacheProfiles) tty->print_cr("Found method %s in dictionary", key);
-		return cache_replay->replay_cached(THREAD, rec, osr_bci, blocked);
+		return ciCacheReplay::replay_cached(THREAD, rec, osr_bci, blocked);
 	}  else {
 	    if(PrintCacheProfiles) tty->print_cr("Could not find method %s in dictionary.", key);
-	    return 1;
+	    return NULL;
 	}
 }
 

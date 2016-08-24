@@ -3292,6 +3292,7 @@ CompilerThread::CompilerThread(CompileQueue* queue,
   _counters = counters;
   _buffer_blob = NULL;
   _compiler = NULL;
+  _cache_replay_state = NULL;
 
 #ifndef PRODUCT
   _ideal_graph_printer = NULL;

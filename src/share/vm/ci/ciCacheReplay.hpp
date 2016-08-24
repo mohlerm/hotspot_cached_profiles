@@ -95,32 +95,149 @@
 // The difference from replay compilation is that replay inlining
 // is performed during normal java program execution.
 //
+class ciMethodDataRecord {
+public:
+  const char* _klass_name;
+  const char* _method_name;
+  const char* _signature;
 
-class ciCacheReplay : public ResourceObj {
+  int _state;
+  int _current_mileage;
+
+  intptr_t* _data;
+  char*     _orig_data;
+  Klass**   _classes;
+  Method**  _methods;
+  int*      _classes_offsets;
+  int*      _methods_offsets;
+  int       _data_length;
+  int       _orig_data_length;
+  int       _classes_length;
+  int       _methods_length;
+};
+
+class ciMethodRecord {
+public:
+  const char* _klass_name;
+  const char* _method_name;
+  const char* _signature;
+
+  int _instructions_size;
+  int _interpreter_invocation_count;
+  int _interpreter_throwout_count;
+  int _invocation_counter;
+  int _backedge_counter;
+};
+
+class ciInlineRecord {
+public:
+  const char* _klass_name;
+  const char* _method_name;
+  const char* _signature;
+
+  int _inline_depth;
+  int _inline_bci;
+};
+
+class CacheReplayState : public CHeapObj<mtCompiler> {
+ private:
+  char*   _stream;
+  int     _stream_index;
+  Thread* _thread;
+  Handle  _protection_domain;
+  Handle  _loader;
+
+  GrowableArray<ciMethodRecord*>*     _ci_method_records;
+  GrowableArray<ciMethodDataRecord*>* _ci_method_data_records;
+
+  // Use pointer because we may need to return inline records
+  // without destroying them.
+  GrowableArray<ciInlineRecord*>*    _ci_inline_records;
+
+  const char* _error_message;
+
+  char* _bufptr;
+  char* _buffer;
+  int   _buffer_length;
+  int   _buffer_pos;
+
+  // "compile" data
+  ciKlass* _iklass;
+  Method*  _imethod;
+  int      _entry_bci;
+  int      _comp_level;
+  int      _osr_bci;
+  bool     _blocked;
+
+ public:
+  CacheReplayState(char* unparsed_data, TRAPS, int osr_bci, bool blocked);
+  ~CacheReplayState();
+
+  bool had_error();
+    bool can_replay();
+    void report_error(const char* msg);
+    int parse_int(const char* label);
+    intptr_t parse_intptr_t(const char* label);
+    void skip_ws();
+    char* scan_and_terminate(char delim);
+    char* parse_string();
+    char* parse_quoted_string();
+    const char* parse_escaped_string();
+    bool parse_tag_and_count(const char* tag, int& length);
+    char* parse_data(const char* tag, int& length);
+    intptr_t* parse_intptr_data(const char* tag, int& length);
+    Symbol* parse_symbol(TRAPS);
+    Klass* parse_klass(TRAPS);
+    Klass* resolve_klass(const char* klass, TRAPS);
+    Method* parse_method(TRAPS);
+    int get_line(int c);
+    void process(TRAPS);
+    void process_command(TRAPS);
+    bool is_valid_comp_level(int comp_level);
+    void* process_inline(ciMethod* imethod, Method* m, int entry_bci, int comp_level, TRAPS);
+    void process_compile(TRAPS);
+    void process_ciMethod(TRAPS);
+    void process_ciMethodData(TRAPS);
+    void process_instanceKlass(TRAPS);
+    void process_ciInstanceKlass(TRAPS);
+    void process_staticfield(TRAPS);
+    void process_JvmtiExport(TRAPS);
+    ciMethodRecord* new_ciMethodRecord(Method* method);
+    ciMethodRecord* find_ciMethodRecord(Method* method);
+    ciMethodDataRecord* new_ciMethodDataRecord(Method* method);
+    ciMethodDataRecord* find_ciMethodDataRecord(Method* method);
+    ciInlineRecord* new_ciInlineRecord(Method* method, int bci, int depth);
+    ciInlineRecord* find_ciInlineRecord(Method* method, int bci, int depth);
+    ciInlineRecord* find_ciInlineRecord(GrowableArray<ciInlineRecord*>*  records,
+                                        Method* method, int bci, int depth);
+    const char* error_message();
+    void reset();
+    void unescape_string(char* value);
+};
+class ciCacheReplay {
   CI_PACKAGE_ACCESS
 
 //#ifndef PRODUCT
  private:
 
  public:
-  ciCacheReplay();
   // Replay specified cached compilation and do NOT exit VM.
-  int replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked);
+  static CacheReplayState* replay_cached(TRAPS, char* replay_data, int osr_bci, bool blocked);
   // Load inlining decisions from file and use them
   // during compilation of specified method.
   //void* load_inline_data(ciMethod* method, int entry_bci, int comp_level);
 
   // These are used by the CI to fill in the cached data from the
   // replay file when replaying compiles.
-  void initialize(ciMethodData* method);
-  void initialize(ciMethod* method);
+  static  void initialize(CacheReplayState* replay_state, ciMethodData* method);
+  static void initialize(CacheReplayState* replay_state, ciMethod* method);
 
-  bool is_loaded(Method* method);
-  bool is_loaded(Klass* klass); // this is not used currently
+  static bool is_loaded(CacheReplayState* replay_state, Method* method);
+  static bool is_loaded(CacheReplayState* replay_state, Klass* klass); // this is not used currently
 
-  bool should_not_inline(ciMethod* method);
-  bool should_inline(ciMethod* method, int bci, int inline_depth);
-  bool should_not_inline(ciMethod* method, int bci, int inline_depth);
+  static bool should_not_inline(CacheReplayState* replay_state, ciMethod* method);
+  static bool should_inline(CacheReplayState* replay_state, ciMethod* method, int bci, int inline_depth);
+  static bool should_not_inline(CacheReplayState* replay_state, ciMethod* method, int bci, int inline_depth);
 
 //#endif
 };

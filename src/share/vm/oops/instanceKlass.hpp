@@ -113,7 +113,7 @@ class InstanceKlass: public Klass {
   friend class JVMCIVMStructs;
   friend class ClassFileParser;
   friend class CompileReplay;
-  friend class CacheCompileReplay;
+  friend class CacheReplayState;
 
  protected:
   InstanceKlass(const ClassFileParser& parser, unsigned kind);

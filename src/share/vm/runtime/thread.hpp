@@ -73,7 +73,7 @@ class CompileTask;
 class CompileQueue;
 class CompilerCounters;
 class vframeArray;
-class ciCacheReplay;
+class CacheReplayState;
 
 class DeoptResourceMark;
 class jvmtiDeferredLocalVariableSet;
@@ -2019,7 +2019,7 @@ class CompilerThread : public JavaThread {
 
   AbstractCompiler* _compiler;
 
-  ciCacheReplay*     _cache_replay;
+  CacheReplayState*     _cache_replay_state;
 
  public:
 
@@ -2056,11 +2056,9 @@ class CompilerThread : public JavaThread {
   }
 
   // Get/set the thread's cacheReplay data
-  ciCacheReplay*  get_cache_replay()                            { return _cache_replay; }
-  void          init_cache_replay(ciCacheReplay* cache_replay) {
-    // Set once, for good.
-    //assert(_cache_replay == NULL, "set only once");
-    _cache_replay = cache_replay;
+  CacheReplayState*  get_cache_replay_state()                            { return _cache_replay_state; }
+  void          set_cache_replay_state(CacheReplayState* cache_replay_state) {
+    _cache_replay_state = cache_replay_state;
   }
 
 

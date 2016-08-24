@@ -844,12 +844,12 @@ void CompileBroker::compile_method_base(const methodHandle& method,
                                         const methodHandle& hot_method,
                                         int hot_count,
                                         const char* comment,
-                                        Thread* thread) {
+                                        Thread* thread,
+										CacheReplayState* replay_state) {
   // do nothing if compiler thread(s) is not available
   if (!_initialized) {
     return;
   }
-
   guarantee(!method->is_abstract(), "cannot compile abstract methods");
   assert(method->method_holder()->is_instance_klass(),
          "sanity check");
@@ -1032,7 +1032,7 @@ void CompileBroker::compile_method_base(const methodHandle& method,
                                compile_id, method,
                                osr_bci, comp_level,
                                hot_method, hot_count, comment,
-                               blocking);
+                               blocking, replay_state);
   }
 
   if (blocking) {
@@ -1225,13 +1225,14 @@ nmethod* CompileBroker::compile_method(const methodHandle& method, int osr_bci,
 	   method->print_name(tty);
 	   tty->print_cr(" <");
 	 }
-	 //int exit_code = ciCacheProfiles::replay(THREAD,method(),osr_bci,comp_level,false);
-	 CompileBroker::compile_method_base(method, osr_bci, comp_level, hot_method, 0, "replay", THREAD);
-	 //if(exit_code == 0) {
+	 CacheReplayState* replay_state = ciCacheProfiles::replay(THREAD,method(),osr_bci,comp_level,false);
+	 if(replay_state != NULL) {
+	   if(PrintCacheProfiles) { tty->print_cr("got correct replay_state"); }
+	   CompileBroker::compile_method_base(method, osr_bci, comp_level, hot_method, 0, "replay", THREAD, replay_state);
 	   return osr_bci  == InvocationEntryBci ? method->code() : method->lookup_osr_nmethod_for(osr_bci, comp_level, false);
-	 //} // else continue and remove profile (and compile normally)
-	 //tty->print_cr("Bailed out of compilation for %s", method()->name()->as_utf8());
-	 //ciCacheProfiles::clear_cache(method());
+	 } // else continue and remove profile (and compile normally)
+	 tty->print_cr("Bailed out of compilation for %s", method()->name()->as_utf8());
+	 ciCacheProfiles::clear_cache(method());
    }
  }
  // if it's not in the cache or if we're using CacheProfileMode=2, just compile method base
@@ -1241,7 +1242,7 @@ nmethod* CompileBroker::compile_method(const methodHandle& method, int osr_bci,
    //tty->print_cr(" <");
  }
     //bool is_blocking = !directive->BackgroundCompilationOption || CompileTheWorld || ReplayCompiles;
-    compile_method_base(method, osr_bci, comp_level, hot_method, hot_count, comment, THREAD);
+    compile_method_base(method, osr_bci, comp_level, hot_method, hot_count, comment, THREAD, NULL);
   }
 
   // return requested nmethod
@@ -1415,11 +1416,15 @@ CompileTask* CompileBroker::create_compile_task(CompileQueue*       queue,
                                                 const methodHandle& hot_method,
                                                 int                 hot_count,
                                                 const char*         comment,
-                                                bool                blocking) {
+                                                bool                blocking,
+												CacheReplayState*   replay_state) {
   CompileTask* new_task = CompileTask::allocate();
   new_task->initialize(compile_id, method, osr_bci, comp_level,
                        hot_method, hot_count, comment,
                        blocking);
+  if(CacheProfiles && strcmp(comment, "replay") == 0) {
+    new_task->set_cache_replay_state(replay_state);
+  }
   queue->add(new_task);
   return new_task;
 }
@@ -1652,13 +1657,6 @@ void CompileBroker::compiler_thread_loop() {
   }
   CompileLog* log = thread->log();
 
-  // create the cacheReplay object
-  if (CacheProfiles) {
-    CompilerThread* thread = CompilerThread::current();
-    ciCacheReplay* cache_replay = new(ResourceObj::C_HEAP, mtCompiler) ciCacheReplay();
-    thread->init_cache_replay(cache_replay);
-  }
-
   if (log != NULL) {
     log->begin_elem("start_compile_thread name='%s' thread='" UINTX_FORMAT "' process='%d'",
                     thread->name(),
@@ -1704,9 +1702,9 @@ void CompileBroker::compiler_thread_loop() {
     if (method()->number_of_breakpoints() == 0) {
       // Compile the method.
       if ((UseCompiler || AlwaysCompileLoopMethods) && CompileBroker::should_compile_new_jobs()) {
-        // if it's a replay make sure we replay
-    	if(CacheProfiles && strcmp(task->comment(), "replay")==0) {
-          ciCacheProfiles::replay(thread, thread->get_cache_replay(), method(), task->osr_bci(), task->comp_level(), false);
+        // if it's a replay forward the replay information from the task to the thread
+    	if(CacheProfiles && strcmp(task->comment(), "replay") == 0) {
+    	  thread->set_cache_replay_state(task->cache_replay_state());
     	}
         invoke_compiler_on_method(task);
       } else {

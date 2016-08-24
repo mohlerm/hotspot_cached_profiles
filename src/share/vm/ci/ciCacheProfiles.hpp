@@ -26,6 +26,7 @@ ciCacheProfiles.cpp * Copyright (c) 2015, Oracle and/or its affiliates. All righ
 #define SHARE_VM_CI_CICACHEPROFILES_HPP
 
 #include "ci/ciMethod.hpp"
+#include "ci/ciCacheReplay.hpp"
 //#include "libadt/dict.hpp"
 
 // -------------------
@@ -89,7 +90,7 @@ ciCacheProfiles.cpp * Copyright (c) 2015, Oracle and/or its affiliates. All righ
 class ciCacheProfiles : public AllStatic {
   CI_PACKAGE_ACCESS
   friend class ciCacheReplay;
-  friend class CacheCompileReplay;
+  friend class CacheReplayState;
 private:
 
   static bool had_error();
@@ -110,8 +111,8 @@ private:
 
   static const char* error_message();
 
-  static int replay_impl(TRAPS, ciCacheReplay* cache_replay, Method* method, int osr_bci, int comp_level, bool blocked);
-  static int replay_method(TRAPS, ciCacheReplay* cache_replay, Method* method, int osr_bci, int comp_level, bool blocked);
+  static CacheReplayState* replay_impl(TRAPS, Method* method, int osr_bci, int comp_level, bool blocked);
+  static CacheReplayState* replay_method(TRAPS, Method* method, int osr_bci, int comp_level, bool blocked);
 
   static void process_file(TRAPS);
 
@@ -139,7 +140,7 @@ private:
 
 public:
   // Replay specified compilation
-  static int replay(TRAPS, ciCacheReplay* cache_replay, Method* method, int osr_bci, int comp_level, bool blocked);
+  static CacheReplayState* replay(TRAPS, Method* method, int osr_bci, int comp_level, bool blocked);
 
   static void initialize(TRAPS);
 

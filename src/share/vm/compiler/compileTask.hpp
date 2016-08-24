@@ -71,6 +71,7 @@ class CompileTask : public CHeapObj<mtCompiler> {
   int          _hot_count;    // information about its invocation counter
   const char*  _comment;      // more info about the task
   const char*  _failure_reason;
+  CacheReplayState* _cache_replay_state; // set to NULL by constructor, use setter
 
  public:
   CompileTask() {
@@ -129,6 +130,10 @@ class CompileTask : public CHeapObj<mtCompiler> {
   // RedefineClasses support
   void         metadata_do(void f(Metadata*));
   void         mark_on_stack();
+
+  // allow a replay state to be attached
+  void         set_cache_replay_state(CacheReplayState* state)                { _cache_replay_state = state; }
+  CacheReplayState* cache_replay_state() { return _cache_replay_state; }
 
 private:
   static void  print_impl(outputStream* st, Method* method, int compile_id, int comp_level,

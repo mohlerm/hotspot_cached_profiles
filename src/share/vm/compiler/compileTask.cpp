@@ -120,6 +120,9 @@ void CompileTask::initialize(int compile_id,
   }
 
   _next = NULL;
+
+  // initialize the cached replay state with NULL
+  _cache_replay_state = NULL;
 }
 
 // ------------------------------------------------------------------
