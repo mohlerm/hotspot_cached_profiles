@@ -1225,10 +1225,9 @@ nmethod* CompileBroker::compile_method(const methodHandle& method, int osr_bci,
 	   method->print_name(tty);
 	   tty->print_cr(" <");
 	 }
-	 CacheReplayState* replay_state = ciCacheProfiles::replay(THREAD,method(),osr_bci,comp_level,false);
-	 if(replay_state != NULL) {
-	   if(PrintCacheProfiles) { tty->print_cr("got correct replay_state"); }
-	   CompileBroker::compile_method_base(method, osr_bci, comp_level, hot_method, 0, "replay", THREAD, replay_state);
+	 int exit_code = ciCacheProfiles::replay(THREAD,method(),osr_bci,false);
+	 if(exit_code == 0) {
+	   if(PrintCacheProfiles) { tty->print_cr("got correct exit_code"); }
 	   return osr_bci  == InvocationEntryBci ? method->code() : method->lookup_osr_nmethod_for(osr_bci, comp_level, false);
 	 } // else continue and remove profile (and compile normally)
 	 tty->print_cr("Bailed out of compilation for %s", method()->name()->as_utf8());
@@ -1707,6 +1706,10 @@ void CompileBroker::compiler_thread_loop() {
     	  thread->set_cache_replay_state(task->cache_replay_state());
     	}
         invoke_compiler_on_method(task);
+        if(CacheProfiles && strcmp(task->comment(), "replay") == 0) {
+        	FreeHeap(thread->get_cache_replay_state());
+        	thread->set_cache_replay_state(NULL);
+        }
       } else {
         // After compilation is disabled, remove remaining methods from queue
         method->clear_queued_for_compilation();

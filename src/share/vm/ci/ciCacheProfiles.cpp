@@ -209,20 +209,22 @@ const char* ciCacheProfiles::error_message() {
   return _error_message;
 }
 
-CacheReplayState* ciCacheProfiles::replay(TRAPS, Method* method, int osr_bci, int comp_level, bool blocked) {
+int ciCacheProfiles::replay(TRAPS, Method* method, int osr_bci, bool blocked) {
   _thread = THREAD;
-  return replay_impl(THREAD, method, osr_bci, comp_level, blocked);
+  int exit_code = replay_impl(THREAD, method, osr_bci, blocked);
+  return exit_code;
 }
 
-CacheReplayState* ciCacheProfiles::replay_impl(TRAPS, Method* method, int osr_bci, int comp_level, bool blocked) {
+int ciCacheProfiles::replay_impl(TRAPS, Method* method, int osr_bci, bool blocked) {
   HandleMark hm;
   ResourceMark rm;
 
-  CacheReplayState* replay_state = NULL;
+  int exit_code = 0;
   if (can_replay()) {
-	  replay_state = replay_method(THREAD, method, osr_bci, comp_level, blocked);
+    exit_code = replay_method(THREAD, method, osr_bci, blocked);
   } else {
-    return NULL;
+    exit_code = 1;
+    return exit_code;
   }
 
   if (HAS_PENDING_EXCEPTION) {
@@ -232,17 +234,17 @@ CacheReplayState* ciCacheProfiles::replay_impl(TRAPS, Method* method, int osr_bc
     tty->cr();
     java_lang_Throwable::print_stack_trace(throwable, tty);
     tty->cr();
-    replay_state = NULL;
+    exit_code = 2;
   }
 
   if (had_error()) {
     tty->print_cr("Failed on %s", error_message());
-    replay_state = NULL;
+    exit_code = 1;
   }
-  return replay_state;
+  return exit_code;
 }
 
-CacheReplayState* ciCacheProfiles::replay_method(TRAPS, Method* method, int osr_bci, int comp_level, bool blocked) {
+int ciCacheProfiles::replay_method(TRAPS, Method* method, int osr_bci, bool blocked) {
 	char* key = get_key(method);
 	char* rec = (char*) (*_compile_records_dictionary)[key];
 	if(rec!=NULL) {
@@ -250,7 +252,7 @@ CacheReplayState* ciCacheProfiles::replay_method(TRAPS, Method* method, int osr_
 		return ciCacheReplay::replay_cached(THREAD, rec, osr_bci, blocked);
 	}  else {
 	    if(PrintCacheProfiles) tty->print_cr("Could not find method %s in dictionary.", key);
-	    return NULL;
+	    return 1;
 	}
 }
 
